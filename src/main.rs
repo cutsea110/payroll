@@ -24,6 +24,7 @@ trait ChgEmpTx {
 trait ChgEmpNameTx {
     fn new_name(&self) -> &str;
 
+    // NOTE: ChgEmpNameTx が ChgEmpTx を継承できたならこれは override になったはず
     fn change(&self, emp: &mut Emp) {
         emp.set_name(self.new_name());
     }
@@ -32,13 +33,14 @@ trait ChgEmpNameTx {
 struct ChgEmpNameTxImpl {
     name: String,
 }
-
+// ChgEmpNameTxImpl にはこれだけ実装して済ませたい (が、ChgEmpTx も実装しないといけない)
 impl ChgEmpNameTx for ChgEmpNameTxImpl {
     fn new_name(&self) -> &str {
         &self.name
     }
 }
 
+// NOTE: ChgEmpNameTx が ChgEmpTx を継承できたならこれは書かなくて済んだはず
 impl ChgEmpTx for ChgEmpNameTxImpl {
     fn change(&self, emp: &mut Emp) {
         ChgEmpNameTx::change(self, emp);
