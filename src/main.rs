@@ -122,65 +122,74 @@ trait Transaction<Ctx> {
     fn execute(&self, ctx: &mut Ctx);
 }
 
-trait HaveEmployeeBasicProps {
-    fn get_id(&self) -> EmployeeId;
-    fn get_name(&self) -> &str;
-    fn get_address(&self) -> &str;
-}
+#[derive(Debug, Clone)]
+struct AddSalariedEmployee<Db, Ctx>
+where
+    Db: EmployeeDao<Ctx>,
+{
+    db: Db,
+    phantom: std::marker::PhantomData<Ctx>,
 
-trait AddEmployeeTransaction<Ctx>: HaveEmployeeBasicProps + HaveEmployeeDao<Ctx> {
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+    id: EmployeeId,
+    name: String,
+    address: String,
+    salary: f32,
+}
+impl<Db, Ctx> AddSalariedEmployee<Db, Ctx>
+where
+    Db: EmployeeDao<Ctx>,
+{
+    fn new(id: EmployeeId, name: &str, address: &str, salary: f32, db: Db) -> Self {
+        Self {
+            db,
+            phantom: std::marker::PhantomData,
+
+            id,
+            name: name.to_string(),
+            address: address.to_string(),
+            salary,
+        }
+    }
+}
+impl<Db, Ctx> HaveEmployeeDao<Ctx> for AddSalariedEmployee<Db, Ctx>
+where
+    Db: EmployeeDao<Ctx>,
+{
+    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
+        Box::new(&self.db)
+    }
+}
+impl<Db, Ctx> Transaction<Ctx> for AddSalariedEmployee<Db, Ctx>
+where
+    Db: EmployeeDao<Ctx>,
+{
     fn execute(&self, ctx: &mut Ctx) {
         let emp = Employee::new(
-            self.get_id(),
-            self.get_name(),
-            self.get_address(),
-            self.get_classification(),
-            self.get_schedule(),
+            self.id,
+            &self.name,
+            &self.address,
+            Rc::new(RefCell::new(SalariedClassification {
+                salary: self.salary,
+            })),
+            Rc::new(RefCell::new(MonthlySchedule)),
         );
-        self.dao().insert(emp).run(ctx).expect("do transaction");
-    }
-}
-impl<Ctx, T> Transaction<Ctx> for T
-where
-    T: AddEmployeeTransaction<Ctx>,
-{
-    fn execute(&self, ctx: &mut Ctx) {
-        AddEmployeeTransaction::execute(self, ctx);
-    }
-}
-
-trait AddSalariedEmployee<Ctx> {
-    fn get_salary(&self) -> f32;
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(SalariedClassification {
-            salary: self.get_salary(),
-        }))
-    }
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(MonthlySchedule))
-    }
-}
-impl<Ctx, T> AddEmployeeTransaction<Ctx> for T
-where
-    T: AddSalariedEmployee<Ctx> + HaveEmployeeBasicProps + HaveEmployeeDao<Ctx>,
-{
-    // override
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        AddSalariedEmployee::get_classification(self)
-    }
-    // override
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        AddSalariedEmployee::get_schedule(self)
+        let dao = self.dao();
+        dao.insert(emp).run(ctx).expect("add salaried employee");
     }
 }
 
 #[derive(Debug, Clone)]
-struct MockDb {
+struct PayrollDatabase {
     employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
 }
-impl EmployeeDao<()> for MockDb {
+impl PayrollDatabase {
+    fn new() -> Self {
+        Self {
+            employees: Rc::new(RefCell::new(HashMap::new())),
+        }
+    }
+}
+impl EmployeeDao<()> for PayrollDatabase {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<(), Item = EmployeeId, Err = DaoError> {
         tx_rs::with_tx(move |_| {
             let id = emp.id;
@@ -190,49 +199,10 @@ impl EmployeeDao<()> for MockDb {
     }
 }
 
-#[derive(Debug, Clone)]
-struct AddSalariedEmployeeTxMock {
-    db: MockDb,
-
-    emp_id: EmployeeId,
-    name: String,
-    address: String,
-    salary: f32,
-}
-impl HaveEmployeeDao<()> for AddSalariedEmployeeTxMock {
-    fn dao(&self) -> Box<&impl EmployeeDao<()>> {
-        Box::new(&self.db)
-    }
-}
-impl HaveEmployeeBasicProps for AddSalariedEmployeeTxMock {
-    fn get_id(&self) -> EmployeeId {
-        self.emp_id
-    }
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_address(&self) -> &str {
-        &self.address
-    }
-}
-impl AddSalariedEmployee<()> for AddSalariedEmployeeTxMock {
-    fn get_salary(&self) -> f32 {
-        self.salary
-    }
-}
-
 fn main() {
-    let db = MockDb {
-        employees: Rc::new(RefCell::new(HashMap::new())),
-    };
-    let tx = AddSalariedEmployeeTxMock {
-        db: db.clone(),
-        emp_id: 1,
-        name: "Bob".to_string(),
-        address: "123 Main St.".to_string(),
-        salary: 1000.0,
-    };
-    println!("BEFORE: {:#?}", db);
-    Transaction::execute(&tx, &mut ());
-    println!("AFTER: {:#?}", db);
+    let db = PayrollDatabase::new();
+    let tx = AddSalariedEmployee::new(1, "Bob", "123 Main St", 1000.0, db.clone());
+    println!("{:#?}", db);
+    tx.execute(&mut ());
+    println!("{:#?}", db);
 }
