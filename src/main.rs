@@ -38,6 +38,7 @@ enum DaoError {
 
 trait EmployeeDao<Ctx> {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
+    fn delete(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
 }
 trait HaveEmployeeDao<Ctx> {
     fn dao(&self) -> Box<&impl EmployeeDao<Ctx>>;
@@ -336,6 +337,48 @@ where
 }
 
 #[derive(Debug, Clone)]
+struct DelEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    emp_id: EmployeeId,
+
+    dao: T,
+    _phantom: std::marker::PhantomData<Ctx>,
+}
+impl<T, Ctx> DelEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn new(emp_id: EmployeeId, dao: T) -> Self {
+        Self {
+            emp_id,
+            dao,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+impl<T, Ctx> HaveEmployeeDao<Ctx> for DelEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
+        Box::new(&self.dao)
+    }
+}
+impl<T, Ctx> ITransaction<Ctx> for DelEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn execute(&self, ctx: &mut Ctx) {
+        self.dao()
+            .delete(self.emp_id)
+            .run(ctx)
+            .expect("delete employee");
+    }
+}
+
+#[derive(Debug, Clone)]
 struct PayrollDatabase {
     employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
 }
@@ -352,6 +395,12 @@ impl EmployeeDao<()> for PayrollDatabase {
             let emp_id = emp.id;
             self.employees.borrow_mut().insert(emp_id, emp);
             Ok(emp_id)
+        })
+    }
+    fn delete(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<(), Item = (), Err = DaoError> {
+        tx_rs::with_tx(move |_| {
+            self.employees.borrow_mut().remove(&emp_id);
+            Ok(())
         })
     }
 }
@@ -372,6 +421,11 @@ fn main() {
 
     let tx: &dyn ITransaction<()> =
         &AddCommissionedEmployeeTransaction::new(3, "Charlie", "Home", 1000.0, 0.1, db.clone());
+    println!("Before: {:#?}", db);
+    tx.execute(&mut ());
+    println!("After: {:#?}", db);
+
+    let tx: &dyn ITransaction<()> = &DelEmployeeTransaction::new(2, db.clone());
     println!("Before: {:#?}", db);
     tx.execute(&mut ());
     println!("After: {:#?}", db);
