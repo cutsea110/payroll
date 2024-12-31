@@ -1,12 +1,11 @@
 use chrono::NaiveDate;
 use dyn_clone::DynClone;
 use std::{
-    cell::RefCell,
+    cell::{RefCell, RefMut},
     collections::HashMap,
     fmt::Debug,
     ops::RangeInclusive,
     rc::Rc,
-    sync::{Arc, Mutex, MutexGuard},
 };
 use thiserror::Error;
 use tx_rs::Tx;
@@ -180,35 +179,33 @@ where
 
 #[derive(Debug, Clone)]
 struct PayrollDatabase {
-    employees: Arc<Mutex<HashMap<EmployeeId, Employee>>>,
+    employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
 }
 impl PayrollDatabase {
     fn new() -> Self {
         Self {
-            employees: Arc::new(Mutex::new(HashMap::new())),
+            employees: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 }
+type PayrollDbCtx<'a> = RefMut<'a, HashMap<EmployeeId, Employee>>;
 
 #[derive(Debug, Clone)]
 struct PayrollDbDao;
-impl<'a> EmployeeDao<MutexGuard<'a, HashMap<EmployeeId, Employee>>> for PayrollDbDao {
+impl<'a> EmployeeDao<PayrollDbCtx<'a>> for PayrollDbDao {
     fn insert(
         &self,
         emp: Employee,
-    ) -> impl tx_rs::Tx<MutexGuard<'a, HashMap<EmployeeId, Employee>>, Item = EmployeeId, Err = DaoError>
-    {
-        tx_rs::with_tx(
-            move |tx: &mut MutexGuard<'a, HashMap<EmployeeId, Employee>>| {
-                let emp_id = emp.id;
-                if tx.contains_key(&emp_id) {
-                    Err(DaoError::AlreadyExists(emp.id))
-                } else {
-                    tx.insert(emp.id, emp);
-                    Ok(emp_id)
-                }
-            },
-        )
+    ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
+        tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+            let emp_id = emp.id;
+            if tx.contains_key(&emp_id) {
+                Err(DaoError::AlreadyExists(emp.id))
+            } else {
+                tx.insert(emp.id, emp);
+                Ok(emp_id)
+            }
+        })
     }
 }
 
@@ -233,14 +230,12 @@ impl AddSalariedEmployeeImpl {
         }
     }
 }
-impl<'a> HaveEmployeeDao<MutexGuard<'a, HashMap<EmployeeId, Employee>>>
-    for AddSalariedEmployeeImpl
-{
-    fn dao(&self) -> &impl EmployeeDao<MutexGuard<'a, HashMap<EmployeeId, Employee>>> {
+impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
+    fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
         &self.dao
     }
 }
-impl<'a> AddEmployee<MutexGuard<'a, HashMap<EmployeeId, Employee>>> for AddSalariedEmployeeImpl {
+impl<'a> AddEmployee<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
     fn get_emp_id(&self) -> EmployeeId {
         self.id
     }
@@ -280,24 +275,16 @@ impl AddSalariedEmployeeTx {
     }
 }
 
-impl<'a> AddSalariedEmployeeTransaction<'a, MutexGuard<'a, HashMap<EmployeeId, Employee>>>
-    for AddSalariedEmployeeTx
-{
+impl<'a> AddSalariedEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
     type U = AddSalariedEmployeeImpl;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
     where
-        F: FnOnce(
-            &mut Self::U,
-            &mut MutexGuard<'a, HashMap<EmployeeId, Employee>>,
-        ) -> Result<T, UsecaseError>,
+        F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
     {
-        if let Ok(mut tx) = self.db.employees.lock() {
-            let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx)
-        } else {
-            Err(UsecaseError::Dummy)
-        }
+        let mut tx = self.db.employees.borrow_mut();
+        let mut usecase = self.usecase.borrow_mut();
+        f(&mut usecase, &mut tx)
     }
 }
 
