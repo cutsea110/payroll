@@ -43,6 +43,7 @@ enum DaoError {
     InsertFailed(String),
 }
 
+// Dao
 trait EmployeeDao<Ctx> {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
 }
@@ -122,55 +123,52 @@ impl PaymentSchedule for BiweeklySchedule {
     }
 }
 
-trait Transaction<Ctx> {
-    fn execute(&self, ctx: &mut Ctx);
+trait HaveEmployeeDao<Ctx> {
+    fn dao(&self) -> &impl EmployeeDao<Ctx>;
 }
 
-#[derive(Debug, Clone)]
-struct AddSalariedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    emp_id: EmployeeId,
-    name: String,
-    address: String,
-    salary: f32,
-
-    dao: T,
-    _phantom: std::marker::PhantomData<Ctx>,
+#[derive(Debug, Clone, Eq, PartialEq, Error)]
+enum UsecaseError {
+    #[error("dummy error")]
+    Dummy,
 }
-impl<T, Ctx> AddSalariedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn new(emp_id: EmployeeId, name: &str, address: &str, salary: f32, dao: T) -> Self {
-        Self {
-            emp_id,
-            name: name.to_string(),
-            address: address.to_string(),
-            salary,
+// Usecase
+trait AddEmployeeTx<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_name(&self) -> &str;
+    fn get_address(&self) -> &str;
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
 
-            dao,
-            _phantom: std::marker::PhantomData,
-        }
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        self.dao()
+            .insert(Employee::new(
+                self.get_emp_id(),
+                self.get_name(),
+                self.get_address(),
+                self.get_classification(),
+                self.get_schedule(),
+            ))
+            .map_err(|_| UsecaseError::Dummy)
     }
 }
-impl<T, Ctx> Transaction<Ctx> for AddSalariedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn execute(&self, ctx: &mut Ctx) {
-        let emp = Employee::new(
-            self.emp_id,
-            &self.name,
-            &self.address,
-            Rc::new(RefCell::new(SalariedClassification {
-                salary: self.salary,
-            })),
-            Rc::new(RefCell::new(MonthlySchedule)),
-        );
-        trace!("Inserting employee: {:?}", emp);
-        self.dao.insert(emp).run(ctx).expect("insert employee");
+
+// Service
+trait AddSalariedEmployeeTransaction<Ctx> {
+    type U: AddEmployeeTx<Ctx>;
+
+    fn run_tx<T, F>(&mut self, f: F) -> Result<T, UsecaseError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute<'a>(&'a mut self) -> Result<EmployeeId, UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx).map_err(|_| UsecaseError::Dummy))
     }
 }
 
@@ -187,7 +185,7 @@ impl PayrollDatabase {
 }
 impl EmployeeDao<()> for PayrollDatabase {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<(), Item = EmployeeId, Err = DaoError> {
-        tx_rs::with_tx(move |ctx| {
+        tx_rs::with_tx(move |_| {
             let emp_id = emp.id;
             let mut employees = self.employees.borrow_mut();
             if employees.contains_key(&emp_id) {
@@ -199,12 +197,71 @@ impl EmployeeDao<()> for PayrollDatabase {
     }
 }
 
-fn main() {
-    env_logger::init();
+#[derive(Debug, Clone)]
+struct AddSalariedEmployeeTx {
+    id: EmployeeId,
+    name: String,
+    address: String,
+    salary: f32,
+    dao: PayrollDatabase,
+}
+impl AddSalariedEmployeeTx {
+    fn new(
+        id: EmployeeId,
+        name: String,
+        address: String,
+        salary: f32,
+        dao: PayrollDatabase,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            address,
+            salary,
+            dao,
+        }
+    }
+}
+impl HaveEmployeeDao<()> for AddSalariedEmployeeTx {
+    fn dao(&self) -> &impl EmployeeDao<()> {
+        &self.dao
+    }
+}
+impl AddEmployeeTx<()> for AddSalariedEmployeeTx {
+    fn get_emp_id(&self) -> EmployeeId {
+        self.id
+    }
+    fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+    fn get_address(&self) -> &str {
+        self.address.as_str()
+    }
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+        Rc::new(RefCell::new(SalariedClassification {
+            salary: self.salary,
+        }))
+    }
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        Rc::new(RefCell::new(MonthlySchedule))
+    }
+}
+impl AddSalariedEmployeeTransaction<()> for AddSalariedEmployeeTx {
+    type U = Self;
 
+    fn run_tx<T, F>(&mut self, f: F) -> Result<T, UsecaseError>
+    where
+        F: FnOnce(&mut Self::U, &mut ()) -> Result<T, UsecaseError>,
+    {
+        f(self, &mut ())
+    }
+}
+
+fn main() {
     let db = PayrollDatabase::new();
-    let tx = AddSalariedEmployeeTransaction::new(1, "Bob", "Home", 1000.0, db.clone());
-    println!("Before: {:#?}", db);
-    tx.execute(&mut ());
-    println!("After: {:#?}", db);
+    let mut tx =
+        AddSalariedEmployeeTx::new(1, "Bob".to_string(), "Home".to_string(), 1000.0, db.clone());
+    println!("{:#?}", db);
+    AddSalariedEmployeeTransaction::execute(&mut tx).expect("register employee Bob");
+    println!("{:#?}", db);
 }
