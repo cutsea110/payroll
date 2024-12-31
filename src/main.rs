@@ -206,6 +206,66 @@ where
 }
 
 #[derive(Debug, Clone)]
+struct AddHourlyEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    emp_id: EmployeeId,
+    name: String,
+    address: String,
+    hourly_rate: f32,
+
+    dao: T,
+    _phantom: std::marker::PhantomData<Ctx>,
+}
+impl<T, Ctx> AddHourlyEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn new(emp_id: EmployeeId, name: &str, address: &str, hourly_rate: f32, dao: T) -> Self {
+        Self {
+            emp_id,
+            name: name.to_string(),
+            address: address.to_string(),
+            hourly_rate,
+            dao,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+impl<T, Ctx> HaveEmployeeDao<Ctx> for AddHourlyEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
+        Box::new(&self.dao)
+    }
+}
+impl<T, Ctx> IEmployeeCreatable for AddHourlyEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn get_emp_id(&self) -> EmployeeId {
+        self.emp_id
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_address(&self) -> &str {
+        &self.address
+    }
+
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+        Rc::new(RefCell::new(HourlyClassification {
+            hourly_rate: self.hourly_rate,
+        }))
+    }
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        Rc::new(RefCell::new(WeeklySchedule))
+    }
+}
+
+#[derive(Debug, Clone)]
 struct PayrollDatabase {
     employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
 }
@@ -230,6 +290,12 @@ fn main() {
     let db = PayrollDatabase::new();
     let tx: &dyn ITransaction<()> =
         &AddSalariedEmployeeTransaction::new(1, "Bob", "Home", 1000.0, db.clone());
+    println!("Before: {:#?}", db);
+    tx.execute(&mut ());
+    println!("After: {:#?}", db);
+
+    let tx: &dyn ITransaction<()> =
+        &AddHourlyEmployeeTransaction::new(2, "Alice", "Home", 10.0, db.clone());
     println!("Before: {:#?}", db);
     tx.execute(&mut ());
     println!("After: {:#?}", db);
