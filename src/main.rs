@@ -177,6 +177,17 @@ where
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Error)]
+enum ServiceError {
+    #[error("dummy error")]
+    Dummy,
+}
+
+trait Transaction {
+    type T;
+    fn execute(&mut self) -> Result<Self::T, ServiceError>;
+}
+
 #[derive(Debug, Clone)]
 struct PayrollDatabase {
     employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
@@ -288,11 +299,23 @@ impl<'a> AddSalariedEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmp
     }
 }
 
+impl Transaction for AddSalariedEmployeeTx {
+    type T = EmployeeId;
+    fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+        AddSalariedEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+    }
+}
+
 fn main() {
     let db = PayrollDatabase::new();
-    let mut tx =
-        AddSalariedEmployeeTx::new(1, "Bob".to_string(), "Home".to_string(), 1000.0, db.clone());
+    let tx: &mut dyn Transaction<T = _> = &mut AddSalariedEmployeeTx::new(
+        1,
+        "Bob".to_string(),
+        "Home".to_string(),
+        1000.0,
+        db.clone(),
+    );
     println!("{:#?}", db);
-    AddSalariedEmployeeTransaction::execute(&mut tx).expect("register employee Bob");
+    Transaction::execute(tx).expect("register employee Bob");
     println!("{:#?}", db);
 }
