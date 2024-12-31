@@ -118,63 +118,90 @@ impl PaymentSchedule for BiweeklySchedule {
     }
 }
 
-trait Transaction<Ctx> {
+trait ITransaction<Ctx> {
     fn execute(&self, ctx: &mut Ctx);
 }
-
-#[derive(Debug, Clone)]
-struct AddSalariedEmployee<Db, Ctx>
-where
-    Db: EmployeeDao<Ctx>,
-{
-    db: Db,
-    phantom: std::marker::PhantomData<Ctx>,
-
-    id: EmployeeId,
-    name: String,
-    address: String,
-    salary: f32,
+trait IEmployeeCreatable {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_name(&self) -> &str;
+    fn get_address(&self) -> &str;
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
 }
-impl<Db, Ctx> AddSalariedEmployee<Db, Ctx>
-where
-    Db: EmployeeDao<Ctx>,
-{
-    fn new(id: EmployeeId, name: &str, address: &str, salary: f32, db: Db) -> Self {
-        Self {
-            db,
-            phantom: std::marker::PhantomData,
 
-            id,
-            name: name.to_string(),
-            address: address.to_string(),
-            salary,
-        }
-    }
-}
-impl<Db, Ctx> HaveEmployeeDao<Ctx> for AddSalariedEmployee<Db, Ctx>
+impl<T, Ctx> ITransaction<Ctx> for T
 where
-    Db: EmployeeDao<Ctx>,
-{
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
-        Box::new(&self.db)
-    }
-}
-impl<Db, Ctx> Transaction<Ctx> for AddSalariedEmployee<Db, Ctx>
-where
-    Db: EmployeeDao<Ctx>,
+    T: IEmployeeCreatable + HaveEmployeeDao<Ctx>, // a.k.a IAddEmployeeTransaction
 {
     fn execute(&self, ctx: &mut Ctx) {
         let emp = Employee::new(
-            self.id,
-            &self.name,
-            &self.address,
-            Rc::new(RefCell::new(SalariedClassification {
-                salary: self.salary,
-            })),
-            Rc::new(RefCell::new(MonthlySchedule)),
+            self.get_emp_id(),
+            self.get_name(),
+            self.get_address(),
+            self.get_classification(),
+            self.get_schedule(),
         );
-        let dao = self.dao();
-        dao.insert(emp).run(ctx).expect("add salaried employee");
+        self.dao().insert(emp).run(ctx).expect("insert employee");
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AddSalariedEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    emp_id: EmployeeId,
+    name: String,
+    address: String,
+    salary: f32,
+
+    dao: T,
+    _phantom: std::marker::PhantomData<Ctx>,
+}
+impl<T, Ctx> AddSalariedEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn new(emp_id: EmployeeId, name: &str, address: &str, salary: f32, dao: T) -> Self {
+        Self {
+            emp_id,
+            name: name.to_string(),
+            address: address.to_string(),
+            salary,
+            dao,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+impl<T, Ctx> HaveEmployeeDao<Ctx> for AddSalariedEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
+        Box::new(&self.dao)
+    }
+}
+impl<T, Ctx> IEmployeeCreatable for AddSalariedEmployeeTransaction<T, Ctx>
+where
+    T: EmployeeDao<Ctx>,
+{
+    fn get_emp_id(&self) -> EmployeeId {
+        self.emp_id
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_address(&self) -> &str {
+        &self.address
+    }
+
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+        Rc::new(RefCell::new(SalariedClassification {
+            salary: self.salary,
+        }))
+    }
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        Rc::new(RefCell::new(MonthlySchedule))
     }
 }
 
@@ -192,17 +219,18 @@ impl PayrollDatabase {
 impl EmployeeDao<()> for PayrollDatabase {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<(), Item = EmployeeId, Err = DaoError> {
         tx_rs::with_tx(move |_| {
-            let id = emp.id;
-            self.employees.borrow_mut().insert(id, emp);
-            Ok(id)
+            let emp_id = emp.id;
+            self.employees.borrow_mut().insert(emp_id, emp);
+            Ok(emp_id)
         })
     }
 }
 
 fn main() {
     let db = PayrollDatabase::new();
-    let tx = AddSalariedEmployee::new(1, "Bob", "123 Main St", 1000.0, db.clone());
-    println!("{:#?}", db);
+    let tx: &dyn ITransaction<()> =
+        &AddSalariedEmployeeTransaction::new(1, "Bob", "Home", 1000.0, db.clone());
+    println!("Before: {:#?}", db);
     tx.execute(&mut ());
-    println!("{:#?}", db);
+    println!("After: {:#?}", db);
 }
