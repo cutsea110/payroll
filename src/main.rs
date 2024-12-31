@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 use dyn_clone::DynClone;
+use log::trace;
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, ops::RangeInclusive, rc::Rc};
+use thiserror::Error;
 use tx_rs::Tx;
 
 type EmployeeId = u32;
@@ -31,17 +33,18 @@ impl Employee {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Error)]
 enum DaoError {
-    Unknown,
+    #[error("EmployeeId({0}) already exists")]
+    AlreadyExists(EmployeeId),
+    #[error("EmployeeId({0}) not found")]
+    NotFound(EmployeeId),
+    #[error("Insert failed: {0}")]
+    InsertFailed(String),
 }
 
 trait EmployeeDao<Ctx> {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
-    fn delete(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
-}
-trait HaveEmployeeDao<Ctx> {
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>>;
 }
 
 trait PaymentClassification: Debug + DynClone {
@@ -119,31 +122,8 @@ impl PaymentSchedule for BiweeklySchedule {
     }
 }
 
-trait ITransaction<Ctx> {
+trait Transaction<Ctx> {
     fn execute(&self, ctx: &mut Ctx);
-}
-trait IEmployeeCreatable {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_name(&self) -> &str;
-    fn get_address(&self) -> &str;
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
-}
-
-impl<T, Ctx> ITransaction<Ctx> for T
-where
-    T: IEmployeeCreatable + HaveEmployeeDao<Ctx>, // a.k.a IAddEmployeeTransaction
-{
-    fn execute(&self, ctx: &mut Ctx) {
-        let emp = Employee::new(
-            self.get_emp_id(),
-            self.get_name(),
-            self.get_address(),
-            self.get_classification(),
-            self.get_schedule(),
-        );
-        self.dao().insert(emp).run(ctx).expect("insert employee");
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -169,212 +149,28 @@ where
             name: name.to_string(),
             address: address.to_string(),
             salary,
+
             dao,
             _phantom: std::marker::PhantomData,
         }
     }
 }
-impl<T, Ctx> HaveEmployeeDao<Ctx> for AddSalariedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
-        Box::new(&self.dao)
-    }
-}
-impl<T, Ctx> IEmployeeCreatable for AddSalariedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn get_emp_id(&self) -> EmployeeId {
-        self.emp_id
-    }
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_address(&self) -> &str {
-        &self.address
-    }
-
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(SalariedClassification {
-            salary: self.salary,
-        }))
-    }
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(MonthlySchedule))
-    }
-}
-
-#[derive(Debug, Clone)]
-struct AddHourlyEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    emp_id: EmployeeId,
-    name: String,
-    address: String,
-    hourly_rate: f32,
-
-    dao: T,
-    _phantom: std::marker::PhantomData<Ctx>,
-}
-impl<T, Ctx> AddHourlyEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn new(emp_id: EmployeeId, name: &str, address: &str, hourly_rate: f32, dao: T) -> Self {
-        Self {
-            emp_id,
-            name: name.to_string(),
-            address: address.to_string(),
-            hourly_rate,
-            dao,
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
-impl<T, Ctx> HaveEmployeeDao<Ctx> for AddHourlyEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
-        Box::new(&self.dao)
-    }
-}
-impl<T, Ctx> IEmployeeCreatable for AddHourlyEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn get_emp_id(&self) -> EmployeeId {
-        self.emp_id
-    }
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_address(&self) -> &str {
-        &self.address
-    }
-
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(HourlyClassification {
-            hourly_rate: self.hourly_rate,
-        }))
-    }
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(WeeklySchedule))
-    }
-}
-
-#[derive(Debug, Clone)]
-struct AddCommissionedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    emp_id: EmployeeId,
-    name: String,
-    address: String,
-    salary: f32,
-    commission_rate: f32,
-
-    dao: T,
-    _phantom: std::marker::PhantomData<Ctx>,
-}
-impl<T, Ctx> AddCommissionedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn new(
-        emp_id: EmployeeId,
-        name: &str,
-        address: &str,
-        salary: f32,
-        commission_rate: f32,
-        dao: T,
-    ) -> Self {
-        Self {
-            emp_id,
-            name: name.to_string(),
-            address: address.to_string(),
-            salary,
-            commission_rate,
-            dao,
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
-impl<T, Ctx> HaveEmployeeDao<Ctx> for AddCommissionedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
-        Box::new(&self.dao)
-    }
-}
-impl<T, Ctx> IEmployeeCreatable for AddCommissionedEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn get_emp_id(&self) -> EmployeeId {
-        self.emp_id
-    }
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_address(&self) -> &str {
-        &self.address
-    }
-
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(CommissionedClassification {
-            salary: self.salary,
-            commission_rate: self.commission_rate,
-        }))
-    }
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(BiweeklySchedule))
-    }
-}
-
-#[derive(Debug, Clone)]
-struct DelEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    emp_id: EmployeeId,
-
-    dao: T,
-    _phantom: std::marker::PhantomData<Ctx>,
-}
-impl<T, Ctx> DelEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn new(emp_id: EmployeeId, dao: T) -> Self {
-        Self {
-            emp_id,
-            dao,
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
-impl<T, Ctx> HaveEmployeeDao<Ctx> for DelEmployeeTransaction<T, Ctx>
-where
-    T: EmployeeDao<Ctx>,
-{
-    fn dao(&self) -> Box<&impl EmployeeDao<Ctx>> {
-        Box::new(&self.dao)
-    }
-}
-impl<T, Ctx> ITransaction<Ctx> for DelEmployeeTransaction<T, Ctx>
+impl<T, Ctx> Transaction<Ctx> for AddSalariedEmployeeTransaction<T, Ctx>
 where
     T: EmployeeDao<Ctx>,
 {
     fn execute(&self, ctx: &mut Ctx) {
-        self.dao()
-            .delete(self.emp_id)
-            .run(ctx)
-            .expect("delete employee");
+        let emp = Employee::new(
+            self.emp_id,
+            &self.name,
+            &self.address,
+            Rc::new(RefCell::new(SalariedClassification {
+                salary: self.salary,
+            })),
+            Rc::new(RefCell::new(MonthlySchedule)),
+        );
+        trace!("Inserting employee: {:?}", emp);
+        self.dao.insert(emp).run(ctx).expect("insert employee");
     }
 }
 
@@ -391,41 +187,23 @@ impl PayrollDatabase {
 }
 impl EmployeeDao<()> for PayrollDatabase {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<(), Item = EmployeeId, Err = DaoError> {
-        tx_rs::with_tx(move |_| {
+        tx_rs::with_tx(move |ctx| {
             let emp_id = emp.id;
-            self.employees.borrow_mut().insert(emp_id, emp);
+            let mut employees = self.employees.borrow_mut();
+            if employees.contains_key(&emp_id) {
+                return Err(DaoError::AlreadyExists(emp_id));
+            }
+            employees.insert(emp_id, emp);
             Ok(emp_id)
-        })
-    }
-    fn delete(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<(), Item = (), Err = DaoError> {
-        tx_rs::with_tx(move |_| {
-            self.employees.borrow_mut().remove(&emp_id);
-            Ok(())
         })
     }
 }
 
 fn main() {
+    env_logger::init();
+
     let db = PayrollDatabase::new();
-    let tx: &dyn ITransaction<()> =
-        &AddSalariedEmployeeTransaction::new(1, "Bob", "Home", 1000.0, db.clone());
-    println!("Before: {:#?}", db);
-    tx.execute(&mut ());
-    println!("After: {:#?}", db);
-
-    let tx: &dyn ITransaction<()> =
-        &AddHourlyEmployeeTransaction::new(2, "Alice", "Home", 10.0, db.clone());
-    println!("Before: {:#?}", db);
-    tx.execute(&mut ());
-    println!("After: {:#?}", db);
-
-    let tx: &dyn ITransaction<()> =
-        &AddCommissionedEmployeeTransaction::new(3, "Charlie", "Home", 1000.0, 0.1, db.clone());
-    println!("Before: {:#?}", db);
-    tx.execute(&mut ());
-    println!("After: {:#?}", db);
-
-    let tx: &dyn ITransaction<()> = &DelEmployeeTransaction::new(2, db.clone());
+    let tx = AddSalariedEmployeeTransaction::new(1, "Bob", "Home", 1000.0, db.clone());
     println!("Before: {:#?}", db);
     tx.execute(&mut ());
     println!("After: {:#?}", db);
