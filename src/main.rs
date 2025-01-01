@@ -363,6 +363,7 @@ mod dao {
 
     pub trait EmployeeDao<Ctx> {
         fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
+        fn remove(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
         fn fetch(&self, emp_id: EmployeeId)
             -> impl tx_rs::Tx<Ctx, Item = Employee, Err = DaoError>;
         fn update(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
@@ -436,6 +437,18 @@ trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
+trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        self.dao()
+            .remove(self.get_emp_id())
+            .map_err(|_| UsecaseError::Dummy)
+    }
+}
 trait ChgAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
@@ -478,7 +491,6 @@ where
         self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
     }
 }
-
 trait ChgEmployeeTransaction<'a, Ctx>
 where
     Ctx: 'a,
@@ -493,7 +505,20 @@ where
         self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
     }
 }
+trait DelEmployeeTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: DelEmployee<Ctx>;
 
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+    }
+}
 trait ChgAffiliationTransaction<'a, Ctx>
 where
     Ctx: 'a,
@@ -554,6 +579,19 @@ mod payroll_db {
                 } else {
                     tx.employees.insert(emp_id, emp);
                     Ok(emp_id)
+                }
+            })
+        }
+        fn remove(
+            &self,
+            emp_id: EmployeeId,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                if tx.employees.contains_key(&emp_id) {
+                    tx.employees.remove(&emp_id);
+                    Ok(())
+                } else {
+                    Err(DaoError::NotFound(emp_id))
                 }
             })
         }
@@ -706,6 +744,42 @@ mod tx_impl {
         }
     }
     pub use chg_emp_name::*;
+
+    mod del_emp {
+        use std::fmt::Debug;
+
+        use crate::{
+            payroll_db::PayrollDbDao, ChgEmployee, DelEmployee, Employee, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, PayrollDbCtx,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct DelEmployeeImpl {
+            id: EmployeeId,
+
+            dao: PayrollDbDao,
+        }
+        impl DelEmployeeImpl {
+            pub fn new(id: EmployeeId) -> Self {
+                Self {
+                    id,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for DelEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> DelEmployee<PayrollDbCtx<'a>> for DelEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+        }
+    }
+    pub use del_emp::*;
 
     mod chg_hourly_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
@@ -1103,6 +1177,50 @@ mod mock_tx_impl {
     }
     pub use chg_direct_method::*;
 
+    mod del_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgDirectMethodImpl, ChgEmployeeTransaction, DelEmployeeImpl, DelEmployeeTransaction,
+            EmployeeId, PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct DelEmployeeTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<DelEmployeeImpl>,
+        }
+        impl DelEmployeeTx {
+            pub fn new(id: EmployeeId, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(DelEmployeeImpl::new(id)),
+                }
+            }
+        }
+
+        impl<'a> DelEmployeeTransaction<'a, PayrollDbCtx<'a>> for DelEmployeeTx {
+            type U = DelEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for DelEmployeeTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                DelEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use del_emp::*;
+
     mod add_union_member {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1227,5 +1345,9 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut DelUnionMemberTx::new(1, db.clone());
     Transaction::execute(tx).expect("delete union member");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut DelEmployeeTx::new(1, db.clone());
+    Transaction::execute(tx).expect("delete employee");
     println!("{:#?}", db);
 }
