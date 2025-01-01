@@ -156,7 +156,7 @@ trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
 }
 
 // Service
-trait AddSalariedEmployeeTransaction<'a, Ctx>
+trait AddEmployeeTransaction<'a, Ctx>
 where
     Ctx: 'a,
 {
@@ -240,7 +240,7 @@ mod tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx, PayrollDbDao},
-            AddEmployee, AddSalariedEmployeeTransaction, Employee, EmployeeDao, EmployeeId,
+            AddEmployee, AddEmployeeTransaction, Employee, EmployeeDao, EmployeeId,
             HaveEmployeeDao, MonthlySchedule, PaymentClassification, PaymentSchedule,
             SalariedClassification, ServiceError, Transaction, UsecaseError,
         };
@@ -314,7 +314,7 @@ mod tx_impl {
             }
         }
 
-        impl<'a> AddSalariedEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
+        impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
             type U = AddSalariedEmployeeImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
@@ -330,7 +330,7 @@ mod tx_impl {
         impl Transaction for AddSalariedEmployeeTx {
             type T = EmployeeId;
             fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-                AddSalariedEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
