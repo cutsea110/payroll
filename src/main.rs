@@ -62,6 +62,9 @@ mod payroll_domain {
             pub fn set_schedule(&mut self, schedule: Rc<RefCell<dyn PaymentSchedule>>) {
                 self.schedule = schedule;
             }
+            pub fn set_method(&mut self, method: Rc<RefCell<dyn PaymentMethod>>) {
+                self.method = method;
+            }
         }
 
         #[derive(Debug, Clone)]
@@ -523,11 +526,11 @@ mod tx_impl {
             dao: PayrollDbDao,
         }
         impl AddSalariedEmployeeImpl {
-            pub fn new(id: EmployeeId, name: String, address: String, salary: f32) -> Self {
+            pub fn new(id: EmployeeId, name: &str, address: &str, salary: f32) -> Self {
                 Self {
                     id,
-                    name,
-                    address,
+                    name: name.to_string(),
+                    address: address.to_string(),
                     salary,
 
                     dao: PayrollDbDao,
@@ -575,10 +578,10 @@ mod tx_impl {
             dao: PayrollDbDao,
         }
         impl ChgEmployeeNameImpl {
-            pub fn new(id: EmployeeId, new_name: String) -> Self {
+            pub fn new(id: EmployeeId, new_name: &str) -> Self {
                 Self {
                     id,
-                    new_name,
+                    new_name: new_name.to_string(),
 
                     dao: PayrollDbDao,
                 }
@@ -643,6 +646,52 @@ mod tx_impl {
         }
     }
     pub use chg_hourly_emp::*;
+
+    mod chg_direct_method {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgEmployee, DirectMethod, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            PayrollDbCtx, PayrollDbDao,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgDirectMethodImpl {
+            id: EmployeeId,
+            bank: String,
+            account: String,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgDirectMethodImpl {
+            pub fn new(id: EmployeeId, bank: &str, account: &str) -> Self {
+                Self {
+                    id,
+                    bank: bank.to_string(),
+                    account: account.to_string(),
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgDirectMethodImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgDirectMethodImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_method(Rc::new(RefCell::new(DirectMethod::new(
+                    self.bank.as_str(),
+                    self.account.as_str(),
+                ))));
+            }
+        }
+    }
+    pub use chg_direct_method::*;
 }
 use tx_impl::*;
 
@@ -664,8 +713,8 @@ mod mock_tx_impl {
         impl AddSalariedEmployeeTx {
             pub fn new(
                 id: EmployeeId,
-                name: String,
-                address: String,
+                name: &str,
+                address: &str,
                 salary: f32,
                 db: PayrollDatabase,
             ) -> Self {
@@ -713,7 +762,7 @@ mod mock_tx_impl {
             usecase: RefCell<ChgEmployeeNameImpl>,
         }
         impl ChgEmployeeNameTx {
-            pub fn new(id: EmployeeId, new_name: String, db: PayrollDatabase) -> Self {
+            pub fn new(id: EmployeeId, new_name: &str, db: PayrollDatabase) -> Self {
                 Self {
                     db,
                     usecase: RefCell::new(ChgEmployeeNameImpl::new(id, new_name)),
@@ -786,6 +835,50 @@ mod mock_tx_impl {
         }
     }
     pub use chg_hourly_emp::*;
+
+    mod chg_direct_method {
+        use std::cell::RefCell;
+
+        use crate::{
+            ChgDirectMethodImpl, ChgEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgDirectMethodTx {
+            db: PayrollDatabase,
+            usecase: RefCell<ChgDirectMethodImpl>,
+        }
+        impl ChgDirectMethodTx {
+            pub fn new(id: EmployeeId, bank: &str, account: &str, db: PayrollDatabase) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgDirectMethodImpl::new(id, bank, account)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgDirectMethodTx {
+            type U = ChgDirectMethodImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.transaction_employees();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgDirectMethodTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_direct_method::*;
 }
 use mock_tx_impl::*;
 
@@ -793,23 +886,22 @@ fn main() {
     env_logger::init();
 
     let db = PayrollDatabase::new();
-    let tx: &mut dyn Transaction<T = _> = &mut AddSalariedEmployeeTx::new(
-        1,
-        "Bob".to_string(),
-        "Home".to_string(),
-        1000.0,
-        db.clone(),
-    );
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddSalariedEmployeeTx::new(1, "Bob", "Home", 1000.0, db.clone());
     println!("{:#?}", db);
     Transaction::execute(tx).expect("register employee Bob");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> =
-        &mut ChgEmployeeNameTx::new(1, "Alice".to_string(), db.clone());
+    let tx: &mut dyn Transaction<T = _> = &mut ChgEmployeeNameTx::new(1, "Alice", db.clone());
     Transaction::execute(tx).expect("change employee name");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
     Transaction::execute(tx).expect("change employee to hourly");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgDirectMethodTx::new(1, "mufg", "3-14159265", db.clone());
+    Transaction::execute(tx).expect("change employee to direct method");
     println!("{:#?}", db);
 }
