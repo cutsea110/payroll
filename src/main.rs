@@ -1,15 +1,18 @@
-use chrono::NaiveDate;
-use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
 
 mod payroll_domain {
+    mod types {
+        pub type EmployeeId = u32;
+    }
+    pub use types::*;
+
     mod bo {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
-        use crate::{PaymentClassification, PaymentSchedule};
+        use crate::{EmployeeId, PaymentClassification, PaymentSchedule};
 
-        pub type EmployeeId = u32;
         #[derive(Debug, Clone)]
         pub struct Employee {
             id: EmployeeId,
@@ -40,7 +43,7 @@ mod payroll_domain {
             }
         }
     }
-    pub use bo::{Employee, EmployeeId};
+    pub use bo::*;
 
     mod interface {
         mod payment_classification {
@@ -52,13 +55,12 @@ mod payroll_domain {
             }
             dyn_clone::clone_trait_object!(PaymentClassification);
         }
-        pub use payment_classification::PaymentClassification;
+        pub use payment_classification::*;
 
         mod payment_schedule {
             use chrono::NaiveDate;
             use dyn_clone::DynClone;
-            use std::fmt::Debug;
-            use std::ops::RangeInclusive;
+            use std::{fmt::Debug, ops::RangeInclusive};
 
             pub trait PaymentSchedule: Debug + DynClone {
                 fn is_pay_date(&self, date: NaiveDate) -> bool;
@@ -66,94 +68,122 @@ mod payroll_domain {
             }
             dyn_clone::clone_trait_object!(PaymentSchedule);
         }
-        pub use payment_schedule::PaymentSchedule;
+        pub use payment_schedule::*;
     }
-    pub use interface::{PaymentClassification, PaymentSchedule};
+    pub use interface::*;
 }
-use payroll_domain::{Employee, EmployeeId, PaymentClassification, PaymentSchedule};
+use payroll_domain::*;
 
-#[derive(Debug, Clone, Eq, PartialEq, Error)]
-enum DaoError {
-    #[error("EmployeeId({0}) already exists")]
-    AlreadyExists(EmployeeId),
-    #[error("EmployeeId({0}) not found")]
-    NotFound(EmployeeId),
-    #[error("Insert failed: {0}")]
-    InsertFailed(String),
-}
+mod payroll_impl {
+    mod classification {
+        use crate::payroll_domain::PaymentClassification;
 
-// Dao
-trait EmployeeDao<Ctx> {
-    fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
-}
+        #[derive(Debug, Clone)]
+        pub struct SalariedClassification {
+            salary: f32,
+        }
+        impl SalariedClassification {
+            pub fn new(salary: f32) -> Self {
+                Self { salary }
+            }
+        }
 
-#[derive(Debug, Clone)]
-struct SalariedClassification {
-    salary: f32,
-}
-impl PaymentClassification for SalariedClassification {
-    fn calculate_pay(&self) -> f32 {
-        unimplemented!();
-    }
-}
+        impl PaymentClassification for SalariedClassification {
+            fn calculate_pay(&self) -> f32 {
+                unimplemented!();
+            }
+        }
 
-#[derive(Debug, Clone)]
-struct HourlyClassification {
-    hourly_rate: f32,
-}
-impl PaymentClassification for HourlyClassification {
-    fn calculate_pay(&self) -> f32 {
-        unimplemented!();
-    }
-}
+        #[derive(Debug, Clone)]
+        pub struct HourlyClassification {
+            hourly_rate: f32,
+        }
+        impl PaymentClassification for HourlyClassification {
+            fn calculate_pay(&self) -> f32 {
+                unimplemented!();
+            }
+        }
 
-#[derive(Debug, Clone)]
-struct CommissionedClassification {
-    salary: f32,
-    commission_rate: f32,
-}
-impl PaymentClassification for CommissionedClassification {
-    fn calculate_pay(&self) -> f32 {
-        unimplemented!();
+        #[derive(Debug, Clone)]
+        pub struct CommissionedClassification {
+            salary: f32,
+            commission_rate: f32,
+        }
+        impl PaymentClassification for CommissionedClassification {
+            fn calculate_pay(&self) -> f32 {
+                unimplemented!();
+            }
+        }
     }
-}
+    pub use classification::*;
 
-#[derive(Debug, Clone)]
-struct MonthlySchedule;
-impl PaymentSchedule for MonthlySchedule {
-    fn is_pay_date(&self, date: NaiveDate) -> bool {
-        unimplemented!();
-    }
-    fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-        unimplemented!();
-    }
-}
+    mod schedule {
+        use chrono::NaiveDate;
+        use std::{fmt::Debug, ops::RangeInclusive};
 
-#[derive(Debug, Clone)]
-struct WeeklySchedule;
-impl PaymentSchedule for WeeklySchedule {
-    fn is_pay_date(&self, date: NaiveDate) -> bool {
-        unimplemented!();
-    }
-    fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-        unimplemented!();
-    }
-}
+        use crate::payroll_domain::PaymentSchedule;
 
-#[derive(Debug, Clone)]
-struct BiweeklySchedule;
-impl PaymentSchedule for BiweeklySchedule {
-    fn is_pay_date(&self, date: NaiveDate) -> bool {
-        unimplemented!();
-    }
-    fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-        unimplemented!();
-    }
-}
+        #[derive(Debug, Clone)]
+        pub struct MonthlySchedule;
+        impl PaymentSchedule for MonthlySchedule {
+            fn is_pay_date(&self, date: NaiveDate) -> bool {
+                unimplemented!();
+            }
+            fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
+                unimplemented!();
+            }
+        }
 
-trait HaveEmployeeDao<Ctx> {
-    fn dao(&self) -> &impl EmployeeDao<Ctx>;
+        #[derive(Debug, Clone)]
+        pub struct WeeklySchedule;
+        impl PaymentSchedule for WeeklySchedule {
+            fn is_pay_date(&self, date: NaiveDate) -> bool {
+                unimplemented!();
+            }
+            fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
+                unimplemented!();
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct BiweeklySchedule;
+        impl PaymentSchedule for BiweeklySchedule {
+            fn is_pay_date(&self, date: NaiveDate) -> bool {
+                unimplemented!();
+            }
+            fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
+                unimplemented!();
+            }
+        }
+    }
+    pub use schedule::*;
 }
+use payroll_impl::*;
+
+mod dao {
+    use thiserror::Error;
+
+    use crate::payroll_domain::{Employee, EmployeeId};
+
+    #[derive(Debug, Clone, Eq, PartialEq, Error)]
+    pub enum DaoError {
+        #[error("EmployeeId({0}) already exists")]
+        AlreadyExists(EmployeeId),
+        #[error("EmployeeId({0}) not found")]
+        NotFound(EmployeeId),
+        #[error("Insert failed: {0}")]
+        InsertFailed(String),
+    }
+
+    pub trait EmployeeDao<Ctx> {
+        fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
+    }
+
+    pub trait HaveEmployeeDao<Ctx> {
+        fn dao(&self) -> &impl EmployeeDao<Ctx>;
+    }
+}
+use dao::*;
 
 #[derive(Debug, Clone, Eq, PartialEq, Error)]
 enum UsecaseError {
@@ -219,7 +249,7 @@ mod payroll_db {
         rc::Rc,
     };
 
-    use super::{DaoError, Employee, EmployeeDao, EmployeeId};
+    use crate::{DaoError, Employee, EmployeeDao, EmployeeId};
 
     #[derive(Debug, Clone)]
     pub struct PayrollDatabase {
@@ -256,22 +286,16 @@ mod payroll_db {
         }
     }
 }
-use payroll_db::PayrollDatabase;
+use payroll_db::*;
 
 mod tx_impl {
     mod add_salaried_emp {
-        use std::{
-            cell::{RefCell, RefMut},
-            collections::HashMap,
-            fmt::Debug,
-            rc::Rc,
-        };
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::{PayrollDatabase, PayrollDbCtx, PayrollDbDao},
-            AddEmployee, AddEmployeeTransaction, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, MonthlySchedule, PaymentClassification, PaymentSchedule,
-            SalariedClassification, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            AddEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao, MonthlySchedule,
+            PaymentClassification, PaymentSchedule, SalariedClassification,
         };
 
         #[derive(Debug, Clone)]
@@ -284,7 +308,7 @@ mod tx_impl {
             dao: PayrollDbDao,
         }
         impl AddSalariedEmployeeImpl {
-            fn new(id: EmployeeId, name: String, address: String, salary: f32) -> Self {
+            pub fn new(id: EmployeeId, name: String, address: String, salary: f32) -> Self {
                 Self {
                     id,
                     name,
@@ -311,61 +335,67 @@ mod tx_impl {
                 self.address.as_str()
             }
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-                Rc::new(RefCell::new(SalariedClassification {
-                    salary: self.salary,
-                }))
+                Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
             }
             fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
                 Rc::new(RefCell::new(MonthlySchedule))
             }
         }
+    }
+    pub use add_salaried_emp::*;
+}
+use tx_impl::*;
 
-        #[derive(Debug, Clone)]
-        pub struct AddSalariedEmployeeTx {
+mod mock_tx_impl {
+    use std::{cell::RefCell, fmt::Debug};
+
+    use crate::{
+        payroll_db::{PayrollDatabase, PayrollDbCtx},
+        AddEmployeeTransaction, AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction,
+        UsecaseError,
+    };
+
+    #[derive(Debug, Clone)]
+    pub struct AddSalariedEmployeeTx {
+        db: PayrollDatabase,
+        usecase: RefCell<AddSalariedEmployeeImpl>,
+    }
+    impl AddSalariedEmployeeTx {
+        pub fn new(
+            id: EmployeeId,
+            name: String,
+            address: String,
+            salary: f32,
             db: PayrollDatabase,
-            usecase: RefCell<AddSalariedEmployeeImpl>,
-        }
-        impl AddSalariedEmployeeTx {
-            pub fn new(
-                id: EmployeeId,
-                name: String,
-                address: String,
-                salary: f32,
-                db: PayrollDatabase,
-            ) -> Self {
-                Self {
-                    db,
-                    usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
-                }
-            }
-            fn transaction(&self) -> RefMut<HashMap<EmployeeId, Employee>> {
-                self.db.transaction_employees()
-            }
-        }
-
-        impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
-            type U = AddSalariedEmployeeImpl;
-
-            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
-            where
-                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
-            {
-                let mut tx = self.transaction();
-                let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
-            }
-        }
-
-        impl Transaction for AddSalariedEmployeeTx {
-            type T = EmployeeId;
-            fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+        ) -> Self {
+            Self {
+                db,
+                usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
             }
         }
     }
-    pub use add_salaried_emp::AddSalariedEmployeeTx;
+
+    impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
+        type U = AddSalariedEmployeeImpl;
+
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+        {
+            let mut tx = self.db.transaction_employees();
+            let mut usecase = self.usecase.borrow_mut();
+            f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+        }
+    }
+
+    impl Transaction for AddSalariedEmployeeTx {
+        type T = EmployeeId;
+        fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+            AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+        }
+    }
 }
-use tx_impl::AddSalariedEmployeeTx;
+use mock_tx_impl::*;
 
 fn main() {
     let db = PayrollDatabase::new();
