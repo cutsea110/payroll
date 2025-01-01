@@ -98,9 +98,11 @@ mod payroll_domain {
     mod interface {
         mod payment_classification {
             use dyn_clone::DynClone;
-            use std::fmt::Debug;
+            use std::{any::Any, fmt::Debug};
 
             pub trait PaymentClassification: Debug + DynClone {
+                fn as_any(&self) -> &dyn Any;
+                fn as_any_mut(&mut self) -> &mut dyn Any;
                 fn calculate_pay(&self) -> f32;
             }
             dyn_clone::clone_trait_object!(PaymentClassification);
@@ -155,6 +157,8 @@ use payroll_domain::*;
 
 mod payroll_impl {
     mod classification {
+        use std::any::Any;
+
         use crate::payroll_domain::PaymentClassification;
 
         #[derive(Debug, Clone)]
@@ -168,6 +172,12 @@ mod payroll_impl {
         }
 
         impl PaymentClassification for SalariedClassification {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
             fn calculate_pay(&self) -> f32 {
                 unimplemented!();
             }
@@ -183,6 +193,12 @@ mod payroll_impl {
             }
         }
         impl PaymentClassification for HourlyClassification {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
             fn calculate_pay(&self) -> f32 {
                 unimplemented!();
             }
@@ -194,6 +210,12 @@ mod payroll_impl {
             commission_rate: f32,
         }
         impl PaymentClassification for CommissionedClassification {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
             fn calculate_pay(&self) -> f32 {
                 unimplemented!();
             }
