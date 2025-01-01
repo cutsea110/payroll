@@ -1023,6 +1023,45 @@ mod tx_impl {
     }
     pub use chg_commissioned_emp::*;
 
+    mod chg_hold_method {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgEmployee, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, HoldMethod,
+            PayrollDbCtx, PayrollDbDao,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgHoldMethodImpl {
+            id: EmployeeId,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgHoldMethodImpl {
+            pub fn new(id: EmployeeId) -> Self {
+                Self {
+                    id,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgHoldMethodImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgHoldMethodImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_method(Rc::new(RefCell::new(HoldMethod)));
+            }
+        }
+    }
+    pub use chg_hold_method::*;
+
     mod chg_direct_method {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1468,6 +1507,50 @@ mod mock_tx_impl {
     }
     pub use chg_commissioned_emp::*;
 
+    mod chg_hold_method {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgEmployeeTransaction, ChgHoldMethodImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgHoldMethodTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<ChgHoldMethodImpl>,
+        }
+        impl ChgHoldMethodTx {
+            pub fn new(id: EmployeeId, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgHoldMethodImpl::new(id)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgHoldMethodTx {
+            type U = ChgHoldMethodImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgHoldMethodTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_hold_method::*;
+
     mod chg_direct_method {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1693,6 +1776,10 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgDirectMethodTx::new(1, "mufg", "3-14159265", db.clone());
     Transaction::execute(tx).expect("change employee to direct method");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut ChgHoldMethodTx::new(1, db.clone());
+    Transaction::execute(tx).expect("change employee to hold method");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut AddUnionMemberTx::new(7463, 1, 100.0, db.clone());
