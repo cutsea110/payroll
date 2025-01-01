@@ -770,6 +770,61 @@ mod tx_impl {
     }
     pub use add_salaried_emp::*;
 
+    mod add_hourly_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            AddEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao, HourlyClassification,
+            PaymentClassification, PaymentSchedule, WeeklySchedule,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddHourlyEmployeeImpl {
+            id: EmployeeId,
+            name: String,
+            address: String,
+            hourly_rate: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddHourlyEmployeeImpl {
+            pub fn new(id: EmployeeId, name: &str, address: &str, hourly_rate: f32) -> Self {
+                Self {
+                    id,
+                    name: name.to_string(),
+                    address: address.to_string(),
+                    hourly_rate,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddHourlyEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddEmployee<PayrollDbCtx<'a>> for AddHourlyEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn get_name(&self) -> &str {
+                self.name.as_str()
+            }
+            fn get_address(&self) -> &str {
+                self.address.as_str()
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+                Rc::new(RefCell::new(WeeklySchedule))
+            }
+        }
+    }
+    pub use add_hourly_emp::*;
+
     mod chg_emp_name {
         use std::fmt::Debug;
 
@@ -1318,6 +1373,62 @@ mod mock_tx_impl {
         }
     }
     pub use add_salaried_emp::*;
+
+    mod add_hourly_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            AddEmployeeTransaction, AddHourlyEmployeeImpl, AddSalariedEmployeeImpl, EmployeeId,
+            ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddHourlyEmployeeTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddHourlyEmployeeImpl>,
+        }
+        impl AddHourlyEmployeeTx {
+            pub fn new(
+                id: EmployeeId,
+                name: &str,
+                address: &str,
+                hourly_rate: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddHourlyEmployeeImpl::new(
+                        id,
+                        name,
+                        address,
+                        hourly_rate,
+                    )),
+                }
+            }
+        }
+
+        impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddHourlyEmployeeTx {
+            type U = AddHourlyEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for AddHourlyEmployeeTx {
+            type T = EmployeeId;
+            fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_hourly_emp::*;
 
     mod chg_emp_name {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
@@ -1884,5 +1995,10 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut DelEmployeeTx::new(1, db.clone());
     Transaction::execute(tx).expect("delete employee");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddHourlyEmployeeTx::new(2, "Charlie", "Home", 10.0, db.clone());
+    Transaction::execute(tx).expect("register employee Charlie");
     println!("{:#?}", db);
 }
