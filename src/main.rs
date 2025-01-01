@@ -1,12 +1,6 @@
 use chrono::NaiveDate;
 use dyn_clone::DynClone;
-use std::{
-    cell::{RefCell, RefMut},
-    collections::HashMap,
-    fmt::Debug,
-    ops::RangeInclusive,
-    rc::Rc,
-};
+use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
 
@@ -188,134 +182,161 @@ trait Transaction {
     fn execute(&mut self) -> Result<Self::T, ServiceError>;
 }
 
-#[derive(Debug, Clone)]
-struct PayrollDatabase {
-    employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
-}
-impl PayrollDatabase {
-    fn new() -> Self {
-        Self {
-            employees: Rc::new(RefCell::new(HashMap::new())),
-        }
-    }
-}
-type PayrollDbCtx<'a> = RefMut<'a, HashMap<EmployeeId, Employee>>;
-
-#[derive(Debug, Clone)]
-struct PayrollDbDao;
-impl<'a> EmployeeDao<PayrollDbCtx<'a>> for PayrollDbDao {
-    fn insert(
-        &self,
-        emp: Employee,
-    ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
-        tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
-            let emp_id = emp.id;
-            if tx.contains_key(&emp_id) {
-                Err(DaoError::AlreadyExists(emp.id))
-            } else {
-                tx.insert(emp.id, emp);
-                Ok(emp_id)
-            }
-        })
-    }
-}
-
-mod add_salaried_emp {
-    use std::{cell::RefCell, fmt::Debug, rc::Rc};
-
-    use super::{
-        AddEmployee, AddSalariedEmployeeTransaction, EmployeeDao, EmployeeId, HaveEmployeeDao,
-        MonthlySchedule, PaymentClassification, PaymentSchedule, PayrollDatabase, PayrollDbCtx,
-        PayrollDbDao, SalariedClassification, ServiceError, Transaction, UsecaseError,
+mod payroll_db {
+    use std::{
+        cell::{RefCell, RefMut},
+        collections::HashMap,
+        fmt::Debug,
+        rc::Rc,
     };
 
+    use super::{DaoError, Employee, EmployeeDao, EmployeeId};
+
     #[derive(Debug, Clone)]
-    pub struct AddSalariedEmployeeImpl {
-        id: EmployeeId,
-        name: String,
-        address: String,
-        salary: f32,
-
-        dao: PayrollDbDao,
+    pub struct PayrollDatabase {
+        employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
     }
-    impl AddSalariedEmployeeImpl {
-        fn new(id: EmployeeId, name: String, address: String, salary: f32) -> Self {
+    impl PayrollDatabase {
+        pub fn new() -> Self {
             Self {
-                id,
-                name,
-                address,
-                salary,
-
-                dao: PayrollDbDao,
+                employees: Rc::new(RefCell::new(HashMap::new())),
             }
         }
-    }
-    impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
-        fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
-            &self.dao
+        pub fn transaction_employees(&self) -> RefMut<HashMap<EmployeeId, Employee>> {
+            self.employees.borrow_mut()
         }
     }
-    impl<'a> AddEmployee<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
-        fn get_emp_id(&self) -> EmployeeId {
-            self.id
-        }
-        fn get_name(&self) -> &str {
-            self.name.as_str()
-        }
-        fn get_address(&self) -> &str {
-            self.address.as_str()
-        }
-        fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-            Rc::new(RefCell::new(SalariedClassification {
-                salary: self.salary,
-            }))
-        }
-        fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-            Rc::new(RefCell::new(MonthlySchedule))
-        }
-    }
+    pub type PayrollDbCtx<'a> = RefMut<'a, HashMap<EmployeeId, Employee>>;
 
     #[derive(Debug, Clone)]
-    pub struct AddSalariedEmployeeTx {
-        db: PayrollDatabase,
-        usecase: RefCell<AddSalariedEmployeeImpl>,
+    pub struct PayrollDbDao;
+    impl<'a> EmployeeDao<PayrollDbCtx<'a>> for PayrollDbDao {
+        fn insert(
+            &self,
+            emp: Employee,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                let emp_id = emp.id;
+                if tx.contains_key(&emp_id) {
+                    Err(DaoError::AlreadyExists(emp.id))
+                } else {
+                    tx.insert(emp.id, emp);
+                    Ok(emp_id)
+                }
+            })
+        }
     }
-    impl AddSalariedEmployeeTx {
-        pub fn new(
+}
+use payroll_db::PayrollDatabase;
+
+mod tx_impl {
+    mod add_salaried_emp {
+        use std::{
+            cell::{RefCell, RefMut},
+            collections::HashMap,
+            fmt::Debug,
+            rc::Rc,
+        };
+
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx, PayrollDbDao},
+            AddEmployee, AddSalariedEmployeeTransaction, Employee, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, MonthlySchedule, PaymentClassification, PaymentSchedule,
+            SalariedClassification, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddSalariedEmployeeImpl {
             id: EmployeeId,
             name: String,
             address: String,
             salary: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddSalariedEmployeeImpl {
+            fn new(id: EmployeeId, name: String, address: String, salary: f32) -> Self {
+                Self {
+                    id,
+                    name,
+                    address,
+                    salary,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddEmployee<PayrollDbCtx<'a>> for AddSalariedEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn get_name(&self) -> &str {
+                self.name.as_str()
+            }
+            fn get_address(&self) -> &str {
+                self.address.as_str()
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(SalariedClassification {
+                    salary: self.salary,
+                }))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+                Rc::new(RefCell::new(MonthlySchedule))
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct AddSalariedEmployeeTx {
             db: PayrollDatabase,
-        ) -> Self {
-            Self {
-                db,
-                usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
+            usecase: RefCell<AddSalariedEmployeeImpl>,
+        }
+        impl AddSalariedEmployeeTx {
+            pub fn new(
+                id: EmployeeId,
+                name: String,
+                address: String,
+                salary: f32,
+                db: PayrollDatabase,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
+                }
+            }
+            fn transaction(&self) -> RefMut<HashMap<EmployeeId, Employee>> {
+                self.db.transaction_employees()
+            }
+        }
+
+        impl<'a> AddSalariedEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
+            type U = AddSalariedEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.transaction();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx)
+            }
+        }
+
+        impl Transaction for AddSalariedEmployeeTx {
+            type T = EmployeeId;
+            fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+                AddSalariedEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
-
-    impl<'a> AddSalariedEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
-        type U = AddSalariedEmployeeImpl;
-
-        fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
-        where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
-        {
-            let mut tx = self.db.employees.borrow_mut();
-            let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx)
-        }
-    }
-
-    impl Transaction for AddSalariedEmployeeTx {
-        type T = EmployeeId;
-        fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-            AddSalariedEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
-        }
-    }
+    pub use add_salaried_emp::AddSalariedEmployeeTx;
 }
-use add_salaried_emp::AddSalariedEmployeeTx;
+use tx_impl::AddSalariedEmployeeTx;
 
 fn main() {
     let db = PayrollDatabase::new();
