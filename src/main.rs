@@ -1409,6 +1409,50 @@ mod mock_tx_impl {
     }
     pub use chg_emp_address::*;
 
+    mod del_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            DelEmployeeImpl, DelEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct DelEmployeeTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<DelEmployeeImpl>,
+        }
+        impl DelEmployeeTx {
+            pub fn new(id: EmployeeId, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(DelEmployeeImpl::new(id)),
+                }
+            }
+        }
+
+        impl<'a> DelEmployeeTransaction<'a, PayrollDbCtx<'a>> for DelEmployeeTx {
+            type U = DelEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for DelEmployeeTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                DelEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use del_emp::*;
+
     mod chg_salaried_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1686,50 +1730,6 @@ mod mock_tx_impl {
         }
     }
     pub use chg_mail_method::*;
-
-    mod del_emp {
-        use std::{cell::RefCell, fmt::Debug, rc::Rc};
-
-        use crate::{
-            DelEmployeeImpl, DelEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
-        };
-
-        #[derive(Debug, Clone)]
-        pub struct DelEmployeeTx {
-            db: Rc<RefCell<PayrollDatabase>>,
-            usecase: RefCell<DelEmployeeImpl>,
-        }
-        impl DelEmployeeTx {
-            pub fn new(id: EmployeeId, db: Rc<RefCell<PayrollDatabase>>) -> Self {
-                Self {
-                    db,
-                    usecase: RefCell::new(DelEmployeeImpl::new(id)),
-                }
-            }
-        }
-
-        impl<'a> DelEmployeeTransaction<'a, PayrollDbCtx<'a>> for DelEmployeeTx {
-            type U = DelEmployeeImpl;
-
-            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
-            where
-                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
-            {
-                let mut tx = self.db.borrow_mut();
-                let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
-            }
-        }
-
-        impl Transaction for DelEmployeeTx {
-            type T = ();
-            fn execute(&mut self) -> Result<(), ServiceError> {
-                DelEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
-            }
-        }
-    }
-    pub use del_emp::*;
 
     mod add_union_member {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
