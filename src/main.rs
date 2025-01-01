@@ -159,6 +159,8 @@ mod payroll_impl {
     mod classification {
         use std::any::Any;
 
+        use chrono::NaiveDate;
+
         use crate::payroll_domain::PaymentClassification;
 
         #[derive(Debug, Clone)]
@@ -184,12 +186,22 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
+        pub struct TimeCard {
+            date: NaiveDate,
+            hours: f32,
+        }
+
+        #[derive(Debug, Clone)]
         pub struct HourlyClassification {
             hourly_rate: f32,
+            timecards: Vec<TimeCard>,
         }
         impl HourlyClassification {
             pub fn new(hourly_rate: f32) -> Self {
-                Self { hourly_rate }
+                Self {
+                    hourly_rate,
+                    timecards: vec![],
+                }
             }
         }
         impl PaymentClassification for HourlyClassification {
@@ -205,9 +217,25 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
+        pub struct SalesReceipt {
+            date: NaiveDate,
+            amount: f32,
+        }
+
+        #[derive(Debug, Clone)]
         pub struct CommissionedClassification {
             salary: f32,
             commission_rate: f32,
+            sales_receipts: Vec<SalesReceipt>,
+        }
+        impl CommissionedClassification {
+            pub fn new(salary: f32, commission_rate: f32) -> Self {
+                Self {
+                    salary,
+                    commission_rate,
+                    sales_receipts: vec![],
+                }
+            }
         }
         impl PaymentClassification for CommissionedClassification {
             fn as_any(&self) -> &dyn Any {
@@ -316,6 +344,8 @@ mod payroll_impl {
     mod affiliation {
         use std::any::Any;
 
+        use chrono::NaiveDate;
+
         use crate::{Affiliation, MemberId};
 
         #[derive(Debug, Clone)]
@@ -333,13 +363,24 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
+        pub struct ServiceCharge {
+            date: NaiveDate,
+            amount: f32,
+        }
+
+        #[derive(Debug, Clone)]
         pub struct UnionAffiliation {
             member_id: MemberId,
             dues: f32,
+            service_charge: Vec<ServiceCharge>,
         }
         impl UnionAffiliation {
             pub fn new(member_id: MemberId, dues: f32) -> Self {
-                Self { member_id, dues }
+                Self {
+                    member_id,
+                    dues,
+                    service_charge: vec![],
+                }
             }
             pub fn get_member_id(&self) -> MemberId {
                 self.member_id
