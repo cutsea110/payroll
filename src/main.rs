@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, env, fmt::Debug, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
 
@@ -40,6 +40,9 @@ mod payroll_domain {
             }
             pub fn emp_id(&self) -> EmployeeId {
                 self.id
+            }
+            pub fn set_name(&mut self, name: &str) {
+                self.name = name.to_string();
             }
         }
     }
@@ -177,6 +180,9 @@ mod dao {
 
     pub trait EmployeeDao<Ctx> {
         fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
+        fn fetch(&self, emp_id: EmployeeId)
+            -> impl tx_rs::Tx<Ctx, Item = Employee, Err = DaoError>;
+        fn update(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
     }
 
     pub trait HaveEmployeeDao<Ctx> {
@@ -213,6 +219,29 @@ trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
             .map_err(|_| UsecaseError::Dummy)
     }
 }
+trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn change(&self, emp: &mut Employee);
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            self.change(&mut emp);
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
 
 // Service
 trait AddEmployeeTransaction<'a, Ctx>
@@ -226,6 +255,21 @@ where
         F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
 
     fn execute(&'a mut self) -> Result<EmployeeId, ServiceError> {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+
+trait ChgEmployeeTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: ChgEmployee<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
         self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
     }
 }
@@ -281,6 +325,28 @@ mod payroll_db {
                 } else {
                     tx.insert(emp_id, emp);
                     Ok(emp_id)
+                }
+            })
+        }
+        fn fetch(
+            &self,
+            emp_id: EmployeeId,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = Employee, Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                tx.get(&emp_id).cloned().ok_or(DaoError::NotFound(emp_id))
+            })
+        }
+        fn update(
+            &self,
+            emp: Employee,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                let emp_id = emp.emp_id();
+                if tx.contains_key(&emp_id) {
+                    tx.insert(emp_id, emp);
+                    Ok(())
+                } else {
+                    Err(DaoError::NotFound(emp_id))
                 }
             })
         }
@@ -343,61 +409,152 @@ mod tx_impl {
         }
     }
     pub use add_salaried_emp::*;
+
+    mod chg_emp_name {
+        use std::fmt::Debug;
+
+        use crate::{
+            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, PayrollDbCtx,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgEmployeeNameImpl {
+            id: EmployeeId,
+            new_name: String,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgEmployeeNameImpl {
+            pub fn new(id: EmployeeId, new_name: String) -> Self {
+                Self {
+                    id,
+                    new_name,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgEmployeeNameImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgEmployeeNameImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_name(self.new_name.as_str());
+            }
+        }
+    }
+    pub use chg_emp_name::*;
 }
 use tx_impl::*;
 
 mod mock_tx_impl {
-    use std::{cell::RefCell, fmt::Debug};
+    mod add_salaried_emp {
+        use std::{cell::RefCell, fmt::Debug};
 
-    use crate::{
-        payroll_db::{PayrollDatabase, PayrollDbCtx},
-        AddEmployeeTransaction, AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction,
-        UsecaseError,
-    };
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            AddEmployeeTransaction, AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction,
+            UsecaseError,
+        };
 
-    #[derive(Debug, Clone)]
-    pub struct AddSalariedEmployeeTx {
-        db: PayrollDatabase,
-        usecase: RefCell<AddSalariedEmployeeImpl>,
-    }
-    impl AddSalariedEmployeeTx {
-        pub fn new(
-            id: EmployeeId,
-            name: String,
-            address: String,
-            salary: f32,
+        #[derive(Debug, Clone)]
+        pub struct AddSalariedEmployeeTx {
             db: PayrollDatabase,
-        ) -> Self {
-            Self {
-                db,
-                usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
+            usecase: RefCell<AddSalariedEmployeeImpl>,
+        }
+        impl AddSalariedEmployeeTx {
+            pub fn new(
+                id: EmployeeId,
+                name: String,
+                address: String,
+                salary: f32,
+                db: PayrollDatabase,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddSalariedEmployeeImpl::new(id, name, address, salary)),
+                }
+            }
+        }
+
+        impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
+            type U = AddSalariedEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.transaction_employees();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for AddSalariedEmployeeTx {
+            type T = EmployeeId;
+            fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
+    pub use add_salaried_emp::*;
 
-    impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
-        type U = AddSalariedEmployeeImpl;
+    mod chg_emp_name {
+        use std::{cell::RefCell, fmt::Debug};
 
-        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
-        where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
-        {
-            let mut tx = self.db.transaction_employees();
-            let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            ChgEmployeeNameImpl, ChgEmployeeTransaction, EmployeeId, ServiceError, Transaction,
+            UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgEmployeeNameTx {
+            db: PayrollDatabase,
+            usecase: RefCell<ChgEmployeeNameImpl>,
+        }
+        impl ChgEmployeeNameTx {
+            pub fn new(id: EmployeeId, new_name: String, db: PayrollDatabase) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgEmployeeNameImpl::new(id, new_name)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeNameTx {
+            type U = ChgEmployeeNameImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.transaction_employees();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgEmployeeNameTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
         }
     }
-
-    impl Transaction for AddSalariedEmployeeTx {
-        type T = EmployeeId;
-        fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-            AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
-        }
-    }
+    pub use chg_emp_name::*;
 }
 use mock_tx_impl::*;
 
 fn main() {
+    env_logger::init();
+
     let db = PayrollDatabase::new();
     let tx: &mut dyn Transaction<T = _> = &mut AddSalariedEmployeeTx::new(
         1,
@@ -408,5 +565,10 @@ fn main() {
     );
     println!("{:#?}", db);
     Transaction::execute(tx).expect("register employee Bob");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgEmployeeNameTx::new(1, "Alice".to_string(), db.clone());
+    Transaction::execute(tx).expect("change employee name");
     println!("{:#?}", db);
 }
