@@ -749,8 +749,8 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployee, DelEmployee, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, PayrollDbCtx,
+            payroll_db::PayrollDbDao, DelEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            PayrollDbCtx,
         };
 
         #[derive(Debug, Clone)]
@@ -930,8 +930,8 @@ mod tx_impl {
         use tx_rs::Tx;
 
         use crate::{
-            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
-            PayrollDbDao, UnionAffiliation, UsecaseError,
+            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
+            UnionAffiliation, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -1181,8 +1181,8 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgDirectMethodImpl, ChgEmployeeTransaction, DelEmployeeImpl, DelEmployeeTransaction,
-            EmployeeId, PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            DelEmployeeImpl, DelEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
