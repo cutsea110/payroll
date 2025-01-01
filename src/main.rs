@@ -825,6 +825,72 @@ mod tx_impl {
     }
     pub use add_hourly_emp::*;
 
+    mod add_commissioned_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            AddEmployee, BiweeklySchedule, CommissionedClassification, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, PaymentClassification, PaymentSchedule,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddCommissionedEmployeeImpl {
+            id: EmployeeId,
+            name: String,
+            address: String,
+            salary: f32,
+            commission_rate: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddCommissionedEmployeeImpl {
+            pub fn new(
+                id: EmployeeId,
+                name: &str,
+                address: &str,
+                salary: f32,
+                commission_rate: f32,
+            ) -> Self {
+                Self {
+                    id,
+                    name: name.to_string(),
+                    address: address.to_string(),
+                    salary,
+                    commission_rate,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddCommissionedEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddEmployee<PayrollDbCtx<'a>> for AddCommissionedEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn get_name(&self) -> &str {
+                self.name.as_str()
+            }
+            fn get_address(&self) -> &str {
+                self.address.as_str()
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(CommissionedClassification::new(
+                    self.salary,
+                    self.commission_rate,
+                )))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+                Rc::new(RefCell::new(BiweeklySchedule))
+            }
+        }
+    }
+    pub use add_commissioned_emp::*;
+
     mod chg_emp_name {
         use std::fmt::Debug;
 
@@ -1430,6 +1496,64 @@ mod mock_tx_impl {
     }
     pub use add_hourly_emp::*;
 
+    mod add_commissioned_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            AddCommissionedEmployeeImpl, AddEmployeeTransaction, AddHourlyEmployeeImpl,
+            AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddCommissionedEmployeeTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddCommissionedEmployeeImpl>,
+        }
+        impl AddCommissionedEmployeeTx {
+            pub fn new(
+                id: EmployeeId,
+                name: &str,
+                address: &str,
+                salary: f32,
+                commission_rate: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddCommissionedEmployeeImpl::new(
+                        id,
+                        name,
+                        address,
+                        salary,
+                        commission_rate,
+                    )),
+                }
+            }
+        }
+
+        impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddCommissionedEmployeeTx {
+            type U = AddCommissionedEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for AddCommissionedEmployeeTx {
+            type T = EmployeeId;
+            fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
+                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_commissioned_emp::*;
+
     mod chg_emp_name {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -2000,5 +2124,10 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut AddHourlyEmployeeTx::new(2, "Charlie", "Home", 10.0, db.clone());
     Transaction::execute(tx).expect("register employee Charlie");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddCommissionedEmployeeTx::new(3, "David", "Home", 500.0, 0.5, db.clone());
+    Transaction::execute(tx).expect("register employee David");
     println!("{:#?}", db);
 }
