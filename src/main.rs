@@ -888,6 +888,50 @@ mod tx_impl {
     }
     pub use del_emp::*;
 
+    mod chg_salaried_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, MonthlySchedule, PayrollDbCtx, SalariedClassification,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgSalariedEmployeeImpl {
+            id: EmployeeId,
+            salary: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgSalariedEmployeeImpl {
+            pub fn new(id: EmployeeId, salary: f32) -> Self {
+                Self {
+                    id,
+                    salary,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgSalariedEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgSalariedEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_classification(Rc::new(RefCell::new(SalariedClassification::new(
+                    self.salary,
+                ))));
+                emp.set_schedule(Rc::new(RefCell::new(MonthlySchedule)));
+            }
+        }
+    }
+    pub use chg_salaried_emp::*;
+
     mod chg_hourly_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1236,6 +1280,50 @@ mod mock_tx_impl {
     }
     pub use chg_emp_address::*;
 
+    mod chg_salaried_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgEmployeeTransaction, ChgHourlyEmployeeImpl, ChgSalariedEmployeeImpl, EmployeeId,
+            PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgSalariedClassificationTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<ChgSalariedEmployeeImpl>,
+        }
+        impl ChgSalariedClassificationTx {
+            pub fn new(id: EmployeeId, salary: f32, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgSalariedEmployeeImpl::new(id, salary)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgSalariedClassificationTx {
+            type U = ChgSalariedEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgSalariedClassificationTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_salaried_emp::*;
+
     mod chg_hourly_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1490,6 +1578,11 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
     Transaction::execute(tx).expect("change employee to hourly");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgSalariedClassificationTx::new(1, 1020.0, db.clone());
+    Transaction::execute(tx).expect("change employee to salaried");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
