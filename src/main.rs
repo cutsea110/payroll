@@ -1108,6 +1108,49 @@ mod tx_impl {
     }
     pub use chg_direct_method::*;
 
+    mod chg_mail_method {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgEmployee, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, MailMethod,
+            PayrollDbCtx, PayrollDbDao,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgMailMethodImpl {
+            id: EmployeeId,
+            address: String,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgMailMethodImpl {
+            pub fn new(id: EmployeeId, address: &str) -> Self {
+                Self {
+                    id,
+                    address: address.to_string(),
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgMailMethodImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgMailMethodImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_method(Rc::new(RefCell::new(MailMethod::new(
+                    self.address.as_str(),
+                ))));
+            }
+        }
+    }
+    pub use chg_mail_method::*;
+
     mod add_union_member {
         use tx_rs::Tx;
 
@@ -1600,6 +1643,50 @@ mod mock_tx_impl {
     }
     pub use chg_direct_method::*;
 
+    mod chg_mail_method {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgDirectMethodImpl, ChgEmployeeTransaction, ChgMailMethodImpl, EmployeeId,
+            PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgMailMethodTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<ChgMailMethodImpl>,
+        }
+        impl ChgMailMethodTx {
+            pub fn new(id: EmployeeId, address: &str, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgMailMethodImpl::new(id, address)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgMailMethodTx {
+            type U = ChgMailMethodImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgMailMethodTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_mail_method::*;
+
     mod del_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1776,6 +1863,11 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgDirectMethodTx::new(1, "mufg", "3-14159265", db.clone());
     Transaction::execute(tx).expect("change employee to direct method");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgMailMethodTx::new(1, "alice@gmail.com", db.clone());
+    Transaction::execute(tx).expect("change employee to mail method");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHoldMethodTx::new(1, db.clone());
