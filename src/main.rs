@@ -12,7 +12,9 @@ mod payroll_domain {
         use chrono::NaiveDate;
         use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 
-        use crate::{EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule};
+        use crate::{
+            Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
+        };
 
         #[derive(Debug, Clone)]
         pub struct Employee {
@@ -23,6 +25,7 @@ mod payroll_domain {
             classification: Rc<RefCell<dyn PaymentClassification>>,
             schedule: Rc<RefCell<dyn PaymentSchedule>>,
             method: Rc<RefCell<dyn PaymentMethod>>,
+            affiliation: Rc<RefCell<dyn Affiliation>>,
         }
         impl Employee {
             pub fn new(
@@ -32,6 +35,7 @@ mod payroll_domain {
                 classification: Rc<RefCell<dyn PaymentClassification>>,
                 schedule: Rc<RefCell<dyn PaymentSchedule>>,
                 method: Rc<RefCell<dyn PaymentMethod>>,
+                affiliation: Rc<RefCell<dyn Affiliation>>,
             ) -> Self {
                 Self {
                     id,
@@ -40,6 +44,7 @@ mod payroll_domain {
                     classification,
                     schedule,
                     method,
+                    affiliation,
                 }
             }
             pub fn emp_id(&self) -> EmployeeId {
@@ -118,6 +123,19 @@ mod payroll_domain {
             dyn_clone::clone_trait_object!(PaymentMethod);
         }
         pub use payment_method::*;
+
+        mod affiliation {
+            use dyn_clone::DynClone;
+            use std::fmt::Debug;
+
+            pub trait Affiliation: Debug + DynClone {
+                fn calculate_deductions(&self) -> f32 {
+                    0.0
+                }
+            }
+            dyn_clone::clone_trait_object!(Affiliation);
+        }
+        pub use affiliation::*;
     }
     pub use interface::*;
 }
@@ -260,6 +278,35 @@ mod payroll_impl {
         }
     }
     pub use method::*;
+
+    mod affiliation {
+        use crate::Affiliation;
+
+        #[derive(Debug, Clone)]
+        pub struct NoAffiliation;
+        impl Affiliation for NoAffiliation {
+            fn calculate_deductions(&self) -> f32 {
+                unimplemented!();
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct UnionAffiliation {
+            member_id: i32,
+            dues: f32,
+        }
+        impl UnionAffiliation {
+            pub fn new(member_id: i32, dues: f32) -> Self {
+                Self { member_id, dues }
+            }
+        }
+        impl Affiliation for UnionAffiliation {
+            fn calculate_deductions(&self) -> f32 {
+                unimplemented!();
+            }
+        }
+    }
+    pub use affiliation::*;
 }
 use payroll_impl::*;
 
@@ -316,6 +363,7 @@ trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
                 self.get_classification(),
                 self.get_schedule(),
                 Rc::new(RefCell::new(HoldMethod)),
+                Rc::new(RefCell::new(NoAffiliation)),
             ))
             .map_err(|_| UsecaseError::Dummy)
     }
