@@ -66,6 +66,9 @@ mod payroll_domain {
             pub fn set_method(&mut self, method: Rc<RefCell<dyn PaymentMethod>>) {
                 self.method = method;
             }
+            pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
+                self.affiliation = affiliation;
+            }
         }
 
         #[derive(Debug, Clone)]
@@ -284,7 +287,7 @@ mod payroll_impl {
     pub use method::*;
 
     mod affiliation {
-        use crate::Affiliation;
+        use crate::{Affiliation, MemberId};
 
         #[derive(Debug, Clone)]
         pub struct NoAffiliation;
@@ -296,11 +299,11 @@ mod payroll_impl {
 
         #[derive(Debug, Clone)]
         pub struct UnionAffiliation {
-            member_id: i32,
+            member_id: MemberId,
             dues: f32,
         }
         impl UnionAffiliation {
-            pub fn new(member_id: i32, dues: f32) -> Self {
+            pub fn new(member_id: MemberId, dues: f32) -> Self {
                 Self { member_id, dues }
             }
         }
@@ -330,6 +333,10 @@ mod dao {
         NotFound(EmployeeId),
         #[error("Insert failed: {0}")]
         InsertFailed(String),
+        #[error("MemberId({0}) is already a union member of EmployeeId({1})")]
+        AlreadyUnionMember(MemberId, EmployeeId),
+        #[error("MemberId({0}) is not a union member")]
+        NotYetUnionMember(MemberId),
     }
 
     pub trait EmployeeDao<Ctx> {
@@ -407,6 +414,32 @@ trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
+trait ChgAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
+    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError>;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            self.record_membership(ctx)?;
+
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            emp.set_affiliation(self.get_affiliation());
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
 
 // Service
 trait AddEmployeeTransaction<'a, Ctx>
@@ -436,6 +469,21 @@ where
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
         self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+
+trait ChgAffiliationTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: ChgAffiliation<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
     }
 }
 
@@ -517,13 +565,24 @@ mod payroll_db {
             member_id: MemberId,
             emp_id: EmployeeId,
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
-            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| Ok(()))
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                if tx.union_members.contains_key(&member_id) {
+                    return Err(DaoError::AlreadyUnionMember(member_id, emp_id));
+                }
+                tx.union_members.insert(member_id, emp_id);
+                Ok(())
+            })
         }
         fn remove_union_member(
             &self,
             member_id: MemberId,
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
-            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| Ok(()))
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                if tx.union_members.remove(&member_id).is_none() {
+                    return Err(DaoError::NotYetUnionMember(member_id));
+                }
+                Ok(())
+            })
         }
     }
 }
@@ -715,6 +774,61 @@ mod tx_impl {
         }
     }
     pub use chg_direct_method::*;
+
+    mod add_union_member {
+        use tx_rs::Tx;
+
+        use crate::{
+            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
+            PayrollDbDao, UnionAffiliation, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddUnionMemberImpl {
+            member_id: MemberId,
+            emp_id: EmployeeId,
+            dues: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddUnionMemberImpl {
+            pub fn new(member_id: MemberId, emp_id: EmployeeId, dues: f32) -> Self {
+                Self {
+                    member_id,
+                    emp_id,
+                    dues,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddUnionMemberImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgAffiliation<PayrollDbCtx<'a>> for AddUnionMemberImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.emp_id
+            }
+            fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn crate::Affiliation>> {
+                std::rc::Rc::new(std::cell::RefCell::new(UnionAffiliation::new(
+                    self.member_id,
+                    self.dues,
+                )))
+            }
+            fn record_membership(
+                &self,
+                ctx: &mut PayrollDbCtx<'a>,
+            ) -> Result<(), crate::UsecaseError> {
+                self.dao()
+                    .add_union_member(self.member_id, self.emp_id)
+                    .run(ctx)
+                    .map_err(|e| UsecaseError::Dummy)
+            }
+        }
+    }
+    pub use add_union_member::*;
 }
 use tx_impl::*;
 
@@ -907,6 +1021,55 @@ mod mock_tx_impl {
         }
     }
     pub use chg_direct_method::*;
+
+    mod add_union_member {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            AddUnionMemberImpl, ChgAffiliationTransaction, EmployeeId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddUnionMemberTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddUnionMemberImpl>,
+        }
+        impl AddUnionMemberTx {
+            pub fn new(
+                member_id: EmployeeId,
+                emp_id: EmployeeId,
+                dues: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddUnionMemberImpl::new(member_id, emp_id, dues)),
+                }
+            }
+        }
+
+        impl<'a> ChgAffiliationTransaction<'a, PayrollDbCtx<'a>> for AddUnionMemberTx {
+            type U = AddUnionMemberImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for AddUnionMemberTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_union_member::*;
 }
 use mock_tx_impl::*;
 
@@ -931,5 +1094,9 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgDirectMethodTx::new(1, "mufg", "3-14159265", db.clone());
     Transaction::execute(tx).expect("change employee to direct method");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut AddUnionMemberTx::new(7463, 1, 100.0, db.clone());
+    Transaction::execute(tx).expect("add union member");
     println!("{:#?}", db);
 }
