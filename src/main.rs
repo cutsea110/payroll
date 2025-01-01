@@ -54,6 +54,9 @@ mod payroll_domain {
             pub fn set_name(&mut self, name: &str) {
                 self.name = name.to_string();
             }
+            pub fn set_address(&mut self, address: &str) {
+                self.address = address.to_string();
+            }
             pub fn set_classification(
                 &mut self,
                 classification: Rc<RefCell<dyn PaymentClassification>>,
@@ -808,6 +811,47 @@ mod tx_impl {
     }
     pub use chg_emp_name::*;
 
+    mod chg_emp_address {
+        use std::fmt::Debug;
+
+        use crate::{
+            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
+            HaveEmployeeDao, PayrollDbCtx,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgEmployeeAddressImpl {
+            id: EmployeeId,
+            new_address: String,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgEmployeeAddressImpl {
+            pub fn new(id: EmployeeId, new_address: &str) -> Self {
+                Self {
+                    id,
+                    new_address: new_address.to_string(),
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgEmployeeAddressImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgEmployeeAddressImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_address(self.new_address.as_str());
+            }
+        }
+    }
+    pub use chg_emp_address::*;
+
     mod del_emp {
         use std::fmt::Debug;
 
@@ -1147,6 +1191,51 @@ mod mock_tx_impl {
     }
     pub use chg_emp_name::*;
 
+    mod chg_emp_address {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            ChgEmployeeAddressImpl, ChgEmployeeTransaction, EmployeeId, ServiceError, Transaction,
+            UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgEmployeeAddressTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<ChgEmployeeAddressImpl>,
+        }
+        impl ChgEmployeeAddressTx {
+            pub fn new(id: EmployeeId, new_name: &str, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgEmployeeAddressImpl::new(id, new_name)),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeAddressTx {
+            type U = ChgEmployeeAddressImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgEmployeeAddressTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_emp_address::*;
+
     mod chg_hourly_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1383,6 +1472,7 @@ fn main() {
     env_logger::init();
 
     let db = Rc::new(RefCell::new(PayrollDatabase::new()));
+
     let tx: &mut dyn Transaction<T = _> =
         &mut AddSalariedEmployeeTx::new(1, "Bob", "Home", 1000.0, db.clone());
     println!("{:#?}", db);
@@ -1391,6 +1481,11 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgEmployeeNameTx::new(1, "Alice", db.clone());
     Transaction::execute(tx).expect("change employee name");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgEmployeeAddressTx::new(1, "123 Main St.", db.clone());
+    Transaction::execute(tx).expect("change employee address");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
