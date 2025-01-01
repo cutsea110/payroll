@@ -215,8 +215,8 @@ mod payroll_impl {
                     timecards: vec![],
                 }
             }
-            pub fn add_timecard(&mut self, timecard: TimeCard) {
-                self.timecards.push(timecard);
+            pub fn add_timecard(&mut self, tc: TimeCard) {
+                self.timecards.push(tc);
             }
         }
         impl PaymentClassification for HourlyClassification {
@@ -236,6 +236,11 @@ mod payroll_impl {
             date: NaiveDate,
             amount: f32,
         }
+        impl SalesReceipt {
+            pub fn new(date: NaiveDate, amount: f32) -> Self {
+                Self { date, amount }
+            }
+        }
 
         #[derive(Debug, Clone)]
         pub struct CommissionedClassification {
@@ -250,6 +255,9 @@ mod payroll_impl {
                     commission_rate,
                     sales_receipts: vec![],
                 }
+            }
+            pub fn add_sales_receipt(&mut self, sr: SalesReceipt) {
+                self.sales_receipts.push(sr);
             }
         }
         impl PaymentClassification for CommissionedClassification {
@@ -583,6 +591,35 @@ trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
     }
 }
 
+trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_date(&self) -> NaiveDate;
+    fn get_amount(&self) -> f32;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp = self
+                .dao()
+                .fetch(self.get_emp_id())
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)?;
+            emp.get_classification()
+                .borrow_mut()
+                .as_any_mut()
+                .downcast_mut::<CommissionedClassification>()
+                .ok_or(UsecaseError::Dummy)?
+                .add_sales_receipt(SalesReceipt::new(self.get_date(), self.get_amount()));
+            self.dao()
+                .update(emp)
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)
+        })
+    }
+}
+
 // Service
 trait AddEmployeeTransaction<'a, Ctx>
 where
@@ -645,6 +682,20 @@ where
     Ctx: 'a,
 {
     type U: AddTimeCard<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait AddSalesReceiptTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: AddSalesReceipt<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1484,6 +1535,50 @@ mod tx_impl {
         }
     }
     pub use timecard::*;
+
+    mod sales_receipt {
+        use chrono::NaiveDate;
+
+        use crate::{
+            AddSalesReceipt, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddSalesReceiptImpl {
+            emp_id: EmployeeId,
+            date: NaiveDate,
+            amount: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddSalesReceiptImpl {
+            pub fn new(emp_id: EmployeeId, date: NaiveDate, amount: f32) -> Self {
+                Self {
+                    emp_id,
+                    date,
+                    amount,
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddSalesReceiptImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddSalesReceipt<PayrollDbCtx<'a>> for AddSalesReceiptImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.emp_id
+            }
+            fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            fn get_amount(&self) -> f32 {
+                self.amount
+            }
+        }
+    }
+    pub use sales_receipt::*;
 }
 use tx_impl::*;
 
@@ -2207,6 +2302,55 @@ mod mock_tx_impl {
         }
     }
     pub use add_timecard::*;
+
+    mod add_sales_receipt {
+        use chrono::NaiveDate;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            AddSalesReceiptImpl, AddSalesReceiptTransaction, EmployeeId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddSalesReceiptTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddSalesReceiptImpl>,
+        }
+        impl AddSalesReceiptTx {
+            pub fn new(
+                emp_id: EmployeeId,
+                date: NaiveDate,
+                amount: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddSalesReceiptImpl::new(emp_id, date, amount)),
+                }
+            }
+        }
+
+        impl<'a> AddSalesReceiptTransaction<'a, PayrollDbCtx<'a>> for AddSalesReceiptTx {
+            type U = AddSalesReceiptImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+        impl Transaction for AddSalesReceiptTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                AddSalesReceiptTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_sales_receipt::*;
 }
 use mock_tx_impl::*;
 
@@ -2246,6 +2390,15 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgCommissionedClassificationTx::new(1, 510.0, 0.75, db.clone());
     Transaction::execute(tx).expect("change employee to commissioned");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut AddSalesReceiptTx::new(
+        1,
+        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+        35980.0,
+        db.clone(),
+    );
+    Transaction::execute(tx).expect("add sales receipt");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
