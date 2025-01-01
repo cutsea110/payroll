@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
@@ -56,6 +57,9 @@ mod payroll_domain {
             }
             pub fn set_address(&mut self, address: &str) {
                 self.address = address.to_string();
+            }
+            pub fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                self.classification.clone()
             }
             pub fn set_classification(
                 &mut self,
@@ -193,6 +197,11 @@ mod payroll_impl {
             date: NaiveDate,
             hours: f32,
         }
+        impl TimeCard {
+            pub fn new(date: NaiveDate, hours: f32) -> Self {
+                Self { date, hours }
+            }
+        }
 
         #[derive(Debug, Clone)]
         pub struct HourlyClassification {
@@ -205,6 +214,9 @@ mod payroll_impl {
                     hourly_rate,
                     timecards: vec![],
                 }
+            }
+            pub fn add_timecard(&mut self, timecard: TimeCard) {
+                self.timecards.push(timecard);
             }
         }
         impl PaymentClassification for HourlyClassification {
@@ -403,7 +415,7 @@ mod payroll_impl {
     }
     pub use affiliation::*;
 }
-use payroll_impl::*;
+use payroll_impl::{TimeCard, *};
 
 mod dao {
     use thiserror::Error;
@@ -542,6 +554,35 @@ trait ChgAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
     }
 }
 
+trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_date(&self) -> NaiveDate;
+    fn get_hours(&self) -> f32;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp = self
+                .dao()
+                .fetch(self.get_emp_id())
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)?;
+            emp.get_classification()
+                .borrow_mut()
+                .as_any_mut()
+                .downcast_mut::<HourlyClassification>()
+                .ok_or(UsecaseError::Dummy)?
+                .add_timecard(TimeCard::new(self.get_date(), self.get_hours()));
+            self.dao()
+                .update(emp)
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)
+        })
+    }
+}
+
 // Service
 trait AddEmployeeTransaction<'a, Ctx>
 where
@@ -590,6 +631,20 @@ where
     Ctx: 'a,
 {
     type U: ChgAffiliation<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait AddTimeCardTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: AddTimeCard<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1385,6 +1440,50 @@ mod tx_impl {
         }
     }
     pub use del_union_member::*;
+
+    mod timecard {
+        use chrono::NaiveDate;
+
+        use crate::{
+            AddTimeCard, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddTimecardImpl {
+            emp_id: EmployeeId,
+            date: NaiveDate,
+            hours: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl AddTimecardImpl {
+            pub fn new(emp_id: EmployeeId, date: NaiveDate, hours: f32) -> Self {
+                Self {
+                    emp_id,
+                    date,
+                    hours,
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddTimecardImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddTimeCard<PayrollDbCtx<'a>> for AddTimecardImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.emp_id
+            }
+            fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            fn get_hours(&self) -> f32 {
+                self.hours
+            }
+        }
+    }
+    pub use timecard::*;
 }
 use tx_impl::*;
 
@@ -1501,8 +1600,8 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            AddCommissionedEmployeeImpl, AddEmployeeTransaction, AddHourlyEmployeeImpl,
-            AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction, UsecaseError,
+            AddCommissionedEmployeeImpl, AddEmployeeTransaction, EmployeeId, ServiceError,
+            Transaction, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2058,6 +2157,56 @@ mod mock_tx_impl {
         }
     }
     pub use del_union_member::*;
+
+    mod add_timecard {
+        use chrono::NaiveDate;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            AddTimeCardTransaction, AddTimecardImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddTimecardTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddTimecardImpl>,
+        }
+        impl AddTimecardTx {
+            pub fn new(
+                emp_id: EmployeeId,
+                date: NaiveDate,
+                hours: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddTimecardImpl::new(emp_id, date, hours)),
+                }
+            }
+        }
+
+        impl<'a> AddTimeCardTransaction<'a, PayrollDbCtx<'a>> for AddTimecardTx {
+            type U = AddTimecardImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for AddTimecardTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                AddTimeCardTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_timecard::*;
 }
 use mock_tx_impl::*;
 
@@ -2083,6 +2232,15 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
     Transaction::execute(tx).expect("change employee to hourly");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut AddTimecardTx::new(
+        1,
+        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+        8.0,
+        db.clone(),
+    );
+    Transaction::execute(tx).expect("add timecard");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
