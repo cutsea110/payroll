@@ -1,36 +1,76 @@
 use chrono::NaiveDate;
-use dyn_clone::DynClone;
 use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
 
-type EmployeeId = u32;
-#[derive(Debug, Clone)]
-struct Employee {
-    id: EmployeeId,
-    name: String,
-    address: String,
+mod payroll_domain {
+    mod bo {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
-    classification: Rc<RefCell<dyn PaymentClassification>>,
-    schedule: Rc<RefCell<dyn PaymentSchedule>>,
-}
-impl Employee {
-    fn new(
-        id: EmployeeId,
-        name: &str,
-        address: &str,
-        classification: Rc<RefCell<dyn PaymentClassification>>,
-        schedule: Rc<RefCell<dyn PaymentSchedule>>,
-    ) -> Self {
-        Self {
-            id,
-            name: name.to_string(),
-            address: address.to_string(),
-            classification,
-            schedule,
+        use crate::{PaymentClassification, PaymentSchedule};
+
+        pub type EmployeeId = u32;
+        #[derive(Debug, Clone)]
+        pub struct Employee {
+            id: EmployeeId,
+            name: String,
+            address: String,
+
+            classification: Rc<RefCell<dyn PaymentClassification>>,
+            schedule: Rc<RefCell<dyn PaymentSchedule>>,
+        }
+        impl Employee {
+            pub fn new(
+                id: EmployeeId,
+                name: &str,
+                address: &str,
+                classification: Rc<RefCell<dyn PaymentClassification>>,
+                schedule: Rc<RefCell<dyn PaymentSchedule>>,
+            ) -> Self {
+                Self {
+                    id,
+                    name: name.to_string(),
+                    address: address.to_string(),
+                    classification,
+                    schedule,
+                }
+            }
+            pub fn emp_id(&self) -> EmployeeId {
+                self.id
+            }
         }
     }
+    pub use bo::{Employee, EmployeeId};
+
+    mod interface {
+        mod payment_classification {
+            use dyn_clone::DynClone;
+            use std::fmt::Debug;
+
+            pub trait PaymentClassification: Debug + DynClone {
+                fn calculate_pay(&self) -> f32;
+            }
+            dyn_clone::clone_trait_object!(PaymentClassification);
+        }
+        pub use payment_classification::PaymentClassification;
+
+        mod payment_schedule {
+            use chrono::NaiveDate;
+            use dyn_clone::DynClone;
+            use std::fmt::Debug;
+            use std::ops::RangeInclusive;
+
+            pub trait PaymentSchedule: Debug + DynClone {
+                fn is_pay_date(&self, date: NaiveDate) -> bool;
+                fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate>;
+            }
+            dyn_clone::clone_trait_object!(PaymentSchedule);
+        }
+        pub use payment_schedule::PaymentSchedule;
+    }
+    pub use interface::{PaymentClassification, PaymentSchedule};
 }
+use payroll_domain::{Employee, EmployeeId, PaymentClassification, PaymentSchedule};
 
 #[derive(Debug, Clone, Eq, PartialEq, Error)]
 enum DaoError {
@@ -46,11 +86,6 @@ enum DaoError {
 trait EmployeeDao<Ctx> {
     fn insert(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
 }
-
-trait PaymentClassification: Debug + DynClone {
-    fn calculate_pay(&self) -> f32;
-}
-dyn_clone::clone_trait_object!(PaymentClassification);
 
 #[derive(Debug, Clone)]
 struct SalariedClassification {
@@ -82,12 +117,6 @@ impl PaymentClassification for CommissionedClassification {
         unimplemented!();
     }
 }
-
-trait PaymentSchedule: Debug + DynClone {
-    fn is_pay_date(&self, date: NaiveDate) -> bool;
-    fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate>;
-}
-dyn_clone::clone_trait_object!(PaymentSchedule);
 
 #[derive(Debug, Clone)]
 struct MonthlySchedule;
@@ -216,11 +245,11 @@ mod payroll_db {
             emp: Employee,
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
             tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
-                let emp_id = emp.id;
+                let emp_id = emp.emp_id();
                 if tx.contains_key(&emp_id) {
-                    Err(DaoError::AlreadyExists(emp.id))
+                    Err(DaoError::AlreadyExists(emp_id))
                 } else {
-                    tx.insert(emp.id, emp);
+                    tx.insert(emp_id, emp);
                     Ok(emp_id)
                 }
             })
