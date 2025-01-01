@@ -5,6 +5,7 @@ use tx_rs::Tx;
 mod payroll_domain {
     mod types {
         pub type EmployeeId = u32;
+        pub type MemberId = u32;
     }
     pub use types::*;
 
@@ -316,7 +317,10 @@ use payroll_impl::*;
 mod dao {
     use thiserror::Error;
 
-    use crate::payroll_domain::{Employee, EmployeeId};
+    use crate::{
+        payroll_domain::{Employee, EmployeeId},
+        MemberId,
+    };
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum DaoError {
@@ -333,6 +337,15 @@ mod dao {
         fn fetch(&self, emp_id: EmployeeId)
             -> impl tx_rs::Tx<Ctx, Item = Employee, Err = DaoError>;
         fn update(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
+        fn add_union_member(
+            &self,
+            member_id: MemberId,
+            emp_id: EmployeeId,
+        ) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
+        fn remove_union_member(
+            &self,
+            member_id: MemberId,
+        ) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
     }
 
     pub trait HaveEmployeeDao<Ctx> {
@@ -438,30 +451,24 @@ trait Transaction {
 }
 
 mod payroll_db {
-    use std::{
-        cell::{RefCell, RefMut},
-        collections::HashMap,
-        fmt::Debug,
-        rc::Rc,
-    };
+    use std::{cell::RefMut, collections::HashMap, fmt::Debug};
 
-    use crate::{DaoError, Employee, EmployeeDao, EmployeeId};
+    use crate::{DaoError, Employee, EmployeeDao, EmployeeId, MemberId};
 
     #[derive(Debug, Clone)]
     pub struct PayrollDatabase {
-        employees: Rc<RefCell<HashMap<EmployeeId, Employee>>>,
+        employees: HashMap<EmployeeId, Employee>,
+        union_members: HashMap<MemberId, EmployeeId>,
     }
     impl PayrollDatabase {
         pub fn new() -> Self {
             Self {
-                employees: Rc::new(RefCell::new(HashMap::new())),
+                employees: HashMap::new(),
+                union_members: HashMap::new(),
             }
         }
-        pub fn transaction_employees(&self) -> RefMut<HashMap<EmployeeId, Employee>> {
-            self.employees.borrow_mut()
-        }
     }
-    pub type PayrollDbCtx<'a> = RefMut<'a, HashMap<EmployeeId, Employee>>;
+    pub type PayrollDbCtx<'a> = RefMut<'a, PayrollDatabase>;
 
     #[derive(Debug, Clone)]
     pub struct PayrollDbDao;
@@ -472,10 +479,10 @@ mod payroll_db {
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
             tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
                 let emp_id = emp.emp_id();
-                if tx.contains_key(&emp_id) {
+                if tx.employees.contains_key(&emp_id) {
                     Err(DaoError::AlreadyExists(emp_id))
                 } else {
-                    tx.insert(emp_id, emp);
+                    tx.employees.insert(emp_id, emp);
                     Ok(emp_id)
                 }
             })
@@ -485,7 +492,10 @@ mod payroll_db {
             emp_id: EmployeeId,
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = Employee, Err = DaoError> {
             tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
-                tx.get(&emp_id).cloned().ok_or(DaoError::NotFound(emp_id))
+                tx.employees
+                    .get(&emp_id)
+                    .cloned()
+                    .ok_or(DaoError::NotFound(emp_id))
             })
         }
         fn update(
@@ -494,13 +504,26 @@ mod payroll_db {
         ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
             tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
                 let emp_id = emp.emp_id();
-                if tx.contains_key(&emp_id) {
-                    tx.insert(emp_id, emp);
+                if tx.employees.contains_key(&emp_id) {
+                    tx.employees.insert(emp_id, emp);
                     Ok(())
                 } else {
                     Err(DaoError::NotFound(emp_id))
                 }
             })
+        }
+        fn add_union_member(
+            &self,
+            member_id: MemberId,
+            emp_id: EmployeeId,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| Ok(()))
+        }
+        fn remove_union_member(
+            &self,
+            member_id: MemberId,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| Ok(()))
         }
     }
 }
@@ -697,7 +720,7 @@ use tx_impl::*;
 
 mod mock_tx_impl {
     mod add_salaried_emp {
-        use std::{cell::RefCell, fmt::Debug};
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
@@ -707,7 +730,7 @@ mod mock_tx_impl {
 
         #[derive(Debug, Clone)]
         pub struct AddSalariedEmployeeTx {
-            db: PayrollDatabase,
+            db: Rc<RefCell<PayrollDatabase>>,
             usecase: RefCell<AddSalariedEmployeeImpl>,
         }
         impl AddSalariedEmployeeTx {
@@ -716,7 +739,7 @@ mod mock_tx_impl {
                 name: &str,
                 address: &str,
                 salary: f32,
-                db: PayrollDatabase,
+                db: Rc<RefCell<PayrollDatabase>>,
             ) -> Self {
                 Self {
                     db,
@@ -732,7 +755,7 @@ mod mock_tx_impl {
             where
                 F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
             {
-                let mut tx = self.db.transaction_employees();
+                let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
                 f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
             }
@@ -748,7 +771,7 @@ mod mock_tx_impl {
     pub use add_salaried_emp::*;
 
     mod chg_emp_name {
-        use std::{cell::RefCell, fmt::Debug};
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
@@ -758,11 +781,11 @@ mod mock_tx_impl {
 
         #[derive(Debug, Clone)]
         pub struct ChgEmployeeNameTx {
-            db: PayrollDatabase,
+            db: Rc<RefCell<PayrollDatabase>>,
             usecase: RefCell<ChgEmployeeNameImpl>,
         }
         impl ChgEmployeeNameTx {
-            pub fn new(id: EmployeeId, new_name: &str, db: PayrollDatabase) -> Self {
+            pub fn new(id: EmployeeId, new_name: &str, db: Rc<RefCell<PayrollDatabase>>) -> Self {
                 Self {
                     db,
                     usecase: RefCell::new(ChgEmployeeNameImpl::new(id, new_name)),
@@ -777,7 +800,7 @@ mod mock_tx_impl {
             where
                 F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
             {
-                let mut tx = self.db.transaction_employees();
+                let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
                 f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
             }
@@ -793,7 +816,7 @@ mod mock_tx_impl {
     pub use chg_emp_name::*;
 
     mod chg_hourly_emp {
-        use std::cell::RefCell;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
             ChgEmployeeTransaction, ChgHourlyEmployeeImpl, EmployeeId, PayrollDatabase,
@@ -802,11 +825,11 @@ mod mock_tx_impl {
 
         #[derive(Debug, Clone)]
         pub struct ChgHourlyClassificationTx {
-            db: PayrollDatabase,
+            db: Rc<RefCell<PayrollDatabase>>,
             usecase: RefCell<ChgHourlyEmployeeImpl>,
         }
         impl ChgHourlyClassificationTx {
-            pub fn new(id: EmployeeId, hourly_rate: f32, db: PayrollDatabase) -> Self {
+            pub fn new(id: EmployeeId, hourly_rate: f32, db: Rc<RefCell<PayrollDatabase>>) -> Self {
                 Self {
                     db,
                     usecase: RefCell::new(ChgHourlyEmployeeImpl::new(id, hourly_rate)),
@@ -821,7 +844,7 @@ mod mock_tx_impl {
             where
                 F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
             {
-                let mut tx = self.db.transaction_employees();
+                let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
                 f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
             }
@@ -837,7 +860,7 @@ mod mock_tx_impl {
     pub use chg_hourly_emp::*;
 
     mod chg_direct_method {
-        use std::cell::RefCell;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
             ChgDirectMethodImpl, ChgEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
@@ -846,11 +869,16 @@ mod mock_tx_impl {
 
         #[derive(Debug, Clone)]
         pub struct ChgDirectMethodTx {
-            db: PayrollDatabase,
+            db: Rc<RefCell<PayrollDatabase>>,
             usecase: RefCell<ChgDirectMethodImpl>,
         }
         impl ChgDirectMethodTx {
-            pub fn new(id: EmployeeId, bank: &str, account: &str, db: PayrollDatabase) -> Self {
+            pub fn new(
+                id: EmployeeId,
+                bank: &str,
+                account: &str,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
                 Self {
                     db,
                     usecase: RefCell::new(ChgDirectMethodImpl::new(id, bank, account)),
@@ -865,7 +893,7 @@ mod mock_tx_impl {
             where
                 F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
             {
-                let mut tx = self.db.transaction_employees();
+                let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
                 f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
             }
@@ -885,7 +913,7 @@ use mock_tx_impl::*;
 fn main() {
     env_logger::init();
 
-    let db = PayrollDatabase::new();
+    let db = Rc::new(RefCell::new(PayrollDatabase::new()));
     let tx: &mut dyn Transaction<T = _> =
         &mut AddSalariedEmployeeTx::new(1, "Bob", "Home", 1000.0, db.clone());
     println!("{:#?}", db);
