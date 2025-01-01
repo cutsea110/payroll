@@ -1926,8 +1926,8 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgDirectMethodImpl, ChgEmployeeTransaction, ChgMailMethodImpl, EmployeeId,
-            PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            ChgEmployeeTransaction, ChgMailMethodImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ServiceError, Transaction, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
