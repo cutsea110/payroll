@@ -535,6 +535,31 @@ trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
+trait ChgClassification<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            emp.set_classification(self.get_classification());
+            emp.set_schedule(self.get_schedule());
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
 trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
 
@@ -732,6 +757,20 @@ where
     Ctx: 'a,
 {
     type U: ChgEmployee<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait ChgClassificationTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: ChgClassification<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1250,8 +1289,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, MonthlySchedule, PayrollDbCtx, SalariedClassification,
+            payroll_db::PayrollDbDao, ChgClassification, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            MonthlySchedule, PayrollDbCtx, SalariedClassification,
         };
 
         #[derive(Debug, Clone)]
@@ -1276,15 +1315,15 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgSalariedEmployeeImpl {
+        impl<'a> ChgClassification<PayrollDbCtx<'a>> for ChgSalariedEmployeeImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_classification(Rc::new(RefCell::new(SalariedClassification::new(
-                    self.salary,
-                ))));
-                emp.set_schedule(Rc::new(RefCell::new(MonthlySchedule)));
+            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+                Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+                Rc::new(RefCell::new(MonthlySchedule))
             }
         }
     }
@@ -1294,8 +1333,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, HourlyClassification, PayrollDbCtx, WeeklySchedule,
+            payroll_db::PayrollDbDao, ChgClassification, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            HourlyClassification, PayrollDbCtx, WeeklySchedule,
         };
 
         #[derive(Debug, Clone)]
@@ -1320,15 +1359,15 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgHourlyEmployeeImpl {
+        impl<'a> ChgClassification<PayrollDbCtx<'a>> for ChgHourlyEmployeeImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_classification(Rc::new(RefCell::new(HourlyClassification::new(
-                    self.hourly_rate,
-                ))));
-                emp.set_schedule(Rc::new(RefCell::new(WeeklySchedule)));
+            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+                Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+                Rc::new(RefCell::new(WeeklySchedule))
             }
         }
     }
@@ -1338,8 +1377,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, BiweeklySchedule, ChgEmployee, CommissionedClassification,
-            Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
+            payroll_db::PayrollDbDao, BiweeklySchedule, ChgClassification,
+            CommissionedClassification, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
         };
 
         #[derive(Debug, Clone)]
@@ -1366,16 +1405,18 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgCommissionedEmployeeImpl {
+        impl<'a> ChgClassification<PayrollDbCtx<'a>> for ChgCommissionedEmployeeImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_classification(Rc::new(RefCell::new(CommissionedClassification::new(
+            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+                Rc::new(RefCell::new(CommissionedClassification::new(
                     self.salary,
                     self.commission_rate,
-                ))));
-                emp.set_schedule(Rc::new(RefCell::new(BiweeklySchedule)));
+                )))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+                Rc::new(RefCell::new(BiweeklySchedule))
             }
         }
     }
@@ -1780,8 +1821,8 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            AddEmployeeTransaction, AddHourlyEmployeeImpl, AddSalariedEmployeeImpl, EmployeeId,
-            ServiceError, Transaction, UsecaseError,
+            AddEmployeeTransaction, AddHourlyEmployeeImpl, EmployeeId, ServiceError, Transaction,
+            UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2027,7 +2068,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployeeTransaction, ChgSalariedEmployeeImpl, EmployeeId, PayrollDatabase,
+            ChgClassificationTransaction, ChgSalariedEmployeeImpl, EmployeeId, PayrollDatabase,
             PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
@@ -2045,7 +2086,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgSalariedClassificationTx {
+        impl<'a> ChgClassificationTransaction<'a, PayrollDbCtx<'a>> for ChgSalariedClassificationTx {
             type U = ChgSalariedEmployeeImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2061,7 +2102,7 @@ mod mock_tx_impl {
         impl Transaction for ChgSalariedClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2071,7 +2112,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployeeTransaction, ChgHourlyEmployeeImpl, EmployeeId, PayrollDatabase,
+            ChgClassificationTransaction, ChgHourlyEmployeeImpl, EmployeeId, PayrollDatabase,
             PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
@@ -2089,7 +2130,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgHourlyClassificationTx {
+        impl<'a> ChgClassificationTransaction<'a, PayrollDbCtx<'a>> for ChgHourlyClassificationTx {
             type U = ChgHourlyEmployeeImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2105,7 +2146,7 @@ mod mock_tx_impl {
         impl Transaction for ChgHourlyClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2115,7 +2156,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgCommissionedEmployeeImpl, ChgEmployeeTransaction, EmployeeId, PayrollDatabase,
+            ChgClassificationTransaction, ChgCommissionedEmployeeImpl, EmployeeId, PayrollDatabase,
             PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
@@ -2142,7 +2183,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgCommissionedClassificationTx {
+        impl<'a> ChgClassificationTransaction<'a, PayrollDbCtx<'a>> for ChgCommissionedClassificationTx {
             type U = ChgCommissionedEmployeeImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2158,7 +2199,7 @@ mod mock_tx_impl {
         impl Transaction for ChgCommissionedClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
