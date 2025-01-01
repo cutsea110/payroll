@@ -976,6 +976,53 @@ mod tx_impl {
     }
     pub use chg_hourly_emp::*;
 
+    mod chg_commissioned_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::PayrollDbDao, BiweeklySchedule, ChgEmployee, CommissionedClassification,
+            Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgCommissionedEmployeeImpl {
+            id: EmployeeId,
+            salary: f32,
+            commission_rate: f32,
+
+            dao: PayrollDbDao,
+        }
+        impl ChgCommissionedEmployeeImpl {
+            pub fn new(id: EmployeeId, salary: f32, commission_rate: f32) -> Self {
+                Self {
+                    id,
+                    salary,
+                    commission_rate,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for ChgCommissionedEmployeeImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgCommissionedEmployeeImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.id
+            }
+            fn change(&self, emp: &mut Employee) {
+                emp.set_classification(Rc::new(RefCell::new(CommissionedClassification::new(
+                    self.salary,
+                    self.commission_rate,
+                ))));
+                emp.set_schedule(Rc::new(RefCell::new(BiweeklySchedule)));
+            }
+        }
+    }
+    pub use chg_commissioned_emp::*;
+
     mod chg_direct_method {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -1284,8 +1331,8 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployeeTransaction, ChgHourlyEmployeeImpl, ChgSalariedEmployeeImpl, EmployeeId,
-            PayrollDatabase, PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            ChgEmployeeTransaction, ChgSalariedEmployeeImpl, EmployeeId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -1367,6 +1414,59 @@ mod mock_tx_impl {
         }
     }
     pub use chg_hourly_emp::*;
+
+    mod chg_commissioned_emp {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgCommissionedEmployeeImpl, ChgEmployeeTransaction, EmployeeId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct ChgCommissionedClassificationTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<ChgCommissionedEmployeeImpl>,
+        }
+        impl ChgCommissionedClassificationTx {
+            pub fn new(
+                id: EmployeeId,
+                salary: f32,
+                commission_rate: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(ChgCommissionedEmployeeImpl::new(
+                        id,
+                        salary,
+                        commission_rate,
+                    )),
+                }
+            }
+        }
+
+        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgCommissionedClassificationTx {
+            type U = ChgCommissionedEmployeeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for ChgCommissionedClassificationTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use chg_commissioned_emp::*;
 
     mod chg_direct_method {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
@@ -1578,6 +1678,11 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
     Transaction::execute(tx).expect("change employee to hourly");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgCommissionedClassificationTx::new(1, 510.0, 0.75, db.clone());
+    Transaction::execute(tx).expect("change employee to commissioned");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
