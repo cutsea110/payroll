@@ -162,12 +162,12 @@ where
 {
     type U: AddEmployee<Ctx>;
 
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
         F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
 
-    fn execute(&'a mut self) -> Result<EmployeeId, UsecaseError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx).map_err(|_| UsecaseError::Dummy))
+    fn execute(&'a mut self) -> Result<EmployeeId, ServiceError> {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
     }
 }
 
@@ -317,13 +317,13 @@ mod tx_impl {
         impl<'a> AddEmployeeTransaction<'a, PayrollDbCtx<'a>> for AddSalariedEmployeeTx {
             type U = AddSalariedEmployeeImpl;
 
-            fn run_tx<T, F>(&'a self, f: F) -> Result<T, UsecaseError>
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
             where
                 F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
             {
                 let mut tx = self.transaction();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx)
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
             }
         }
 
