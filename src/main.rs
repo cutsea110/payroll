@@ -560,6 +560,29 @@ trait ChgClassification<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
+trait ChgMethod<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            emp.set_method(self.get_method());
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
 trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
 
@@ -771,6 +794,20 @@ where
     Ctx: 'a,
 {
     type U: ChgClassification<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait ChgMethodTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: ChgMethod<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1426,8 +1463,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployee, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, HoldMethod,
-            PayrollDbCtx, PayrollDbDao,
+            ChgMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, HoldMethod, PayrollDbCtx,
+            PayrollDbDao,
         };
 
         #[derive(Debug, Clone)]
@@ -1450,12 +1487,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgHoldMethodImpl {
+        impl<'a> ChgMethod<PayrollDbCtx<'a>> for ChgHoldMethodImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_method(Rc::new(RefCell::new(HoldMethod)));
+            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+                Rc::new(RefCell::new(HoldMethod))
             }
         }
     }
@@ -1465,8 +1502,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployee, DirectMethod, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            PayrollDbCtx, PayrollDbDao,
+            ChgMethod, DirectMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
+            PayrollDbDao,
         };
 
         #[derive(Debug, Clone)]
@@ -1493,15 +1530,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgDirectMethodImpl {
+        impl<'a> ChgMethod<PayrollDbCtx<'a>> for ChgDirectMethodImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_method(Rc::new(RefCell::new(DirectMethod::new(
-                    self.bank.as_str(),
-                    self.account.as_str(),
-                ))));
+            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+                Rc::new(RefCell::new(DirectMethod::new(&self.bank, &self.account)))
             }
         }
     }
@@ -1511,8 +1545,8 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployee, Employee, EmployeeDao, EmployeeId, HaveEmployeeDao, MailMethod,
-            PayrollDbCtx, PayrollDbDao,
+            ChgMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, MailMethod, PayrollDbCtx,
+            PayrollDbDao,
         };
 
         #[derive(Debug, Clone)]
@@ -1537,14 +1571,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgMailMethodImpl {
+        impl<'a> ChgMethod<PayrollDbCtx<'a>> for ChgMailMethodImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_method(Rc::new(RefCell::new(MailMethod::new(
-                    self.address.as_str(),
-                ))));
+            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+                Rc::new(RefCell::new(MailMethod::new(&self.address)))
             }
         }
     }
@@ -2209,7 +2241,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployeeTransaction, ChgHoldMethodImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ChgHoldMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
             ServiceError, Transaction, UsecaseError,
         };
 
@@ -2227,7 +2259,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgHoldMethodTx {
+        impl<'a> ChgMethodTransaction<'a, PayrollDbCtx<'a>> for ChgHoldMethodTx {
             type U = ChgHoldMethodImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2243,7 +2275,7 @@ mod mock_tx_impl {
         impl Transaction for ChgHoldMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2253,7 +2285,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgDirectMethodImpl, ChgEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ChgDirectMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
             ServiceError, Transaction, UsecaseError,
         };
 
@@ -2276,7 +2308,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgDirectMethodTx {
+        impl<'a> ChgMethodTransaction<'a, PayrollDbCtx<'a>> for ChgDirectMethodTx {
             type U = ChgDirectMethodImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2292,7 +2324,7 @@ mod mock_tx_impl {
         impl Transaction for ChgDirectMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2302,7 +2334,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgEmployeeTransaction, ChgMailMethodImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
+            ChgMailMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
             ServiceError, Transaction, UsecaseError,
         };
 
@@ -2320,7 +2352,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgMailMethodTx {
+        impl<'a> ChgMethodTransaction<'a, PayrollDbCtx<'a>> for ChgMailMethodTx {
             type U = ChgMailMethodImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2336,7 +2368,7 @@ mod mock_tx_impl {
         impl Transaction for ChgMailMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
