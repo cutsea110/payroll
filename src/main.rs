@@ -66,6 +66,9 @@ mod payroll_domain {
             pub fn set_method(&mut self, method: Rc<RefCell<dyn PaymentMethod>>) {
                 self.method = method;
             }
+            pub fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+                self.affiliation.clone()
+            }
             pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
                 self.affiliation = affiliation;
             }
@@ -133,9 +136,11 @@ mod payroll_domain {
 
         mod affiliation {
             use dyn_clone::DynClone;
-            use std::fmt::Debug;
+            use std::{any::Any, fmt::Debug};
 
             pub trait Affiliation: Debug + DynClone {
+                fn as_any(&self) -> &dyn Any;
+                fn as_any_mut(&mut self) -> &mut dyn Any;
                 fn calculate_deductions(&self) -> f32 {
                     0.0
                 }
@@ -287,11 +292,19 @@ mod payroll_impl {
     pub use method::*;
 
     mod affiliation {
+        use std::any::Any;
+
         use crate::{Affiliation, MemberId};
 
         #[derive(Debug, Clone)]
         pub struct NoAffiliation;
         impl Affiliation for NoAffiliation {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
             fn calculate_deductions(&self) -> f32 {
                 unimplemented!();
             }
@@ -306,8 +319,17 @@ mod payroll_impl {
             pub fn new(member_id: MemberId, dues: f32) -> Self {
                 Self { member_id, dues }
             }
+            pub fn get_member_id(&self) -> MemberId {
+                self.member_id
+            }
         }
         impl Affiliation for UnionAffiliation {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn Any {
+                self
+            }
             fn calculate_deductions(&self) -> f32 {
                 unimplemented!();
             }
@@ -829,6 +851,65 @@ mod tx_impl {
         }
     }
     pub use add_union_member::*;
+
+    mod del_union_member {
+        use tx_rs::Tx;
+
+        use crate::{
+            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
+            PayrollDbDao, UnionAffiliation, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct DelUnionMemberImpl {
+            emp_id: EmployeeId,
+
+            dao: PayrollDbDao,
+        }
+        impl DelUnionMemberImpl {
+            pub fn new(emp_id: EmployeeId) -> Self {
+                Self {
+                    emp_id,
+
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for DelUnionMemberImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> ChgAffiliation<PayrollDbCtx<'a>> for DelUnionMemberImpl {
+            fn get_emp_id(&self) -> EmployeeId {
+                self.emp_id
+            }
+            fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn crate::Affiliation>> {
+                std::rc::Rc::new(std::cell::RefCell::new(crate::NoAffiliation))
+            }
+            fn record_membership(
+                &self,
+                ctx: &mut PayrollDbCtx<'a>,
+            ) -> Result<(), crate::UsecaseError> {
+                let emp = self
+                    .dao()
+                    .fetch(self.emp_id)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)?;
+                let member_id = emp
+                    .get_affiliation()
+                    .borrow()
+                    .as_any()
+                    .downcast_ref::<UnionAffiliation>()
+                    .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
+                self.dao()
+                    .remove_union_member(member_id)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)
+            }
+        }
+    }
+    pub use del_union_member::*;
 }
 use tx_impl::*;
 
@@ -1070,6 +1151,50 @@ mod mock_tx_impl {
         }
     }
     pub use add_union_member::*;
+
+    mod del_union_member {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            ChgAffiliationTransaction, DelUnionMemberImpl, EmployeeId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct DelUnionMemberTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<DelUnionMemberImpl>,
+        }
+        impl DelUnionMemberTx {
+            pub fn new(member_id: EmployeeId, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(DelUnionMemberImpl::new(member_id)),
+                }
+            }
+        }
+
+        impl<'a> ChgAffiliationTransaction<'a, PayrollDbCtx<'a>> for DelUnionMemberTx {
+            type U = DelUnionMemberImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+
+        impl Transaction for DelUnionMemberTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                ChgAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use del_union_member::*;
 }
 use mock_tx_impl::*;
 
@@ -1098,5 +1223,9 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut AddUnionMemberTx::new(7463, 1, 100.0, db.clone());
     Transaction::execute(tx).expect("add union member");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut DelUnionMemberTx::new(1, db.clone());
+    Transaction::execute(tx).expect("delete union member");
     println!("{:#?}", db);
 }
