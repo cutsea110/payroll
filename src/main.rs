@@ -1,4 +1,4 @@
-use std::{cell::RefCell, env, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use thiserror::Error;
 use tx_rs::Tx;
 
@@ -9,9 +9,10 @@ mod payroll_domain {
     pub use types::*;
 
     mod bo {
-        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+        use chrono::NaiveDate;
+        use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 
-        use crate::{EmployeeId, PaymentClassification, PaymentSchedule};
+        use crate::{EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule};
 
         #[derive(Debug, Clone)]
         pub struct Employee {
@@ -21,6 +22,7 @@ mod payroll_domain {
 
             classification: Rc<RefCell<dyn PaymentClassification>>,
             schedule: Rc<RefCell<dyn PaymentSchedule>>,
+            method: Rc<RefCell<dyn PaymentMethod>>,
         }
         impl Employee {
             pub fn new(
@@ -29,6 +31,7 @@ mod payroll_domain {
                 address: &str,
                 classification: Rc<RefCell<dyn PaymentClassification>>,
                 schedule: Rc<RefCell<dyn PaymentSchedule>>,
+                method: Rc<RefCell<dyn PaymentMethod>>,
             ) -> Self {
                 Self {
                     id,
@@ -36,6 +39,7 @@ mod payroll_domain {
                     address: address.to_string(),
                     classification,
                     schedule,
+                    method,
                 }
             }
             pub fn emp_id(&self) -> EmployeeId {
@@ -52,6 +56,25 @@ mod payroll_domain {
             }
             pub fn set_schedule(&mut self, schedule: Rc<RefCell<dyn PaymentSchedule>>) {
                 self.schedule = schedule;
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct Paycheck {
+            period: RangeInclusive<NaiveDate>,
+
+            gross_pay: f32,
+            deductions: f32,
+            net_pay: f32,
+        }
+        impl Paycheck {
+            pub fn new(period: RangeInclusive<NaiveDate>) -> Self {
+                Self {
+                    period,
+                    gross_pay: 0.0,
+                    deductions: 0.0,
+                    net_pay: 0.0,
+                }
             }
         }
     }
@@ -81,6 +104,20 @@ mod payroll_domain {
             dyn_clone::clone_trait_object!(PaymentSchedule);
         }
         pub use payment_schedule::*;
+
+        mod payment_method {
+            use dyn_clone::DynClone;
+            use std::fmt::Debug;
+
+            use crate::Paycheck;
+
+            pub trait PaymentMethod: Debug + DynClone {
+                // TODO: return type
+                fn pay(&self, pc: &Paycheck);
+            }
+            dyn_clone::clone_trait_object!(PaymentMethod);
+        }
+        pub use payment_method::*;
     }
     pub use interface::*;
 }
@@ -174,6 +211,55 @@ mod payroll_impl {
         }
     }
     pub use schedule::*;
+
+    mod method {
+        use crate::{Paycheck, PaymentMethod};
+
+        #[derive(Debug, Clone)]
+        pub struct HoldMethod;
+        impl PaymentMethod for HoldMethod {
+            fn pay(&self, pc: &Paycheck) {
+                unimplemented!();
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct DirectMethod {
+            bank: String,
+            account: String,
+        }
+        impl DirectMethod {
+            pub fn new(bank: &str, account: &str) -> Self {
+                Self {
+                    bank: bank.to_string(),
+                    account: account.to_string(),
+                }
+            }
+        }
+        impl PaymentMethod for DirectMethod {
+            fn pay(&self, pc: &Paycheck) {
+                unimplemented!();
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub struct MailMethod {
+            address: String,
+        }
+        impl MailMethod {
+            pub fn new(address: &str) -> Self {
+                Self {
+                    address: address.to_string(),
+                }
+            }
+        }
+        impl PaymentMethod for MailMethod {
+            fn pay(&self, pc: &Paycheck) {
+                unimplemented!();
+            }
+        }
+    }
+    pub use method::*;
 }
 use payroll_impl::*;
 
@@ -229,6 +315,7 @@ trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
                 self.get_address(),
                 self.get_classification(),
                 self.get_schedule(),
+                Rc::new(RefCell::new(HoldMethod)),
             ))
             .map_err(|_| UsecaseError::Dummy)
     }
