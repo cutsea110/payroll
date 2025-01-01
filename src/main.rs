@@ -547,10 +547,17 @@ trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
             .map_err(|_| UsecaseError::Dummy)
     }
 }
-trait ChgAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+trait AddUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_member_id(&self) -> MemberId;
     fn get_emp_id(&self) -> EmployeeId;
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
-    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError>;
+
+    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
+        self.dao()
+            .add_union_member(self.get_member_id(), self.get_emp_id())
+            .run(ctx)
+            .map_err(|e| UsecaseError::Dummy)
+    }
 
     fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
     where
@@ -573,7 +580,48 @@ trait ChgAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
+trait DelUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
+    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
+        let emp = self
+            .dao()
+            .fetch(self.get_emp_id())
+            .run(ctx)
+            .map_err(|_| UsecaseError::Dummy)?;
+        let member_id = emp
+            .get_affiliation()
+            .borrow()
+            .as_any()
+            .downcast_ref::<UnionAffiliation>()
+            .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
+        self.dao()
+            .remove_union_member(member_id)
+            .run(ctx)
+            .map_err(|_| UsecaseError::Dummy)
+    }
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            self.record_membership(ctx)?;
+
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            emp.set_affiliation(self.get_affiliation());
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
 trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
     fn get_date(&self) -> NaiveDate;
@@ -602,7 +650,6 @@ trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
-
 trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
     fn get_date(&self) -> NaiveDate;
@@ -631,7 +678,6 @@ trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
         })
     }
 }
-
 trait AddServiceCharge<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_member_id(&self) -> MemberId;
     fn get_date(&self) -> NaiveDate;
@@ -709,11 +755,25 @@ where
         self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
     }
 }
-trait ChgAffiliationTransaction<'a, Ctx>
+trait AddUnionAffiliationTransaction<'a, Ctx>
 where
     Ctx: 'a,
 {
-    type U: ChgAffiliation<Ctx>;
+    type U: AddUnionAffiliation<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait DelUnionAffiliationTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: DelUnionAffiliation<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1450,11 +1510,9 @@ mod tx_impl {
     pub use chg_mail_method::*;
 
     mod add_union_member {
-        use tx_rs::Tx;
-
         use crate::{
-            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
-            PayrollDbDao, UnionAffiliation, UsecaseError,
+            AddUnionAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
+            PayrollDbDao, UnionAffiliation,
         };
 
         #[derive(Debug, Clone)]
@@ -1481,7 +1539,10 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgAffiliation<PayrollDbCtx<'a>> for AddUnionMemberImpl {
+        impl<'a> AddUnionAffiliation<PayrollDbCtx<'a>> for AddUnionMemberImpl {
+            fn get_member_id(&self) -> MemberId {
+                self.member_id
+            }
             fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
@@ -1491,25 +1552,14 @@ mod tx_impl {
                     self.dues,
                 )))
             }
-            fn record_membership(
-                &self,
-                ctx: &mut PayrollDbCtx<'a>,
-            ) -> Result<(), crate::UsecaseError> {
-                self.dao()
-                    .add_union_member(self.member_id, self.emp_id)
-                    .run(ctx)
-                    .map_err(|e| UsecaseError::Dummy)
-            }
         }
     }
     pub use add_union_member::*;
 
     mod del_union_member {
-        use tx_rs::Tx;
-
         use crate::{
-            ChgAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
-            UnionAffiliation, UsecaseError,
+            DelUnionAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
+            PayrollDbDao,
         };
 
         #[derive(Debug, Clone)]
@@ -1532,32 +1582,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgAffiliation<PayrollDbCtx<'a>> for DelUnionMemberImpl {
+        impl<'a> DelUnionAffiliation<PayrollDbCtx<'a>> for DelUnionMemberImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
             fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn crate::Affiliation>> {
                 std::rc::Rc::new(std::cell::RefCell::new(crate::NoAffiliation))
-            }
-            fn record_membership(
-                &self,
-                ctx: &mut PayrollDbCtx<'a>,
-            ) -> Result<(), crate::UsecaseError> {
-                let emp = self
-                    .dao()
-                    .fetch(self.emp_id)
-                    .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)?;
-                let member_id = emp
-                    .get_affiliation()
-                    .borrow()
-                    .as_any()
-                    .downcast_ref::<UnionAffiliation>()
-                    .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
-                self.dao()
-                    .remove_union_member(member_id)
-                    .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)
             }
         }
     }
@@ -2275,7 +2305,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            AddUnionMemberImpl, ChgAffiliationTransaction, EmployeeId, PayrollDatabase,
+            AddUnionAffiliationTransaction, AddUnionMemberImpl, EmployeeId, PayrollDatabase,
             PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
@@ -2298,7 +2328,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgAffiliationTransaction<'a, PayrollDbCtx<'a>> for AddUnionMemberTx {
+        impl<'a> AddUnionAffiliationTransaction<'a, PayrollDbCtx<'a>> for AddUnionMemberTx {
             type U = AddUnionMemberImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2314,7 +2344,7 @@ mod mock_tx_impl {
         impl Transaction for AddUnionMemberTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddUnionAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2324,7 +2354,7 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgAffiliationTransaction, DelUnionMemberImpl, EmployeeId, PayrollDatabase,
+            DelUnionAffiliationTransaction, DelUnionMemberImpl, EmployeeId, PayrollDatabase,
             PayrollDbCtx, ServiceError, Transaction, UsecaseError,
         };
 
@@ -2342,7 +2372,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgAffiliationTransaction<'a, PayrollDbCtx<'a>> for DelUnionMemberTx {
+        impl<'a> DelUnionAffiliationTransaction<'a, PayrollDbCtx<'a>> for DelUnionMemberTx {
             type U = DelUnionMemberImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2358,7 +2388,7 @@ mod mock_tx_impl {
         impl Transaction for DelUnionMemberTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                DelUnionAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
