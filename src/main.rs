@@ -390,6 +390,11 @@ mod payroll_impl {
             date: NaiveDate,
             amount: f32,
         }
+        impl ServiceCharge {
+            pub fn new(date: NaiveDate, amount: f32) -> Self {
+                Self { date, amount }
+            }
+        }
 
         #[derive(Debug, Clone)]
         pub struct UnionAffiliation {
@@ -407,6 +412,9 @@ mod payroll_impl {
             }
             pub fn get_member_id(&self) -> MemberId {
                 self.member_id
+            }
+            pub fn add_service_charge(&mut self, sc: ServiceCharge) {
+                self.service_charge.push(sc);
             }
         }
         impl Affiliation for UnionAffiliation {
@@ -462,6 +470,10 @@ mod dao {
             &self,
             member_id: MemberId,
         ) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
+        fn find_union_member(
+            &self,
+            member_id: MemberId,
+        ) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
     }
 
     pub trait HaveEmployeeDao<Ctx> {
@@ -620,6 +632,40 @@ trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
     }
 }
 
+trait AddServiceCharge<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_member_id(&self) -> MemberId;
+    fn get_date(&self) -> NaiveDate;
+    fn get_amount(&self) -> f32;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp_id = self
+                .dao()
+                .find_union_member(self.get_member_id())
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)?;
+            let emp = self
+                .dao()
+                .fetch(emp_id)
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)?;
+            emp.get_affiliation()
+                .borrow_mut()
+                .as_any_mut()
+                .downcast_mut::<UnionAffiliation>()
+                .ok_or(UsecaseError::Dummy)?
+                .add_service_charge(ServiceCharge::new(self.get_date(), self.get_amount()));
+            self.dao()
+                .update(emp)
+                .run(ctx)
+                .map_err(|_| UsecaseError::Dummy)
+        })
+    }
+}
+
 // Service
 trait AddEmployeeTransaction<'a, Ctx>
 where
@@ -696,6 +742,20 @@ where
     Ctx: 'a,
 {
     type U: AddSalesReceipt<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait AddServiceChargeTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: AddServiceCharge<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -814,6 +874,17 @@ mod payroll_db {
                     return Err(DaoError::NotYetUnionMember(member_id));
                 }
                 Ok(())
+            })
+        }
+        fn find_union_member(
+            &self,
+            member_id: MemberId,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = EmployeeId, Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                tx.union_members
+                    .get(&member_id)
+                    .cloned()
+                    .ok_or(DaoError::NotYetUnionMember(member_id))
             })
         }
     }
@@ -1579,6 +1650,46 @@ mod tx_impl {
         }
     }
     pub use sales_receipt::*;
+
+    mod service_charge {
+        use crate::{AddServiceCharge, EmployeeDao, HaveEmployeeDao, MemberId, PayrollDbCtx};
+
+        #[derive(Debug, Clone)]
+        pub struct AddServiceChargeImpl {
+            member_id: MemberId,
+            date: chrono::NaiveDate,
+            amount: f32,
+
+            dao: crate::PayrollDbDao,
+        }
+        impl AddServiceChargeImpl {
+            pub fn new(member_id: MemberId, date: chrono::NaiveDate, amount: f32) -> Self {
+                Self {
+                    member_id,
+                    date,
+                    amount,
+                    dao: crate::PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddServiceChargeImpl {
+            fn dao(&self) -> &impl EmployeeDao<crate::PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> AddServiceCharge<PayrollDbCtx<'a>> for AddServiceChargeImpl {
+            fn get_member_id(&self) -> crate::EmployeeId {
+                self.member_id
+            }
+            fn get_date(&self) -> chrono::NaiveDate {
+                self.date
+            }
+            fn get_amount(&self) -> f32 {
+                self.amount
+            }
+        }
+    }
+    pub use service_charge::*;
 }
 use tx_impl::*;
 
@@ -2351,6 +2462,55 @@ mod mock_tx_impl {
         }
     }
     pub use add_sales_receipt::*;
+
+    mod add_service_charge {
+        use chrono::NaiveDate;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            AddServiceChargeImpl, AddServiceChargeTransaction, MemberId, PayrollDatabase,
+            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct AddServiceChargeTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<AddServiceChargeImpl>,
+        }
+        impl AddServiceChargeTx {
+            pub fn new(
+                member_id: MemberId,
+                date: NaiveDate,
+                amount: f32,
+                db: Rc<RefCell<PayrollDatabase>>,
+            ) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(AddServiceChargeImpl::new(member_id, date, amount)),
+                }
+            }
+        }
+
+        impl<'a> AddServiceChargeTransaction<'a, PayrollDbCtx<'a>> for AddServiceChargeTx {
+            type U = AddServiceChargeImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+            }
+        }
+        impl Transaction for AddServiceChargeTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                AddServiceChargeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+            }
+        }
+    }
+    pub use add_service_charge::*;
 }
 use mock_tx_impl::*;
 
@@ -2422,6 +2582,15 @@ fn main() {
 
     let tx: &mut dyn Transaction<T = _> = &mut AddUnionMemberTx::new(7463, 1, 100.0, db.clone());
     Transaction::execute(tx).expect("add union member");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> = &mut AddServiceChargeTx::new(
+        7463,
+        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+        300.5,
+        db.clone(),
+    );
+    Transaction::execute(tx).expect("add service charge");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut DelUnionMemberTx::new(1, db.clone());
