@@ -159,9 +159,8 @@ use payroll_domain::*;
 
 mod payroll_impl {
     mod classification {
-        use std::any::Any;
-
         use chrono::NaiveDate;
+        use std::any::Any;
 
         use crate::payroll_domain::PaymentClassification;
 
@@ -311,7 +310,7 @@ mod payroll_impl {
     pub use schedule::*;
 
     mod method {
-        use crate::{Paycheck, PaymentMethod};
+        use crate::payroll_domain::{Paycheck, PaymentMethod};
 
         #[derive(Debug, Clone)]
         pub struct HoldMethod;
@@ -360,11 +359,10 @@ mod payroll_impl {
     pub use method::*;
 
     mod affiliation {
+        use chrono::NaiveDate;
         use std::any::Any;
 
-        use chrono::NaiveDate;
-
-        use crate::{Affiliation, MemberId};
+        use crate::payroll_domain::{Affiliation, MemberId};
 
         #[derive(Debug, Clone)]
         pub struct NoAffiliation;
@@ -426,15 +424,11 @@ mod payroll_impl {
     }
     pub use affiliation::*;
 }
-use payroll_impl::{TimeCard, *};
 
 mod dao {
     use thiserror::Error;
 
-    use crate::{
-        payroll_domain::{Employee, EmployeeId},
-        MemberId,
-    };
+    use crate::payroll_domain::{Employee, EmployeeId, MemberId};
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum DaoError {
@@ -475,7 +469,6 @@ mod dao {
         fn dao(&self) -> &impl EmployeeDao<Ctx>;
     }
 }
-use dao::*;
 
 mod usecase {
     use chrono::NaiveDate;
@@ -484,11 +477,15 @@ mod usecase {
     use tx_rs::Tx;
 
     use crate::{
-        payroll_domain::{Employee, EmployeeId, PaymentClassification, PaymentSchedule},
-        payroll_impl::TimeCard,
-        Affiliation, CommissionedClassification, EmployeeDao, HaveEmployeeDao, HoldMethod,
-        HourlyClassification, MemberId, NoAffiliation, PaymentMethod, SalesReceipt, ServiceCharge,
-        UnionAffiliation,
+        dao::{EmployeeDao, HaveEmployeeDao},
+        payroll_domain::{
+            Affiliation, Employee, EmployeeId, MemberId, PaymentClassification, PaymentMethod,
+            PaymentSchedule,
+        },
+        payroll_impl::{
+            CommissionedClassification, HoldMethod, HourlyClassification, NoAffiliation,
+            SalesReceipt, ServiceCharge, TimeCard, UnionAffiliation,
+        },
     };
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
@@ -799,9 +796,12 @@ mod service {
     use tx_rs::Tx;
 
     use crate::{
-        AddEmployee, AddSalesReceipt, AddServiceCharge, AddTimeCard, AddUnionAffiliation,
-        ChgClassification, ChgEmployeeAddress, ChgEmployeeName, ChgMethod, DelEmployee,
-        DelUnionAffiliation, EmployeeId, UsecaseError,
+        payroll_domain::EmployeeId,
+        usecase::{
+            AddEmployee, AddSalesReceipt, AddServiceCharge, AddTimeCard, AddUnionAffiliation,
+            ChgClassification, ChgEmployeeAddress, ChgEmployeeName, ChgMethod, DelEmployee,
+            DelUnionAffiliation, UsecaseError,
+        },
     };
 
     pub trait AddEmployeeTransaction<'a, Ctx>
@@ -975,7 +975,10 @@ use service::*;
 mod payroll_db {
     use std::{cell::RefMut, collections::HashMap, fmt::Debug};
 
-    use crate::{DaoError, Employee, EmployeeDao, EmployeeId, MemberId};
+    use crate::{
+        dao::{DaoError, EmployeeDao},
+        payroll_domain::{Employee, EmployeeId, MemberId},
+    };
 
     #[derive(Debug, Clone)]
     pub struct PayrollDatabase {
@@ -1091,9 +1094,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
+            dao::{EmployeeDao, HaveEmployeeDao},
             payroll_db::{PayrollDbCtx, PayrollDbDao},
-            AddEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao, MonthlySchedule,
-            PaymentClassification, PaymentSchedule, SalariedClassification,
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{MonthlySchedule, SalariedClassification},
+            usecase::AddEmployee,
         };
 
         #[derive(Debug, Clone)]
@@ -1146,9 +1151,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
+            dao::{EmployeeDao, HaveEmployeeDao},
             payroll_db::{PayrollDbCtx, PayrollDbDao},
-            AddEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao, HourlyClassification,
-            PaymentClassification, PaymentSchedule, WeeklySchedule,
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{HourlyClassification, WeeklySchedule},
+            usecase::AddEmployee,
         };
 
         #[derive(Debug, Clone)]
@@ -1201,9 +1208,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
+            dao::{EmployeeDao, HaveEmployeeDao},
             payroll_db::{PayrollDbCtx, PayrollDbDao},
-            AddEmployee, BiweeklySchedule, CommissionedClassification, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, PaymentClassification, PaymentSchedule,
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{BiweeklySchedule, CommissionedClassification},
+            usecase::AddEmployee,
         };
 
         #[derive(Debug, Clone)]
@@ -1267,8 +1276,10 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployeeName, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            PayrollDbCtx,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::EmployeeId,
+            usecase::ChgEmployeeName,
         };
 
         #[derive(Debug, Clone)]
@@ -1308,8 +1319,10 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployeeAddress, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            PayrollDbCtx,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::EmployeeId,
+            usecase::ChgEmployeeAddress,
         };
 
         #[derive(Debug, Clone)]
@@ -1349,8 +1362,10 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, DelEmployee, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            PayrollDbCtx,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::EmployeeId,
+            usecase::DelEmployee,
         };
 
         #[derive(Debug, Clone)]
@@ -1385,8 +1400,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgClassification, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            MonthlySchedule, PayrollDbCtx, SalariedClassification,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{MonthlySchedule, SalariedClassification},
+            usecase::ChgClassification,
         };
 
         #[derive(Debug, Clone)]
@@ -1415,10 +1433,10 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
                 Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
             }
-            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
                 Rc::new(RefCell::new(MonthlySchedule))
             }
         }
@@ -1429,8 +1447,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgClassification, EmployeeDao, EmployeeId, HaveEmployeeDao,
-            HourlyClassification, PayrollDbCtx, WeeklySchedule,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{HourlyClassification, WeeklySchedule},
+            usecase::ChgClassification,
         };
 
         #[derive(Debug, Clone)]
@@ -1459,10 +1480,10 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
                 Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
             }
-            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
                 Rc::new(RefCell::new(WeeklySchedule))
             }
         }
@@ -1473,8 +1494,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            payroll_db::PayrollDbDao, BiweeklySchedule, ChgClassification,
-            CommissionedClassification, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule},
+            payroll_impl::{BiweeklySchedule, CommissionedClassification},
+            usecase::ChgClassification,
         };
 
         #[derive(Debug, Clone)]
@@ -1505,13 +1529,13 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_classification(&self) -> Rc<RefCell<dyn crate::PaymentClassification>> {
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
                 Rc::new(RefCell::new(CommissionedClassification::new(
                     self.salary,
                     self.commission_rate,
                 )))
             }
-            fn get_schedule(&self) -> Rc<RefCell<dyn crate::PaymentSchedule>> {
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
                 Rc::new(RefCell::new(BiweeklySchedule))
             }
         }
@@ -1522,8 +1546,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, HoldMethod, PayrollDbCtx,
-            PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentMethod},
+            payroll_impl::HoldMethod,
+            usecase::ChgMethod,
         };
 
         #[derive(Debug, Clone)]
@@ -1550,7 +1577,7 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
                 Rc::new(RefCell::new(HoldMethod))
             }
         }
@@ -1561,8 +1588,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgMethod, DirectMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
-            PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentMethod},
+            payroll_impl::DirectMethod,
+            usecase::ChgMethod,
         };
 
         #[derive(Debug, Clone)]
@@ -1593,7 +1623,7 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
                 Rc::new(RefCell::new(DirectMethod::new(&self.bank, &self.account)))
             }
         }
@@ -1604,8 +1634,11 @@ mod tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgMethod, EmployeeDao, EmployeeId, HaveEmployeeDao, MailMethod, PayrollDbCtx,
-            PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, PaymentMethod},
+            payroll_impl::MailMethod,
+            usecase::ChgMethod,
         };
 
         #[derive(Debug, Clone)]
@@ -1634,7 +1667,7 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn get_method(&self) -> Rc<RefCell<dyn crate::PaymentMethod>> {
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
                 Rc::new(RefCell::new(MailMethod::new(&self.address)))
             }
         }
@@ -1642,9 +1675,14 @@ mod tx_impl {
     pub use chg_mail_method::*;
 
     mod add_union_member {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
         use crate::{
-            AddUnionAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, MemberId, PayrollDbCtx,
-            PayrollDbDao, UnionAffiliation,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{Affiliation, EmployeeId, MemberId},
+            payroll_impl::UnionAffiliation,
+            usecase::AddUnionAffiliation,
         };
 
         #[derive(Debug, Clone)]
@@ -1678,8 +1716,8 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
-            fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn crate::Affiliation>> {
-                std::rc::Rc::new(std::cell::RefCell::new(UnionAffiliation::new(
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+                Rc::new(RefCell::new(UnionAffiliation::new(
                     self.member_id,
                     self.dues,
                 )))
@@ -1689,9 +1727,14 @@ mod tx_impl {
     pub use add_union_member::*;
 
     mod del_union_member {
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
         use crate::{
-            DelUnionAffiliation, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx,
-            PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{Affiliation, EmployeeId},
+            payroll_impl::NoAffiliation,
+            usecase::DelUnionAffiliation,
         };
 
         #[derive(Debug, Clone)]
@@ -1718,8 +1761,8 @@ mod tx_impl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
-            fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn crate::Affiliation>> {
-                std::rc::Rc::new(std::cell::RefCell::new(crate::NoAffiliation))
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+                Rc::new(RefCell::new(NoAffiliation))
             }
         }
     }
@@ -1729,7 +1772,10 @@ mod tx_impl {
         use chrono::NaiveDate;
 
         use crate::{
-            AddTimeCard, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::EmployeeId,
+            usecase::AddTimeCard,
         };
 
         #[derive(Debug, Clone)]
@@ -1773,7 +1819,10 @@ mod tx_impl {
         use chrono::NaiveDate;
 
         use crate::{
-            AddSalesReceipt, EmployeeDao, EmployeeId, HaveEmployeeDao, PayrollDbCtx, PayrollDbDao,
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::EmployeeId,
+            usecase::AddSalesReceipt,
         };
 
         #[derive(Debug, Clone)]
@@ -1814,36 +1863,43 @@ mod tx_impl {
     pub use sales_receipt::*;
 
     mod service_charge {
-        use crate::{AddServiceCharge, EmployeeDao, HaveEmployeeDao, MemberId, PayrollDbCtx};
+        use chrono::NaiveDate;
+
+        use crate::{
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            payroll_domain::{EmployeeId, MemberId},
+            usecase::AddServiceCharge,
+        };
 
         #[derive(Debug, Clone)]
         pub struct AddServiceChargeImpl {
             member_id: MemberId,
-            date: chrono::NaiveDate,
+            date: NaiveDate,
             amount: f32,
 
-            dao: crate::PayrollDbDao,
+            dao: PayrollDbDao,
         }
         impl AddServiceChargeImpl {
-            pub fn new(member_id: MemberId, date: chrono::NaiveDate, amount: f32) -> Self {
+            pub fn new(member_id: MemberId, date: NaiveDate, amount: f32) -> Self {
                 Self {
                     member_id,
                     date,
                     amount,
-                    dao: crate::PayrollDbDao,
+                    dao: PayrollDbDao,
                 }
             }
         }
         impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for AddServiceChargeImpl {
-            fn dao(&self) -> &impl EmployeeDao<crate::PayrollDbCtx<'a>> {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
                 &self.dao
             }
         }
         impl<'a> AddServiceCharge<PayrollDbCtx<'a>> for AddServiceChargeImpl {
-            fn get_member_id(&self) -> crate::EmployeeId {
+            fn get_member_id(&self) -> EmployeeId {
                 self.member_id
             }
-            fn get_date(&self) -> chrono::NaiveDate {
+            fn get_date(&self) -> NaiveDate {
                 self.date
             }
             fn get_amount(&self) -> f32 {
@@ -1853,7 +1909,6 @@ mod tx_impl {
     }
     pub use service_charge::*;
 }
-use tx_impl::*;
 
 mod mock_tx_impl {
     mod add_salaried_emp {
@@ -1861,8 +1916,10 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            AddEmployeeTransaction, AddSalariedEmployeeImpl, EmployeeId, ServiceError, Transaction,
-            UsecaseError,
+            payroll_domain::EmployeeId,
+            service::{AddEmployeeTransaction, ServiceError, Transaction},
+            tx_impl::AddSalariedEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -1912,8 +1969,10 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            AddEmployeeTransaction, AddHourlyEmployeeImpl, EmployeeId, ServiceError, Transaction,
-            UsecaseError,
+            payroll_domain::EmployeeId,
+            service::{AddEmployeeTransaction, ServiceError, Transaction},
+            tx_impl::AddHourlyEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -1968,8 +2027,10 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            AddCommissionedEmployeeImpl, AddEmployeeTransaction, EmployeeId, ServiceError,
-            Transaction, UsecaseError,
+            payroll_domain::EmployeeId,
+            service::{AddEmployeeTransaction, ServiceError, Transaction},
+            tx_impl::AddCommissionedEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2026,8 +2087,10 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            ChgEmployeeNameImpl, ChgEmployeeNameTransaction, EmployeeId, ServiceError, Transaction,
-            UsecaseError,
+            payroll_domain::EmployeeId,
+            service::{ChgEmployeeNameTransaction, ServiceError, Transaction},
+            tx_impl::ChgEmployeeNameImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2071,8 +2134,10 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            ChgEmployeeAddressImpl, ChgEmployeeAddressTransaction, EmployeeId, ServiceError,
-            Transaction, UsecaseError,
+            payroll_domain::EmployeeId,
+            service::{ChgEmployeeAddressTransaction, ServiceError, Transaction},
+            tx_impl::ChgEmployeeAddressImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2115,8 +2180,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            DelEmployeeImpl, DelEmployeeTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{DelEmployeeTransaction, ServiceError, Transaction},
+            tx_impl::DelEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2159,8 +2227,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgClassificationTransaction, ChgSalariedEmployeeImpl, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgClassificationTransaction, ServiceError, Transaction},
+            tx_impl::ChgSalariedEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2203,8 +2274,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgClassificationTransaction, ChgHourlyEmployeeImpl, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgClassificationTransaction, ServiceError, Transaction},
+            tx_impl::ChgHourlyEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2247,8 +2321,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgClassificationTransaction, ChgCommissionedEmployeeImpl, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgClassificationTransaction, ServiceError, Transaction},
+            tx_impl::ChgCommissionedEmployeeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2300,8 +2377,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgHoldMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgMethodTransaction, ServiceError, Transaction},
+            tx_impl::ChgHoldMethodImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2344,8 +2424,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgDirectMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgMethodTransaction, ServiceError, Transaction},
+            tx_impl::ChgDirectMethodImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2393,8 +2476,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            ChgMailMethodImpl, ChgMethodTransaction, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{ChgMethodTransaction, ServiceError, Transaction},
+            tx_impl::ChgMailMethodImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2437,8 +2523,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            AddUnionAffiliationTransaction, AddUnionMemberImpl, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{AddUnionAffiliationTransaction, ServiceError, Transaction},
+            tx_impl::AddUnionMemberImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2486,8 +2575,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            DelUnionAffiliationTransaction, DelUnionMemberImpl, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{DelUnionAffiliationTransaction, ServiceError, Transaction},
+            tx_impl::DelUnionMemberImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2531,8 +2623,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            AddTimeCardTransaction, AddTimecardImpl, EmployeeId, PayrollDatabase, PayrollDbCtx,
-            ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{AddTimeCardTransaction, ServiceError, Transaction},
+            tx_impl::AddTimecardImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2581,8 +2676,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            AddSalesReceiptImpl, AddSalesReceiptTransaction, EmployeeId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::EmployeeId,
+            service::{AddSalesReceiptTransaction, ServiceError, Transaction},
+            tx_impl::AddSalesReceiptImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2630,8 +2728,11 @@ mod mock_tx_impl {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
         use crate::{
-            AddServiceChargeImpl, AddServiceChargeTransaction, MemberId, PayrollDatabase,
-            PayrollDbCtx, ServiceError, Transaction, UsecaseError,
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            payroll_domain::MemberId,
+            service::{AddServiceChargeTransaction, ServiceError, Transaction},
+            tx_impl::AddServiceChargeImpl,
+            usecase::UsecaseError,
         };
 
         #[derive(Debug, Clone)]
