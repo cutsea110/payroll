@@ -9,8 +9,9 @@ mod payroll_domain {
         use chrono::NaiveDate;
         use std::{cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 
-        use crate::{
-            Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
+        use super::{
+            interface::{Affiliation, PaymentClassification, PaymentMethod, PaymentSchedule},
+            types::EmployeeId,
         };
 
         #[derive(Debug, Clone)]
@@ -128,7 +129,7 @@ mod payroll_domain {
             use dyn_clone::DynClone;
             use std::fmt::Debug;
 
-            use crate::Paycheck;
+            use crate::payroll_domain::Paycheck;
 
             pub trait PaymentMethod: Debug + DynClone {
                 // TODO: return type
@@ -155,7 +156,6 @@ mod payroll_domain {
     }
     pub use interface::*;
 }
-use payroll_domain::*;
 
 mod payroll_impl {
     mod classification {
@@ -789,7 +789,6 @@ mod usecase {
         }
     }
 }
-pub use usecase::*;
 
 mod service {
     use thiserror::Error;
@@ -970,7 +969,6 @@ mod service {
         fn execute(&mut self) -> Result<Self::T, ServiceError>;
     }
 }
-use service::*;
 
 mod payroll_db {
     use std::{cell::RefMut, collections::HashMap, fmt::Debug};
@@ -1087,7 +1085,6 @@ mod payroll_db {
         }
     }
 }
-use payroll_db::*;
 
 mod tx_impl {
     mod add_salaried_emp {
@@ -2775,12 +2772,15 @@ mod mock_tx_impl {
     }
     pub use add_service_charge::*;
 }
-use mock_tx_impl::*;
+
+use chrono::NaiveDate;
+use std::{cell::RefCell, rc::Rc};
+
+use crate::mock_tx_impl::*;
+use crate::payroll_db::PayrollDatabase;
+use crate::service::Transaction;
 
 fn main() {
-    use chrono::NaiveDate;
-    use std::{cell::RefCell, rc::Rc};
-
     env_logger::init();
 
     let db = Rc::new(RefCell::new(PayrollDatabase::new()));
@@ -2788,20 +2788,20 @@ fn main() {
     let tx: &mut dyn Transaction<T = _> =
         &mut AddSalariedEmployeeTx::new(1, "Bob", "Home", 1000.0, db.clone());
     println!("{:#?}", db);
-    Transaction::execute(tx).expect("register employee Bob");
+    tx.execute().expect("register employee Bob");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgEmployeeNameTx::new(1, "Alice", db.clone());
-    Transaction::execute(tx).expect("change employee name");
+    tx.execute().expect("change employee name");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgEmployeeAddressTx::new(1, "123 Main St.", db.clone());
-    Transaction::execute(tx).expect("change employee address");
+    tx.execute().expect("change employee address");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
-    Transaction::execute(tx).expect("change employee to hourly");
+    tx.execute().expect("change employee to hourly");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut AddTimecardTx::new(
@@ -2810,12 +2810,12 @@ fn main() {
         8.0,
         db.clone(),
     );
-    Transaction::execute(tx).expect("add timecard");
+    tx.execute().expect("add timecard");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgCommissionedClassificationTx::new(1, 510.0, 0.75, db.clone());
-    Transaction::execute(tx).expect("change employee to commissioned");
+    tx.execute().expect("change employee to commissioned");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut AddSalesReceiptTx::new(
@@ -2824,30 +2824,30 @@ fn main() {
         35980.0,
         db.clone(),
     );
-    Transaction::execute(tx).expect("add sales receipt");
+    tx.execute().expect("add sales receipt");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgSalariedClassificationTx::new(1, 1020.0, db.clone());
-    Transaction::execute(tx).expect("change employee to salaried");
+    tx.execute().expect("change employee to salaried");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgDirectMethodTx::new(1, "mufg", "3-14159265", db.clone());
-    Transaction::execute(tx).expect("change employee to direct method");
+    tx.execute().expect("change employee to direct method");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut ChgMailMethodTx::new(1, "alice@gmail.com", db.clone());
-    Transaction::execute(tx).expect("change employee to mail method");
+    tx.execute().expect("change employee to mail method");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut ChgHoldMethodTx::new(1, db.clone());
-    Transaction::execute(tx).expect("change employee to hold method");
+    tx.execute().expect("change employee to hold method");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut AddUnionMemberTx::new(7463, 1, 100.0, db.clone());
-    Transaction::execute(tx).expect("add union member");
+    tx.execute().expect("add union member");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut AddServiceChargeTx::new(
@@ -2856,24 +2856,24 @@ fn main() {
         300.5,
         db.clone(),
     );
-    Transaction::execute(tx).expect("add service charge");
+    tx.execute().expect("add service charge");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut DelUnionMemberTx::new(1, db.clone());
-    Transaction::execute(tx).expect("delete union member");
+    tx.execute().expect("delete union member");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> = &mut DelEmployeeTx::new(1, db.clone());
-    Transaction::execute(tx).expect("delete employee");
+    tx.execute().expect("delete employee");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut AddHourlyEmployeeTx::new(2, "Charlie", "Home", 10.0, db.clone());
-    Transaction::execute(tx).expect("register employee Charlie");
+    tx.execute().expect("register employee Charlie");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
         &mut AddCommissionedEmployeeTx::new(3, "David", "Home", 500.0, 0.5, db.clone());
-    Transaction::execute(tx).expect("register employee David");
+    tx.execute().expect("register employee David");
     println!("{:#?}", db);
 }
