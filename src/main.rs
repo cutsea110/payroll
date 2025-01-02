@@ -75,6 +75,21 @@ mod payroll_domain {
             pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
                 self.affiliation = affiliation;
             }
+            pub fn is_pay_date(&self, date: NaiveDate) -> bool {
+                self.schedule.borrow().is_pay_date(date)
+            }
+            pub fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
+                self.schedule.borrow().get_pay_period(pay_date)
+            }
+            pub fn payday(&self, pc: &mut Paycheck) {
+                let gross_pay = self.classification.borrow().calculate_pay(pc);
+                let deductions = self.affiliation.borrow().calculate_deductions(pc);
+                let net_pay = gross_pay - deductions;
+                pc.set_gross_pay(gross_pay);
+                pc.set_deductions(deductions);
+                pc.set_net_pay(net_pay);
+                self.method.borrow().pay(pc);
+            }
         }
 
         #[derive(Debug, Clone)]
@@ -94,6 +109,18 @@ mod payroll_domain {
                     net_pay: 0.0,
                 }
             }
+            pub fn set_gross_pay(&mut self, gross_pay: f32) {
+                self.gross_pay = gross_pay;
+            }
+            pub fn set_deductions(&mut self, deductions: f32) {
+                self.deductions = deductions;
+            }
+            pub fn set_net_pay(&mut self, net_pay: f32) {
+                self.net_pay = net_pay;
+            }
+            pub fn get_pay_period(&self) -> RangeInclusive<NaiveDate> {
+                self.period.clone()
+            }
         }
     }
     pub use bo::*;
@@ -103,10 +130,12 @@ mod payroll_domain {
             use dyn_clone::DynClone;
             use std::{any::Any, fmt::Debug};
 
+            use crate::payroll_domain::Paycheck;
+
             pub trait PaymentClassification: Debug + DynClone {
                 fn as_any(&self) -> &dyn Any;
                 fn as_any_mut(&mut self) -> &mut dyn Any;
-                fn calculate_pay(&self) -> f32;
+                fn calculate_pay(&self, pc: &Paycheck) -> f32;
             }
             dyn_clone::clone_trait_object!(PaymentClassification);
         }
@@ -143,12 +172,12 @@ mod payroll_domain {
             use dyn_clone::DynClone;
             use std::{any::Any, fmt::Debug};
 
+            use crate::payroll_domain::Paycheck;
+
             pub trait Affiliation: Debug + DynClone {
                 fn as_any(&self) -> &dyn Any;
                 fn as_any_mut(&mut self) -> &mut dyn Any;
-                fn calculate_deductions(&self) -> f32 {
-                    0.0
-                }
+                fn calculate_deductions(&self, pc: &Paycheck) -> f32;
             }
             dyn_clone::clone_trait_object!(Affiliation);
         }
@@ -162,7 +191,7 @@ mod payroll_impl {
         use chrono::NaiveDate;
         use std::any::Any;
 
-        use crate::payroll_domain::PaymentClassification;
+        use crate::payroll_domain::{Paycheck, PaymentClassification};
 
         #[derive(Debug, Clone)]
         pub struct SalariedClassification {
@@ -181,8 +210,8 @@ mod payroll_impl {
             fn as_any_mut(&mut self) -> &mut dyn Any {
                 self
             }
-            fn calculate_pay(&self) -> f32 {
-                unimplemented!();
+            fn calculate_pay(&self, _pc: &Paycheck) -> f32 {
+                self.salary
             }
         }
 
@@ -194,6 +223,12 @@ mod payroll_impl {
         impl TimeCard {
             pub fn new(date: NaiveDate, hours: f32) -> Self {
                 Self { date, hours }
+            }
+            pub fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            pub fn get_hours(&self) -> f32 {
+                self.hours
             }
         }
 
@@ -212,6 +247,12 @@ mod payroll_impl {
             pub fn add_timecard(&mut self, tc: TimeCard) {
                 self.timecards.push(tc);
             }
+            pub fn calculate_pay_for_timecard(&self, tc: &TimeCard) -> f32 {
+                let hours = tc.get_hours();
+                let overtime = (hours - 8.0).max(0.0);
+                let straight_time = hours - overtime;
+                straight_time * self.hourly_rate + overtime * self.hourly_rate * 1.5
+            }
         }
         impl PaymentClassification for HourlyClassification {
             fn as_any(&self) -> &dyn Any {
@@ -220,8 +261,15 @@ mod payroll_impl {
             fn as_any_mut(&mut self) -> &mut dyn Any {
                 self
             }
-            fn calculate_pay(&self) -> f32 {
-                unimplemented!();
+            fn calculate_pay(&self, pc: &Paycheck) -> f32 {
+                let pay_period = pc.get_pay_period();
+                let mut total_pay = 0.0;
+                for tc in &self.timecards {
+                    if pay_period.contains(&tc.get_date()) {
+                        total_pay += self.calculate_pay_for_timecard(tc);
+                    }
+                }
+                total_pay
             }
         }
 
@@ -233,6 +281,12 @@ mod payroll_impl {
         impl SalesReceipt {
             pub fn new(date: NaiveDate, amount: f32) -> Self {
                 Self { date, amount }
+            }
+            pub fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            pub fn get_amount(&self) -> f32 {
+                self.amount
             }
         }
 
@@ -253,6 +307,9 @@ mod payroll_impl {
             pub fn add_sales_receipt(&mut self, sr: SalesReceipt) {
                 self.sales_receipts.push(sr);
             }
+            pub fn calculate_pay_for_sales_receipt(&self, sr: &SalesReceipt) -> f32 {
+                self.commission_rate * sr.get_amount()
+            }
         }
         impl PaymentClassification for CommissionedClassification {
             fn as_any(&self) -> &dyn Any {
@@ -261,27 +318,39 @@ mod payroll_impl {
             fn as_any_mut(&mut self) -> &mut dyn Any {
                 self
             }
-            fn calculate_pay(&self) -> f32 {
-                unimplemented!();
+            fn calculate_pay(&self, pc: &Paycheck) -> f32 {
+                let mut total_pay = self.salary;
+                let pay_period = pc.get_pay_period();
+                for sr in self.sales_receipts.iter() {
+                    if pay_period.contains(&sr.get_date()) {
+                        total_pay += self.calculate_pay_for_sales_receipt(sr);
+                    }
+                }
+                total_pay
             }
         }
     }
     pub use classification::*;
 
     mod schedule {
-        use chrono::NaiveDate;
+        use chrono::{Datelike, Days, NaiveDate, Weekday};
         use std::{fmt::Debug, ops::RangeInclusive};
 
         use crate::payroll_domain::PaymentSchedule;
 
         #[derive(Debug, Clone)]
         pub struct MonthlySchedule;
+        impl MonthlySchedule {
+            pub fn is_last_day_of_month(&self, date: NaiveDate) -> bool {
+                date.month() != date.checked_add_days(Days::new(1)).unwrap().month()
+            }
+        }
         impl PaymentSchedule for MonthlySchedule {
             fn is_pay_date(&self, date: NaiveDate) -> bool {
-                unimplemented!();
+                self.is_last_day_of_month(date)
             }
             fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-                unimplemented!();
+                pay_date.with_day(1).unwrap()..=pay_date
             }
         }
 
@@ -289,10 +358,10 @@ mod payroll_impl {
         pub struct WeeklySchedule;
         impl PaymentSchedule for WeeklySchedule {
             fn is_pay_date(&self, date: NaiveDate) -> bool {
-                unimplemented!();
+                date.weekday() == Weekday::Fri
             }
             fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-                unimplemented!();
+                pay_date.checked_sub_days(Days::new(6)).unwrap()..=pay_date
             }
         }
 
@@ -300,10 +369,10 @@ mod payroll_impl {
         pub struct BiweeklySchedule;
         impl PaymentSchedule for BiweeklySchedule {
             fn is_pay_date(&self, date: NaiveDate) -> bool {
-                unimplemented!();
+                date.weekday() == Weekday::Fri && date.iso_week().week() % 2 == 0
             }
             fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-                unimplemented!();
+                pay_date.checked_sub_days(Days::new(13)).unwrap()..=pay_date
             }
         }
     }
@@ -316,7 +385,7 @@ mod payroll_impl {
         pub struct HoldMethod;
         impl PaymentMethod for HoldMethod {
             fn pay(&self, pc: &Paycheck) {
-                unimplemented!();
+                println!("HoldMethod: {:#?}", pc);
             }
         }
 
@@ -335,7 +404,7 @@ mod payroll_impl {
         }
         impl PaymentMethod for DirectMethod {
             fn pay(&self, pc: &Paycheck) {
-                unimplemented!();
+                println!("DirectMethod to {}{}: {:#?}", self.bank, self.account, pc);
             }
         }
 
@@ -352,17 +421,17 @@ mod payroll_impl {
         }
         impl PaymentMethod for MailMethod {
             fn pay(&self, pc: &Paycheck) {
-                unimplemented!();
+                println!("MailMethod to {}: {:#?}", self.address, pc);
             }
         }
     }
     pub use method::*;
 
     mod affiliation {
-        use chrono::NaiveDate;
+        use chrono::{Datelike, NaiveDate, Weekday};
         use std::any::Any;
 
-        use crate::payroll_domain::{Affiliation, MemberId};
+        use crate::payroll_domain::{Affiliation, MemberId, Paycheck};
 
         #[derive(Debug, Clone)]
         pub struct NoAffiliation;
@@ -373,8 +442,8 @@ mod payroll_impl {
             fn as_any_mut(&mut self) -> &mut dyn Any {
                 self
             }
-            fn calculate_deductions(&self) -> f32 {
-                unimplemented!();
+            fn calculate_deductions(&self, _pc: &Paycheck) -> f32 {
+                0.0
             }
         }
 
@@ -387,27 +456,30 @@ mod payroll_impl {
             pub fn new(date: NaiveDate, amount: f32) -> Self {
                 Self { date, amount }
             }
+            pub fn get_amount(&self) -> f32 {
+                self.amount
+            }
         }
 
         #[derive(Debug, Clone)]
         pub struct UnionAffiliation {
             member_id: MemberId,
             dues: f32,
-            service_charge: Vec<ServiceCharge>,
+            service_charges: Vec<ServiceCharge>,
         }
         impl UnionAffiliation {
             pub fn new(member_id: MemberId, dues: f32) -> Self {
                 Self {
                     member_id,
                     dues,
-                    service_charge: vec![],
+                    service_charges: vec![],
                 }
             }
             pub fn get_member_id(&self) -> MemberId {
                 self.member_id
             }
             pub fn add_service_charge(&mut self, sc: ServiceCharge) {
-                self.service_charge.push(sc);
+                self.service_charges.push(sc);
             }
         }
         impl Affiliation for UnionAffiliation {
@@ -417,8 +489,23 @@ mod payroll_impl {
             fn as_any_mut(&mut self) -> &mut dyn Any {
                 self
             }
-            fn calculate_deductions(&self) -> f32 {
-                unimplemented!();
+            fn calculate_deductions(&self, pc: &Paycheck) -> f32 {
+                let mut total_deductions = 0.0;
+                let pay_period = pc.get_pay_period();
+                for d in pc.get_pay_period().start().iter_days() {
+                    if d > *pay_period.end() {
+                        break;
+                    }
+                    if d.weekday() == Weekday::Fri {
+                        total_deductions += self.dues;
+                    }
+                }
+                for sc in self.service_charges.iter() {
+                    if pay_period.contains(&sc.date) {
+                        total_deductions += sc.get_amount();
+                    }
+                }
+                total_deductions
             }
         }
     }
@@ -428,7 +515,7 @@ mod payroll_impl {
 mod dao {
     use thiserror::Error;
 
-    use crate::payroll_domain::{Employee, EmployeeId, MemberId};
+    use crate::payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum DaoError {
@@ -447,6 +534,9 @@ mod dao {
         fn remove(&self, emp_id: EmployeeId) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
         fn fetch(&self, emp_id: EmployeeId)
             -> impl tx_rs::Tx<Ctx, Item = Employee, Err = DaoError>;
+        fn fetch_all(
+            &self,
+        ) -> impl tx_rs::Tx<Ctx, Item = Vec<(EmployeeId, Employee)>, Err = DaoError>;
         fn update(&self, emp: Employee) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
         fn add_union_member(
             &self,
@@ -461,6 +551,11 @@ mod dao {
             &self,
             member_id: MemberId,
         ) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = DaoError>;
+        fn record_paycheck(
+            &self,
+            emp_id: EmployeeId,
+            paycheck: Paycheck,
+        ) -> impl tx_rs::Tx<Ctx, Item = (), Err = DaoError>;
     }
 
     pub trait HaveEmployeeDao<Ctx> {
@@ -477,8 +572,8 @@ mod usecase {
     use crate::{
         dao::{DaoError, EmployeeDao, HaveEmployeeDao},
         payroll_domain::{
-            Affiliation, Employee, EmployeeId, MemberId, PaymentClassification, PaymentMethod,
-            PaymentSchedule,
+            Affiliation, Employee, EmployeeId, MemberId, Paycheck, PaymentClassification,
+            PaymentMethod, PaymentSchedule,
         },
         payroll_impl::{
             CommissionedClassification, HoldMethod, HourlyClassification, NoAffiliation,
@@ -807,6 +902,34 @@ mod usecase {
             })
         }
     }
+    pub trait Payday<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_pay_date(&self) -> NaiveDate;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let mut employees = self
+                    .dao()
+                    .fetch_all()
+                    .run(ctx)
+                    .map_err(UsecaseError::FailedToGet)?;
+                for (emp_id, emp) in employees.iter_mut() {
+                    if emp.is_pay_date(self.get_pay_date()) {
+                        let period = emp.get_pay_period(self.get_pay_date());
+                        let mut pc = Paycheck::new(period);
+                        emp.payday(&mut pc);
+                        self.dao()
+                            .record_paycheck(*emp_id, pc)
+                            .run(ctx)
+                            .map_err(UsecaseError::FailedToUpdate)?;
+                    }
+                }
+                Ok(())
+            })
+        }
+    }
 }
 
 mod service {
@@ -818,7 +941,7 @@ mod service {
         usecase::{
             AddEmployee, AddSalesReceipt, AddServiceCharge, AddTimeCard, AddUnionAffiliation,
             ChgClassification, ChgEmployeeAddress, ChgEmployeeName, ChgMethod, DelEmployee,
-            DelUnionAffiliation, UsecaseError,
+            DelUnionAffiliation, Payday, UsecaseError,
         },
     };
 
@@ -976,6 +1099,20 @@ mod service {
             self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
         }
     }
+    pub trait PaydayTransaction<'a, Ctx>
+    where
+        Ctx: 'a,
+    {
+        type U: Payday<Ctx>;
+
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
+    }
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum ServiceError {
@@ -999,6 +1136,8 @@ mod service {
         FailedToAddSalesReceipt(UsecaseError),
         #[error("failed to add service charge: {0}")]
         FailedToAddServiceCharge(UsecaseError),
+        #[error("failed to payday: {0}")]
+        FailedToPayday(UsecaseError),
     }
 
     pub trait Transaction {
@@ -1008,23 +1147,25 @@ mod service {
 }
 
 mod payroll_db {
-    use std::{cell::RefMut, collections::HashMap, fmt::Debug};
+    use std::{cell::RefCell, cell::RefMut, collections::HashMap, fmt::Debug, rc::Rc};
 
     use crate::{
         dao::{DaoError, EmployeeDao},
-        payroll_domain::{Employee, EmployeeId, MemberId},
+        payroll_domain::{Employee, EmployeeId, MemberId, Paycheck},
     };
 
     #[derive(Debug, Clone)]
     pub struct PayrollDatabase {
         employees: HashMap<EmployeeId, Employee>,
         union_members: HashMap<MemberId, EmployeeId>,
+        paychecks: Rc<RefCell<HashMap<EmployeeId, Vec<Paycheck>>>>,
     }
     impl PayrollDatabase {
         pub fn new() -> Self {
             Self {
                 employees: HashMap::new(),
                 union_members: HashMap::new(),
+                paychecks: Rc::new(RefCell::new(HashMap::new())),
             }
         }
     }
@@ -1069,6 +1210,14 @@ mod payroll_db {
                     .get(&emp_id)
                     .cloned()
                     .ok_or(DaoError::NotFound(emp_id))
+            })
+        }
+        fn fetch_all(
+            &self,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = Vec<(EmployeeId, Employee)>, Err = DaoError>
+        {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                Ok(tx.employees.iter().map(|(k, v)| (*k, v.clone())).collect())
             })
         }
         fn update(
@@ -1118,6 +1267,20 @@ mod payroll_db {
                     .get(&member_id)
                     .cloned()
                     .ok_or(DaoError::NotYetUnionMember(member_id))
+            })
+        }
+        fn record_paycheck(
+            &self,
+            emp_id: EmployeeId,
+            pc: Paycheck,
+        ) -> impl tx_rs::Tx<PayrollDbCtx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut PayrollDbCtx<'a>| {
+                tx.paychecks
+                    .borrow_mut()
+                    .entry(emp_id)
+                    .or_insert(vec![])
+                    .push(pc);
+                Ok(())
             })
         }
     }
@@ -1942,6 +2105,42 @@ mod tx_impl {
         }
     }
     pub use service_charge::*;
+
+    mod payday {
+        use chrono::NaiveDate;
+
+        use crate::{
+            dao::{EmployeeDao, HaveEmployeeDao},
+            payroll_db::{PayrollDbCtx, PayrollDbDao},
+            usecase::Payday,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct PaydayImpl {
+            pay_date: NaiveDate,
+
+            dao: PayrollDbDao,
+        }
+        impl PaydayImpl {
+            pub fn new(pay_date: NaiveDate) -> Self {
+                Self {
+                    pay_date,
+                    dao: PayrollDbDao,
+                }
+            }
+        }
+        impl<'a> HaveEmployeeDao<PayrollDbCtx<'a>> for PaydayImpl {
+            fn dao(&self) -> &impl EmployeeDao<PayrollDbCtx<'a>> {
+                &self.dao
+            }
+        }
+        impl<'a> Payday<PayrollDbCtx<'a>> for PaydayImpl {
+            fn get_pay_date(&self) -> NaiveDate {
+                self.pay_date
+            }
+        }
+    }
+    pub use payday::*;
 }
 
 mod mock_tx_impl {
@@ -2808,6 +3007,52 @@ mod mock_tx_impl {
         }
     }
     pub use add_service_charge::*;
+
+    mod payday {
+        use chrono::NaiveDate;
+        use std::{cell::RefCell, fmt::Debug, rc::Rc};
+
+        use crate::{
+            payroll_db::{PayrollDatabase, PayrollDbCtx},
+            service::{PaydayTransaction, ServiceError, Transaction},
+            tx_impl::PaydayImpl,
+            usecase::UsecaseError,
+        };
+
+        #[derive(Debug, Clone)]
+        pub struct PaydayTx {
+            db: Rc<RefCell<PayrollDatabase>>,
+            usecase: RefCell<PaydayImpl>,
+        }
+        impl PaydayTx {
+            pub fn new(pay_date: NaiveDate, db: Rc<RefCell<PayrollDatabase>>) -> Self {
+                Self {
+                    db,
+                    usecase: RefCell::new(PaydayImpl::new(pay_date)),
+                }
+            }
+        }
+
+        impl<'a> PaydayTransaction<'a, PayrollDbCtx<'a>> for PaydayTx {
+            type U = PaydayImpl;
+
+            fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+            where
+                F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            {
+                let mut tx = self.db.borrow_mut();
+                let mut usecase = self.usecase.borrow_mut();
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToPayday)
+            }
+        }
+        impl Transaction for PaydayTx {
+            type T = ();
+            fn execute(&mut self) -> Result<(), ServiceError> {
+                PaydayTransaction::execute(self)
+            }
+        }
+    }
+    pub use payday::*;
 }
 
 use chrono::NaiveDate;
@@ -2837,6 +3082,11 @@ fn main() {
     tx.execute().expect("change employee address");
     println!("{:#?}", db);
 
+    let tx: &mut dyn Transaction<T = _> =
+        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(), db.clone());
+    tx.execute().expect("payday");
+    println!("{:#?}", db);
+
     let tx: &mut dyn Transaction<T = _> = &mut ChgHourlyClassificationTx::new(1, 10.0, db.clone());
     tx.execute().expect("change employee to hourly");
     println!("{:#?}", db);
@@ -2851,7 +3101,12 @@ fn main() {
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
-        &mut ChgCommissionedClassificationTx::new(1, 510.0, 0.75, db.clone());
+        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(), db.clone());
+    tx.execute().expect("payday");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut ChgCommissionedClassificationTx::new(1, 510.0, 0.05, db.clone());
     tx.execute().expect("change employee to commissioned");
     println!("{:#?}", db);
 
@@ -2862,6 +3117,11 @@ fn main() {
         db.clone(),
     );
     tx.execute().expect("add sales receipt");
+    println!("{:#?}", db);
+
+    let tx: &mut dyn Transaction<T = _> =
+        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 10).unwrap(), db.clone());
+    tx.execute().expect("payday");
     println!("{:#?}", db);
 
     let tx: &mut dyn Transaction<T = _> =
