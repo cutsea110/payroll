@@ -512,9 +512,9 @@ trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
             .map_err(|_| UsecaseError::Dummy)
     }
 }
-trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
+trait ChgEmployeeName<Ctx>: HaveEmployeeDao<Ctx> {
     fn get_emp_id(&self) -> EmployeeId;
-    fn change(&self, emp: &mut Employee);
+    fn get_name(&self) -> &str;
 
     fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
     where
@@ -527,7 +527,30 @@ trait ChgEmployee<Ctx>: HaveEmployeeDao<Ctx> {
                 .fetch(emp_id)
                 .map_err(|_| UsecaseError::Dummy)
                 .run(ctx)?;
-            self.change(&mut emp);
+            emp.set_name(self.get_name());
+            self.dao()
+                .update(emp)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)
+        })
+    }
+}
+trait ChgEmployeeAddress<Ctx>: HaveEmployeeDao<Ctx> {
+    fn get_emp_id(&self) -> EmployeeId;
+    fn get_address(&self) -> &str;
+
+    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+    where
+        Ctx: 'a,
+    {
+        tx_rs::with_tx(move |ctx| {
+            let emp_id = self.get_emp_id();
+            let mut emp = self
+                .dao()
+                .fetch(emp_id)
+                .map_err(|_| UsecaseError::Dummy)
+                .run(ctx)?;
+            emp.set_address(self.get_address());
             self.dao()
                 .update(emp)
                 .map_err(|_| UsecaseError::Dummy)
@@ -775,11 +798,25 @@ where
         self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
     }
 }
-trait ChgEmployeeTransaction<'a, Ctx>
+trait ChgEmployeeNameTransaction<'a, Ctx>
 where
     Ctx: 'a,
 {
-    type U: ChgEmployee<Ctx>;
+    type U: ChgEmployeeName<Ctx>;
+
+    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    where
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+    fn execute(&'a mut self) -> Result<(), ServiceError> {
+        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+    }
+}
+trait ChgEmployeeAddressTransaction<'a, Ctx>
+where
+    Ctx: 'a,
+{
+    type U: ChgEmployeeAddress<Ctx>;
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
@@ -1208,8 +1245,8 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, PayrollDbCtx,
+            payroll_db::PayrollDbDao, ChgEmployeeName, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            PayrollDbCtx,
         };
 
         #[derive(Debug, Clone)]
@@ -1234,12 +1271,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgEmployeeNameImpl {
+        impl<'a> ChgEmployeeName<PayrollDbCtx<'a>> for ChgEmployeeNameImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_name(self.new_name.as_str());
+            fn get_name(&self) -> &str {
+                self.new_name.as_str()
             }
         }
     }
@@ -1249,8 +1286,8 @@ mod tx_impl {
         use std::fmt::Debug;
 
         use crate::{
-            payroll_db::PayrollDbDao, ChgEmployee, Employee, EmployeeDao, EmployeeId,
-            HaveEmployeeDao, PayrollDbCtx,
+            payroll_db::PayrollDbDao, ChgEmployeeAddress, EmployeeDao, EmployeeId, HaveEmployeeDao,
+            PayrollDbCtx,
         };
 
         #[derive(Debug, Clone)]
@@ -1275,12 +1312,12 @@ mod tx_impl {
                 &self.dao
             }
         }
-        impl<'a> ChgEmployee<PayrollDbCtx<'a>> for ChgEmployeeAddressImpl {
+        impl<'a> ChgEmployeeAddress<PayrollDbCtx<'a>> for ChgEmployeeAddressImpl {
             fn get_emp_id(&self) -> EmployeeId {
                 self.id
             }
-            fn change(&self, emp: &mut Employee) {
-                emp.set_address(self.new_address.as_str());
+            fn get_address(&self) -> &str {
+                self.new_address.as_str()
             }
         }
     }
@@ -1967,7 +2004,7 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            ChgEmployeeNameImpl, ChgEmployeeTransaction, EmployeeId, ServiceError, Transaction,
+            ChgEmployeeNameImpl, ChgEmployeeNameTransaction, EmployeeId, ServiceError, Transaction,
             UsecaseError,
         };
 
@@ -1985,7 +2022,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeNameTx {
+        impl<'a> ChgEmployeeNameTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeNameTx {
             type U = ChgEmployeeNameImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2001,7 +2038,7 @@ mod mock_tx_impl {
         impl Transaction for ChgEmployeeNameTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgEmployeeNameTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
@@ -2012,8 +2049,8 @@ mod mock_tx_impl {
 
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
-            ChgEmployeeAddressImpl, ChgEmployeeTransaction, EmployeeId, ServiceError, Transaction,
-            UsecaseError,
+            ChgEmployeeAddressImpl, ChgEmployeeAddressTransaction, EmployeeId, ServiceError,
+            Transaction, UsecaseError,
         };
 
         #[derive(Debug, Clone)]
@@ -2030,7 +2067,7 @@ mod mock_tx_impl {
             }
         }
 
-        impl<'a> ChgEmployeeTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeAddressTx {
+        impl<'a> ChgEmployeeAddressTransaction<'a, PayrollDbCtx<'a>> for ChgEmployeeAddressTx {
             type U = ChgEmployeeAddressImpl;
 
             fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
@@ -2046,7 +2083,7 @@ mod mock_tx_impl {
         impl Transaction for ChgEmployeeAddressTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgEmployeeAddressTransaction::execute(self).map_err(|_| ServiceError::Dummy)
             }
         }
     }
