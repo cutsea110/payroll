@@ -130,7 +130,7 @@ mod payroll_domain {
             use dyn_clone::DynClone;
             use std::{any::Any, fmt::Debug};
 
-            use crate::payroll_domain::Paycheck;
+            use super::super::bo::Paycheck;
 
             pub trait PaymentClassification: Debug + DynClone {
                 fn as_any(&self) -> &dyn Any;
