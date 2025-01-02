@@ -436,8 +436,6 @@ mod dao {
         AlreadyExists(EmployeeId),
         #[error("EmployeeId({0}) not found")]
         NotFound(EmployeeId),
-        #[error("Insert failed: {0}")]
-        InsertFailed(String),
         #[error("MemberId({0}) is already a union member of EmployeeId({1})")]
         AlreadyUnionMember(MemberId, EmployeeId),
         #[error("MemberId({0}) is not a union member")]
@@ -477,7 +475,7 @@ mod usecase {
     use tx_rs::Tx;
 
     use crate::{
-        dao::{EmployeeDao, HaveEmployeeDao},
+        dao::{DaoError, EmployeeDao, HaveEmployeeDao},
         payroll_domain::{
             Affiliation, Employee, EmployeeId, MemberId, PaymentClassification, PaymentMethod,
             PaymentSchedule,
@@ -490,8 +488,22 @@ mod usecase {
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum UsecaseError {
-        #[error("dummy error")]
-        Dummy,
+        #[error("failed to get: {0}")]
+        FailedToGet(DaoError),
+        #[error("failed to add: {0}")]
+        FailedToAdd(DaoError),
+        #[error("failed to update: {0}")]
+        FailedToUpdate(DaoError),
+        #[error("failed to delete: {0}")]
+        FailedToDelete(DaoError),
+        #[error("failed to get union member: {0}")]
+        FailedToGetUnionMember(DaoError),
+        #[error("failed to add union member: {0}")]
+        FailedToAddUnionMember(DaoError),
+        #[error("failed to delete union member: {0}")]
+        FailedToDeleteUnionMember(DaoError),
+        #[error("unexpected: {0}")]
+        Unexpected(String),
     }
 
     pub trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
@@ -515,7 +527,7 @@ mod usecase {
                     Rc::new(RefCell::new(HoldMethod)),
                     Rc::new(RefCell::new(NoAffiliation)),
                 ))
-                .map_err(|_| UsecaseError::Dummy)
+                .map_err(UsecaseError::FailedToAdd)
         }
     }
     pub trait ChgEmployeeName<Ctx>: HaveEmployeeDao<Ctx> {
@@ -531,12 +543,12 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_name(self.get_name());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -554,12 +566,12 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_address(self.get_address());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -578,13 +590,13 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_classification(self.get_classification());
                 emp.set_schedule(self.get_schedule());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -602,12 +614,12 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_method(self.get_method());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -621,7 +633,7 @@ mod usecase {
         {
             self.dao()
                 .remove(self.get_emp_id())
-                .map_err(|_| UsecaseError::Dummy)
+                .map_err(UsecaseError::FailedToDelete)
         }
     }
     pub trait AddUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
@@ -633,7 +645,7 @@ mod usecase {
             self.dao()
                 .add_union_member(self.get_member_id(), self.get_emp_id())
                 .run(ctx)
-                .map_err(|e| UsecaseError::Dummy)
+                .map_err(UsecaseError::FailedToAddUnionMember)
         }
 
         fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
@@ -647,12 +659,12 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_affiliation(self.get_affiliation());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -666,17 +678,20 @@ mod usecase {
                 .dao()
                 .fetch(self.get_emp_id())
                 .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)?;
+                .map_err(UsecaseError::FailedToGet)?;
             let member_id = emp
                 .get_affiliation()
                 .borrow()
                 .as_any()
                 .downcast_ref::<UnionAffiliation>()
-                .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
+                .map_or(
+                    Err(UsecaseError::Unexpected("didn't union affiliation".into())),
+                    |a| Ok(a.get_member_id()),
+                )?;
             self.dao()
                 .remove_union_member(member_id)
                 .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)
+                .map_err(UsecaseError::FailedToDeleteUnionMember)
         }
         fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
         where
@@ -689,12 +704,12 @@ mod usecase {
                 let mut emp = self
                     .dao()
                     .fetch(emp_id)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToGet)
                     .run(ctx)?;
                 emp.set_affiliation(self.get_affiliation());
                 self.dao()
                     .update(emp)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
                     .run(ctx)
             })
         }
@@ -713,17 +728,19 @@ mod usecase {
                     .dao()
                     .fetch(self.get_emp_id())
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)?;
+                    .map_err(UsecaseError::FailedToGet)?;
                 emp.get_classification()
                     .borrow_mut()
                     .as_any_mut()
                     .downcast_mut::<HourlyClassification>()
-                    .ok_or(UsecaseError::Dummy)?
+                    .ok_or(UsecaseError::Unexpected(
+                        "didn't hourly classification".into(),
+                    ))?
                     .add_timecard(TimeCard::new(self.get_date(), self.get_hours()));
                 self.dao()
                     .update(emp)
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
             })
         }
     }
@@ -741,17 +758,19 @@ mod usecase {
                     .dao()
                     .fetch(self.get_emp_id())
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)?;
+                    .map_err(UsecaseError::FailedToGet)?;
                 emp.get_classification()
                     .borrow_mut()
                     .as_any_mut()
                     .downcast_mut::<CommissionedClassification>()
-                    .ok_or(UsecaseError::Dummy)?
+                    .ok_or(UsecaseError::Unexpected(
+                        "didn't commissioned classification".into(),
+                    ))?
                     .add_sales_receipt(SalesReceipt::new(self.get_date(), self.get_amount()));
                 self.dao()
                     .update(emp)
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
             })
         }
     }
@@ -769,22 +788,22 @@ mod usecase {
                     .dao()
                     .find_union_member(self.get_member_id())
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)?;
+                    .map_err(UsecaseError::FailedToGetUnionMember)?;
                 let emp = self
                     .dao()
                     .fetch(emp_id)
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)?;
+                    .map_err(UsecaseError::FailedToGet)?;
                 emp.get_affiliation()
                     .borrow_mut()
                     .as_any_mut()
                     .downcast_mut::<UnionAffiliation>()
-                    .ok_or(UsecaseError::Dummy)?
+                    .ok_or(UsecaseError::Unexpected("didn't union affiliation".into()))?
                     .add_service_charge(ServiceCharge::new(self.get_date(), self.get_amount()));
                 self.dao()
                     .update(emp)
                     .run(ctx)
-                    .map_err(|_| UsecaseError::Dummy)
+                    .map_err(UsecaseError::FailedToUpdate)
             })
         }
     }
@@ -960,8 +979,26 @@ mod service {
 
     #[derive(Debug, Clone, Eq, PartialEq, Error)]
     pub enum ServiceError {
-        #[error("dummy error")]
-        Dummy,
+        #[error("failed to register employee: {0}")]
+        FailedToRegisterEmployee(UsecaseError),
+        #[error("failed to change employee: {0}")]
+        FailedToChangeEmployee(UsecaseError),
+        #[error("failed to delete employee: {0}")]
+        FailedToDeleteEmployee(UsecaseError),
+        #[error("failed to change classification: {0}")]
+        FailedToChangeClassification(UsecaseError),
+        #[error("failed to change method: {0}")]
+        FailedToChangeMethod(UsecaseError),
+        #[error("failed to register union member: {0}")]
+        FailedToRegisterUnionMember(UsecaseError),
+        #[error("failed to unregister union member: {0}")]
+        FailedToUnregisterUnionMember(UsecaseError),
+        #[error("failed to add time card: {0}")]
+        FailedToAddTimeCard(UsecaseError),
+        #[error("failed to add sales receipt: {0}")]
+        FailedToAddSalesReceipt(UsecaseError),
+        #[error("failed to add service charge: {0}")]
+        FailedToAddServiceCharge(UsecaseError),
     }
 
     pub trait Transaction {
@@ -1948,14 +1985,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
             }
         }
 
         impl Transaction for AddSalariedEmployeeTx {
             type T = EmployeeId;
             fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddEmployeeTransaction::execute(self)
             }
         }
     }
@@ -2006,14 +2043,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
             }
         }
 
         impl Transaction for AddHourlyEmployeeTx {
             type T = EmployeeId;
             fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddEmployeeTransaction::execute(self)
             }
         }
     }
@@ -2066,14 +2103,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
             }
         }
 
         impl Transaction for AddCommissionedEmployeeTx {
             type T = EmployeeId;
             fn execute(&mut self) -> Result<EmployeeId, ServiceError> {
-                AddEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddEmployeeTransaction::execute(self)
             }
         }
     }
@@ -2113,14 +2150,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeEmployee)
             }
         }
 
         impl Transaction for ChgEmployeeNameTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeNameTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgEmployeeNameTransaction::execute(self)
             }
         }
     }
@@ -2160,14 +2197,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeEmployee)
             }
         }
 
         impl Transaction for ChgEmployeeAddressTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgEmployeeAddressTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgEmployeeAddressTransaction::execute(self)
             }
         }
     }
@@ -2207,14 +2244,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToDeleteEmployee)
             }
         }
 
         impl Transaction for DelEmployeeTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                DelEmployeeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                DelEmployeeTransaction::execute(self)
             }
         }
     }
@@ -2254,14 +2291,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
             }
         }
 
         impl Transaction for ChgSalariedClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self)
             }
         }
     }
@@ -2301,14 +2338,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
             }
         }
 
         impl Transaction for ChgHourlyClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self)
             }
         }
     }
@@ -2357,14 +2394,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
             }
         }
 
         impl Transaction for ChgCommissionedClassificationTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgClassificationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgClassificationTransaction::execute(self)
             }
         }
     }
@@ -2404,14 +2441,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
             }
         }
 
         impl Transaction for ChgHoldMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self)
             }
         }
     }
@@ -2456,14 +2493,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
             }
         }
 
         impl Transaction for ChgDirectMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self)
             }
         }
     }
@@ -2503,14 +2540,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
             }
         }
 
         impl Transaction for ChgMailMethodTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                ChgMethodTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                ChgMethodTransaction::execute(self)
             }
         }
     }
@@ -2555,14 +2592,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterUnionMember)
             }
         }
 
         impl Transaction for AddUnionMemberTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                AddUnionAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddUnionAffiliationTransaction::execute(self)
             }
         }
     }
@@ -2602,14 +2639,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToUnregisterUnionMember)
             }
         }
 
         impl Transaction for DelUnionMemberTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                DelUnionAffiliationTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                DelUnionAffiliationTransaction::execute(self)
             }
         }
     }
@@ -2655,14 +2692,14 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddTimeCard)
             }
         }
 
         impl Transaction for AddTimecardTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                AddTimeCardTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddTimeCardTransaction::execute(self)
             }
         }
     }
@@ -2708,13 +2745,13 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddSalesReceipt)
             }
         }
         impl Transaction for AddSalesReceiptTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                AddSalesReceiptTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddSalesReceiptTransaction::execute(self)
             }
         }
     }
@@ -2760,13 +2797,13 @@ mod mock_tx_impl {
             {
                 let mut tx = self.db.borrow_mut();
                 let mut usecase = self.usecase.borrow_mut();
-                f(&mut usecase, &mut tx).map_err(|_| ServiceError::Dummy)
+                f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddServiceCharge)
             }
         }
         impl Transaction for AddServiceChargeTx {
             type T = ();
             fn execute(&mut self) -> Result<(), ServiceError> {
-                AddServiceChargeTransaction::execute(self).map_err(|_| ServiceError::Dummy)
+                AddServiceChargeTransaction::execute(self)
             }
         }
     }
