@@ -1,8 +1,3 @@
-use chrono::NaiveDate;
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
-use thiserror::Error;
-use tx_rs::Tx;
-
 mod payroll_domain {
     mod types {
         pub type EmployeeId = u32;
@@ -482,473 +477,500 @@ mod dao {
 }
 use dao::*;
 
-#[derive(Debug, Clone, Eq, PartialEq, Error)]
-enum UsecaseError {
-    #[error("dummy error")]
-    Dummy,
-}
-// Usecase
-trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_name(&self) -> &str;
-    fn get_address(&self) -> &str;
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+mod usecase {
+    use chrono::NaiveDate;
+    use std::{cell::RefCell, rc::Rc};
+    use thiserror::Error;
+    use tx_rs::Tx;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        self.dao()
-            .insert(Employee::new(
-                self.get_emp_id(),
-                self.get_name(),
-                self.get_address(),
-                self.get_classification(),
-                self.get_schedule(),
-                Rc::new(RefCell::new(HoldMethod)),
-                Rc::new(RefCell::new(NoAffiliation)),
-            ))
-            .map_err(|_| UsecaseError::Dummy)
+    use crate::{
+        payroll_domain::{Employee, EmployeeId, PaymentClassification, PaymentSchedule},
+        payroll_impl::TimeCard,
+        Affiliation, CommissionedClassification, EmployeeDao, HaveEmployeeDao, HoldMethod,
+        HourlyClassification, MemberId, NoAffiliation, PaymentMethod, SalesReceipt, ServiceCharge,
+        UnionAffiliation,
+    };
+
+    #[derive(Debug, Clone, Eq, PartialEq, Error)]
+    pub enum UsecaseError {
+        #[error("dummy error")]
+        Dummy,
     }
-}
-trait ChgEmployeeName<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_name(&self) -> &str;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_name(self.get_name());
+    pub trait AddEmployee<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_name(&self) -> &str;
+        fn get_address(&self) -> &str;
+        fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+        fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = EmployeeId, Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
             self.dao()
-                .update(emp)
+                .insert(Employee::new(
+                    self.get_emp_id(),
+                    self.get_name(),
+                    self.get_address(),
+                    self.get_classification(),
+                    self.get_schedule(),
+                    Rc::new(RefCell::new(HoldMethod)),
+                    Rc::new(RefCell::new(NoAffiliation)),
+                ))
                 .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)
-        })
+        }
     }
-}
-trait ChgEmployeeAddress<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_address(&self) -> &str;
+    pub trait ChgEmployeeName<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_name(&self) -> &str;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_address(self.get_address());
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_name(self.get_name());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
+    }
+    pub trait ChgEmployeeAddress<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_address(&self) -> &str;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_address(self.get_address());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
+    }
+    pub trait ChgClassification<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+        fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_classification(self.get_classification());
+                emp.set_schedule(self.get_schedule());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
+    }
+    pub trait ChgMethod<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_method(self.get_method());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
+    }
+    pub trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
             self.dao()
-                .update(emp)
+                .remove(self.get_emp_id())
                 .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)
-        })
+        }
     }
-}
-trait ChgClassification<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+    pub trait AddUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_member_id(&self) -> MemberId;
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_classification(self.get_classification());
-            emp.set_schedule(self.get_schedule());
+        fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
             self.dao()
-                .update(emp)
-                .map_err(|_| UsecaseError::Dummy)
+                .add_union_member(self.get_member_id(), self.get_emp_id())
                 .run(ctx)
-        })
+                .map_err(|e| UsecaseError::Dummy)
+        }
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                self.record_membership(ctx)?;
+
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_affiliation(self.get_affiliation());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
     }
-}
-trait ChgMethod<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
+    pub trait DelUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_method(self.get_method());
-            self.dao()
-                .update(emp)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)
-        })
-    }
-}
-trait DelEmployee<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        self.dao()
-            .remove(self.get_emp_id())
-            .map_err(|_| UsecaseError::Dummy)
-    }
-}
-trait AddUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_member_id(&self) -> MemberId;
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
-
-    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
-        self.dao()
-            .add_union_member(self.get_member_id(), self.get_emp_id())
-            .run(ctx)
-            .map_err(|e| UsecaseError::Dummy)
-    }
-
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            self.record_membership(ctx)?;
-
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_affiliation(self.get_affiliation());
-            self.dao()
-                .update(emp)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)
-        })
-    }
-}
-trait DelUnionAffiliation<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
-
-    fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
-        let emp = self
-            .dao()
-            .fetch(self.get_emp_id())
-            .run(ctx)
-            .map_err(|_| UsecaseError::Dummy)?;
-        let member_id = emp
-            .get_affiliation()
-            .borrow()
-            .as_any()
-            .downcast_ref::<UnionAffiliation>()
-            .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
-        self.dao()
-            .remove_union_member(member_id)
-            .run(ctx)
-            .map_err(|_| UsecaseError::Dummy)
-    }
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
-            self.record_membership(ctx)?;
-
-            let emp_id = self.get_emp_id();
-            let mut emp = self
-                .dao()
-                .fetch(emp_id)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)?;
-            emp.set_affiliation(self.get_affiliation());
-            self.dao()
-                .update(emp)
-                .map_err(|_| UsecaseError::Dummy)
-                .run(ctx)
-        })
-    }
-}
-trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_date(&self) -> NaiveDate;
-    fn get_hours(&self) -> f32;
-
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
-    where
-        Ctx: 'a,
-    {
-        tx_rs::with_tx(move |ctx| {
+        fn record_membership(&self, ctx: &mut Ctx) -> Result<(), UsecaseError> {
             let emp = self
                 .dao()
                 .fetch(self.get_emp_id())
                 .run(ctx)
                 .map_err(|_| UsecaseError::Dummy)?;
-            emp.get_classification()
-                .borrow_mut()
-                .as_any_mut()
-                .downcast_mut::<HourlyClassification>()
-                .ok_or(UsecaseError::Dummy)?
-                .add_timecard(TimeCard::new(self.get_date(), self.get_hours()));
+            let member_id = emp
+                .get_affiliation()
+                .borrow()
+                .as_any()
+                .downcast_ref::<UnionAffiliation>()
+                .map_or(Err(UsecaseError::Dummy), |a| Ok(a.get_member_id()))?;
             self.dao()
-                .update(emp)
+                .remove_union_member(member_id)
                 .run(ctx)
                 .map_err(|_| UsecaseError::Dummy)
-        })
+        }
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                self.record_membership(ctx)?;
+
+                let emp_id = self.get_emp_id();
+                let mut emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)?;
+                emp.set_affiliation(self.get_affiliation());
+                self.dao()
+                    .update(emp)
+                    .map_err(|_| UsecaseError::Dummy)
+                    .run(ctx)
+            })
+        }
+    }
+    pub trait AddTimeCard<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_date(&self) -> NaiveDate;
+        fn get_hours(&self) -> f32;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp = self
+                    .dao()
+                    .fetch(self.get_emp_id())
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)?;
+                emp.get_classification()
+                    .borrow_mut()
+                    .as_any_mut()
+                    .downcast_mut::<HourlyClassification>()
+                    .ok_or(UsecaseError::Dummy)?
+                    .add_timecard(TimeCard::new(self.get_date(), self.get_hours()));
+                self.dao()
+                    .update(emp)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)
+            })
+        }
+    }
+    pub trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_emp_id(&self) -> EmployeeId;
+        fn get_date(&self) -> NaiveDate;
+        fn get_amount(&self) -> f32;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp = self
+                    .dao()
+                    .fetch(self.get_emp_id())
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)?;
+                emp.get_classification()
+                    .borrow_mut()
+                    .as_any_mut()
+                    .downcast_mut::<CommissionedClassification>()
+                    .ok_or(UsecaseError::Dummy)?
+                    .add_sales_receipt(SalesReceipt::new(self.get_date(), self.get_amount()));
+                self.dao()
+                    .update(emp)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)
+            })
+        }
+    }
+    pub trait AddServiceCharge<Ctx>: HaveEmployeeDao<Ctx> {
+        fn get_member_id(&self) -> MemberId;
+        fn get_date(&self) -> NaiveDate;
+        fn get_amount(&self) -> f32;
+
+        fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        where
+            Ctx: 'a,
+        {
+            tx_rs::with_tx(move |ctx| {
+                let emp_id = self
+                    .dao()
+                    .find_union_member(self.get_member_id())
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)?;
+                let emp = self
+                    .dao()
+                    .fetch(emp_id)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)?;
+                emp.get_affiliation()
+                    .borrow_mut()
+                    .as_any_mut()
+                    .downcast_mut::<UnionAffiliation>()
+                    .ok_or(UsecaseError::Dummy)?
+                    .add_service_charge(ServiceCharge::new(self.get_date(), self.get_amount()));
+                self.dao()
+                    .update(emp)
+                    .run(ctx)
+                    .map_err(|_| UsecaseError::Dummy)
+            })
+        }
     }
 }
-trait AddSalesReceipt<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_emp_id(&self) -> EmployeeId;
-    fn get_date(&self) -> NaiveDate;
-    fn get_amount(&self) -> f32;
+pub use usecase::*;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+mod service {
+    use thiserror::Error;
+    use tx_rs::Tx;
+
+    use crate::{
+        AddEmployee, AddSalesReceipt, AddServiceCharge, AddTimeCard, AddUnionAffiliation,
+        ChgClassification, ChgEmployeeAddress, ChgEmployeeName, ChgMethod, DelEmployee,
+        DelUnionAffiliation, EmployeeId, UsecaseError,
+    };
+
+    pub trait AddEmployeeTransaction<'a, Ctx>
     where
         Ctx: 'a,
     {
-        tx_rs::with_tx(move |ctx| {
-            let emp = self
-                .dao()
-                .fetch(self.get_emp_id())
-                .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)?;
-            emp.get_classification()
-                .borrow_mut()
-                .as_any_mut()
-                .downcast_mut::<CommissionedClassification>()
-                .ok_or(UsecaseError::Dummy)?
-                .add_sales_receipt(SalesReceipt::new(self.get_date(), self.get_amount()));
-            self.dao()
-                .update(emp)
-                .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)
-        })
-    }
-}
-trait AddServiceCharge<Ctx>: HaveEmployeeDao<Ctx> {
-    fn get_member_id(&self) -> MemberId;
-    fn get_date(&self) -> NaiveDate;
-    fn get_amount(&self) -> f32;
+        type U: AddEmployee<Ctx>;
 
-    fn execute<'a>(&'a self) -> impl tx_rs::Tx<Ctx, Item = (), Err = UsecaseError>
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<EmployeeId, ServiceError> {
+            self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        }
+    }
+    pub trait ChgEmployeeNameTransaction<'a, Ctx>
     where
         Ctx: 'a,
     {
-        tx_rs::with_tx(move |ctx| {
-            let emp_id = self
-                .dao()
-                .find_union_member(self.get_member_id())
-                .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)?;
-            let emp = self
-                .dao()
-                .fetch(emp_id)
-                .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)?;
-            emp.get_affiliation()
-                .borrow_mut()
-                .as_any_mut()
-                .downcast_mut::<UnionAffiliation>()
-                .ok_or(UsecaseError::Dummy)?
-                .add_service_charge(ServiceCharge::new(self.get_date(), self.get_amount()));
-            self.dao()
-                .update(emp)
-                .run(ctx)
-                .map_err(|_| UsecaseError::Dummy)
-        })
+        type U: ChgEmployeeName<Ctx>;
+
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-
-// Service
-trait AddEmployeeTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: AddEmployee<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait ChgEmployeeAddressTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: ChgEmployeeAddress<Ctx>;
 
-    fn execute(&'a mut self) -> Result<EmployeeId, ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait ChgEmployeeNameTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: ChgEmployeeName<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait ChgClassificationTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: ChgClassification<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait ChgEmployeeAddressTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: ChgEmployeeAddress<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait ChgMethodTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: ChgMethod<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait ChgClassificationTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: ChgClassification<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait DelEmployeeTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: DelEmployee<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait ChgMethodTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: ChgMethod<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait AddUnionAffiliationTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: AddUnionAffiliation<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait DelEmployeeTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: DelEmployee<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait DelUnionAffiliationTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: DelUnionAffiliation<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait AddUnionAffiliationTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: AddUnionAffiliation<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait AddTimeCardTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: AddTimeCard<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait DelUnionAffiliationTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: DelUnionAffiliation<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait AddSalesReceiptTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: AddSalesReceipt<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
     }
-}
-trait AddTimeCardTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: AddTimeCard<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+    pub trait AddServiceChargeTransaction<'a, Ctx>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        Ctx: 'a,
+    {
+        type U: AddServiceCharge<Ctx>;
 
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
+        where
+            F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+
+        fn execute(&'a mut self) -> Result<(), ServiceError> {
+            self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        }
+    }
+
+    #[derive(Debug, Clone, Eq, PartialEq, Error)]
+    pub enum ServiceError {
+        #[error("dummy error")]
+        Dummy,
+    }
+
+    pub trait Transaction {
+        type T;
+        fn execute(&mut self) -> Result<Self::T, ServiceError>;
     }
 }
-trait AddSalesReceiptTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: AddSalesReceipt<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
-    where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
-
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
-    }
-}
-trait AddServiceChargeTransaction<'a, Ctx>
-where
-    Ctx: 'a,
-{
-    type U: AddServiceCharge<Ctx>;
-
-    fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
-    where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
-
-    fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Error)]
-enum ServiceError {
-    #[error("dummy error")]
-    Dummy,
-}
-
-trait Transaction {
-    type T;
-    fn execute(&mut self) -> Result<Self::T, ServiceError>;
-}
+use service::*;
 
 mod payroll_db {
     use std::{cell::RefMut, collections::HashMap, fmt::Debug};
@@ -2655,6 +2677,9 @@ mod mock_tx_impl {
 use mock_tx_impl::*;
 
 fn main() {
+    use chrono::NaiveDate;
+    use std::{cell::RefCell, rc::Rc};
+
     env_logger::init();
 
     let db = Rc::new(RefCell::new(PayrollDatabase::new()));
