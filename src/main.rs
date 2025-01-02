@@ -3062,6 +3062,10 @@ use crate::mock_tx_impl::*;
 use crate::payroll_db::PayrollDatabase;
 use crate::service::Transaction;
 
+fn date(year: i32, month: u32, day: u32) -> NaiveDate {
+    NaiveDate::from_ymd_opt(year, month, day).unwrap()
+}
+
 fn main() {
     env_logger::init();
 
@@ -3082,8 +3086,7 @@ fn main() {
     tx.execute().expect("change employee address");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> =
-        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(), db.clone());
+    let tx: &mut dyn Transaction<T = _> = &mut PaydayTx::new(date(2025, 1, 31), db.clone());
     tx.execute().expect("payday");
     println!("{:#?}", db);
 
@@ -3091,17 +3094,12 @@ fn main() {
     tx.execute().expect("change employee to hourly");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> = &mut AddTimecardTx::new(
-        1,
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-        8.0,
-        db.clone(),
-    );
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddTimecardTx::new(1, date(2025, 1, 1), 8.0, db.clone());
     tx.execute().expect("add timecard");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> =
-        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(), db.clone());
+    let tx: &mut dyn Transaction<T = _> = &mut PaydayTx::new(date(2025, 1, 3), db.clone());
     tx.execute().expect("payday");
     println!("{:#?}", db);
 
@@ -3110,17 +3108,12 @@ fn main() {
     tx.execute().expect("change employee to commissioned");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> = &mut AddSalesReceiptTx::new(
-        1,
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-        35980.0,
-        db.clone(),
-    );
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddSalesReceiptTx::new(1, date(2025, 1, 1), 35980.0, db.clone());
     tx.execute().expect("add sales receipt");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> =
-        &mut PaydayTx::new(NaiveDate::from_ymd_opt(2025, 1, 10).unwrap(), db.clone());
+    let tx: &mut dyn Transaction<T = _> = &mut PaydayTx::new(date(2025, 1, 10), db.clone());
     tx.execute().expect("payday");
     println!("{:#?}", db);
 
@@ -3147,12 +3140,8 @@ fn main() {
     tx.execute().expect("add union member");
     println!("{:#?}", db);
 
-    let tx: &mut dyn Transaction<T = _> = &mut AddServiceChargeTx::new(
-        7463,
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-        300.5,
-        db.clone(),
-    );
+    let tx: &mut dyn Transaction<T = _> =
+        &mut AddServiceChargeTx::new(7463, date(2025, 1, 1), 300.5, db.clone());
     tx.execute().expect("add service charge");
     println!("{:#?}", db);
 
