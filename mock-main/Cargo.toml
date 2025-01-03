@@ -1,0 +1,15 @@
+[package]
+name = "mock-main"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+
+[dependencies]
+env_logger.workspace = true
+
+payroll-db = { path = "../payroll-db" }
+payroll-util = { path = "../payroll-util" }
+service = { path = "../service" }
+service-impl = { path = "../service-impl" }

@@ -1,0 +1,16 @@
+[package]
+name = "service-impl"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono.workspace = true
+
+payroll-db = { path = "../payroll-db" }
+payroll-domain = { path = "../payroll-domain" }
+service = { path = "../service" }
+usecase = { path = "../usecase" }
+usecase-impl = { path = "../usecase-impl" }

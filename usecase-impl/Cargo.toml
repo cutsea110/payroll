@@ -1,0 +1,16 @@
+[package]
+name = "usecase-impl"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono.workspace = true
+
+dao = { path = "../dao" }
+payroll-db = { path = "../payroll-db" }
+payroll-domain = { path = "../payroll-domain" }
+payroll-impl = { path = "../payroll-impl" }
+usecase = { path = "../usecase" }
