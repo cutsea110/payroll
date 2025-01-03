@@ -42,10 +42,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<EmployeeId, ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(move |usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToRegisterEmployee)
+        })
     }
 }
 pub trait ChgEmployeeNameTransaction<'a, Ctx>
@@ -56,10 +61,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(move |usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToChangeEmployee)
+        })
     }
 }
 pub trait ChgEmployeeAddressTransaction<'a, Ctx>
@@ -70,10 +80,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(move |usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToChangeEmployee)
+        })
     }
 }
 pub trait ChgClassificationTransaction<'a, Ctx>
@@ -84,10 +99,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(move |usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToChangeClassification)
+        })
     }
 }
 pub trait ChgMethodTransaction<'a, Ctx>
@@ -98,10 +118,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(move |usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(move |usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToChangeMethod)
+        })
     }
 }
 pub trait DelEmployeeTransaction<'a, Ctx>
@@ -112,10 +137,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToDeleteEmployee)
+        })
     }
 }
 pub trait AddUnionAffiliationTransaction<'a, Ctx>
@@ -126,10 +156,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToRegisterUnionMember)
+        })
     }
 }
 pub trait DelUnionAffiliationTransaction<'a, Ctx>
@@ -140,10 +175,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToUnregisterUnionMember)
+        })
     }
 }
 pub trait AddTimeCardTransaction<'a, Ctx>
@@ -154,10 +194,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToAddTimeCard)
+        })
     }
 }
 pub trait AddSalesReceiptTransaction<'a, Ctx>
@@ -168,10 +213,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToAddSalesReceipt)
+        })
     }
 }
 pub trait AddServiceChargeTransaction<'a, Ctx>
@@ -182,10 +232,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToAddServiceCharge)
+        })
     }
 }
 pub trait PaydayTransaction<'a, Ctx>
@@ -196,10 +251,15 @@ where
 
     fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
     where
-        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, UsecaseError>;
+        F: FnOnce(&mut Self::U, &mut Ctx) -> Result<T, ServiceError>;
 
     fn execute(&'a mut self) -> Result<(), ServiceError> {
-        self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
+        self.run_tx(|usecase, ctx| {
+            usecase
+                .execute()
+                .run(ctx)
+                .map_err(ServiceError::FailedToPayday)
+        })
     }
 }
 

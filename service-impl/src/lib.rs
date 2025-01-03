@@ -4,7 +4,6 @@ mod add_salaried_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddEmployeeTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddSalariedEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -32,11 +31,11 @@ mod add_salaried_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -55,7 +54,6 @@ mod add_hourly_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddEmployeeTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddHourlyEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -83,11 +81,11 @@ mod add_hourly_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -106,7 +104,6 @@ mod add_commissioned_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddEmployeeTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddCommissionedEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -141,11 +138,11 @@ mod add_commissioned_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -164,7 +161,6 @@ mod chg_emp_name {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgEmployeeNameTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgEmployeeNameImpl;
 
     #[derive(Debug, Clone)]
@@ -186,11 +182,11 @@ mod chg_emp_name {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -209,7 +205,6 @@ mod chg_emp_address {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgEmployeeAddressTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgEmployeeAddressImpl;
 
     #[derive(Debug, Clone)]
@@ -231,11 +226,11 @@ mod chg_emp_address {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -254,7 +249,6 @@ mod del_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{DelEmployeeTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::DelEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -276,11 +270,11 @@ mod del_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToDeleteEmployee)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -299,7 +293,6 @@ mod chg_salaried_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgClassificationTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgSalariedEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -321,11 +314,11 @@ mod chg_salaried_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -344,7 +337,6 @@ mod chg_hourly_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgClassificationTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgHourlyEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -366,11 +358,11 @@ mod chg_hourly_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -389,7 +381,6 @@ mod chg_commissioned_emp {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgClassificationTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgCommissionedEmployeeImpl;
 
     #[derive(Debug, Clone)]
@@ -420,11 +411,11 @@ mod chg_commissioned_emp {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeClassification)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -443,7 +434,6 @@ mod chg_hold_method {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgMethodTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgHoldMethodImpl;
 
     #[derive(Debug, Clone)]
@@ -465,11 +455,11 @@ mod chg_hold_method {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -488,7 +478,6 @@ mod chg_direct_method {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgMethodTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgDirectMethodImpl;
 
     #[derive(Debug, Clone)]
@@ -515,11 +504,11 @@ mod chg_direct_method {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -538,7 +527,6 @@ mod chg_mail_method {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{ChgMethodTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::ChgMailMethodImpl;
 
     #[derive(Debug, Clone)]
@@ -560,11 +548,11 @@ mod chg_mail_method {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToChangeMethod)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -583,7 +571,6 @@ mod add_union_member {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddUnionAffiliationTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddUnionMemberImpl;
 
     #[derive(Debug, Clone)]
@@ -610,11 +597,11 @@ mod add_union_member {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToRegisterUnionMember)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -633,7 +620,6 @@ mod del_union_member {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{DelUnionAffiliationTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::DelUnionMemberImpl;
 
     #[derive(Debug, Clone)]
@@ -655,11 +641,11 @@ mod del_union_member {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToUnregisterUnionMember)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -679,7 +665,6 @@ mod add_timecard {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddTimeCardTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddTimecardImpl;
 
     #[derive(Debug, Clone)]
@@ -706,11 +691,11 @@ mod add_timecard {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddTimeCard)
+            f(&mut usecase, &mut tx)
         }
     }
 
@@ -730,7 +715,6 @@ mod add_sales_receipt {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::EmployeeId;
     use service::{AddSalesReceiptTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddSalesReceiptImpl;
 
     #[derive(Debug, Clone)]
@@ -757,11 +741,11 @@ mod add_sales_receipt {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddSalesReceipt)
+            f(&mut usecase, &mut tx)
         }
     }
     impl Transaction for AddSalesReceiptTx {
@@ -780,7 +764,6 @@ mod add_service_charge {
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use payroll_domain::MemberId;
     use service::{AddServiceChargeTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::AddServiceChargeImpl;
 
     #[derive(Debug, Clone)]
@@ -807,11 +790,11 @@ mod add_service_charge {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToAddServiceCharge)
+            f(&mut usecase, &mut tx)
         }
     }
     impl Transaction for AddServiceChargeTx {
@@ -829,7 +812,6 @@ mod payday {
 
     use payroll_db::{PayrollDatabase, PayrollDbCtx};
     use service::{PaydayTransaction, ServiceError, Transaction};
-    use usecase::UsecaseError;
     use usecase_impl::PaydayImpl;
 
     #[derive(Debug, Clone)]
@@ -851,11 +833,11 @@ mod payday {
 
         fn run_tx<T, F>(&'a self, f: F) -> Result<T, ServiceError>
         where
-            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, UsecaseError>,
+            F: FnOnce(&mut Self::U, &mut PayrollDbCtx<'a>) -> Result<T, ServiceError>,
         {
             let mut tx = self.db.borrow_mut();
             let mut usecase = self.usecase.borrow_mut();
-            f(&mut usecase, &mut tx).map_err(ServiceError::FailedToPayday)
+            f(&mut usecase, &mut tx)
         }
     }
     impl Transaction for PaydayTx {
