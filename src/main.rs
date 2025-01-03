@@ -1288,7 +1288,7 @@ mod payroll_db {
     }
 }
 
-mod tx_impl {
+mod usecase_impl {
     mod add_salaried_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -2144,7 +2144,7 @@ mod tx_impl {
     pub use payday::*;
 }
 
-mod mock_tx_impl {
+mod service_impl {
     mod add_salaried_emp {
         use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -2152,8 +2152,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddEmployeeTransaction, ServiceError, Transaction},
-            tx_impl::AddSalariedEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::AddSalariedEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2205,8 +2205,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddEmployeeTransaction, ServiceError, Transaction},
-            tx_impl::AddHourlyEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::AddHourlyEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2263,8 +2263,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddEmployeeTransaction, ServiceError, Transaction},
-            tx_impl::AddCommissionedEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::AddCommissionedEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2323,8 +2323,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgEmployeeNameTransaction, ServiceError, Transaction},
-            tx_impl::ChgEmployeeNameImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgEmployeeNameImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2370,8 +2370,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgEmployeeAddressTransaction, ServiceError, Transaction},
-            tx_impl::ChgEmployeeAddressImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgEmployeeAddressImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2417,8 +2417,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{DelEmployeeTransaction, ServiceError, Transaction},
-            tx_impl::DelEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::DelEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2464,8 +2464,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgClassificationTransaction, ServiceError, Transaction},
-            tx_impl::ChgSalariedEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgSalariedEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2511,8 +2511,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgClassificationTransaction, ServiceError, Transaction},
-            tx_impl::ChgHourlyEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgHourlyEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2558,8 +2558,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgClassificationTransaction, ServiceError, Transaction},
-            tx_impl::ChgCommissionedEmployeeImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgCommissionedEmployeeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2614,8 +2614,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgMethodTransaction, ServiceError, Transaction},
-            tx_impl::ChgHoldMethodImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgHoldMethodImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2661,8 +2661,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgMethodTransaction, ServiceError, Transaction},
-            tx_impl::ChgDirectMethodImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgDirectMethodImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2713,8 +2713,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{ChgMethodTransaction, ServiceError, Transaction},
-            tx_impl::ChgMailMethodImpl,
             usecase::UsecaseError,
+            usecase_impl::ChgMailMethodImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2760,8 +2760,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddUnionAffiliationTransaction, ServiceError, Transaction},
-            tx_impl::AddUnionMemberImpl,
             usecase::UsecaseError,
+            usecase_impl::AddUnionMemberImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2812,8 +2812,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{DelUnionAffiliationTransaction, ServiceError, Transaction},
-            tx_impl::DelUnionMemberImpl,
             usecase::UsecaseError,
+            usecase_impl::DelUnionMemberImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2860,8 +2860,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddTimeCardTransaction, ServiceError, Transaction},
-            tx_impl::AddTimecardImpl,
             usecase::UsecaseError,
+            usecase_impl::AddTimecardImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2913,8 +2913,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::EmployeeId,
             service::{AddSalesReceiptTransaction, ServiceError, Transaction},
-            tx_impl::AddSalesReceiptImpl,
             usecase::UsecaseError,
+            usecase_impl::AddSalesReceiptImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -2965,8 +2965,8 @@ mod mock_tx_impl {
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             payroll_domain::MemberId,
             service::{AddServiceChargeTransaction, ServiceError, Transaction},
-            tx_impl::AddServiceChargeImpl,
             usecase::UsecaseError,
+            usecase_impl::AddServiceChargeImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -3016,8 +3016,8 @@ mod mock_tx_impl {
         use crate::{
             payroll_db::{PayrollDatabase, PayrollDbCtx},
             service::{PaydayTransaction, ServiceError, Transaction},
-            tx_impl::PaydayImpl,
             usecase::UsecaseError,
+            usecase_impl::PaydayImpl,
         };
 
         #[derive(Debug, Clone)]
@@ -3066,10 +3066,10 @@ mod payroll_util {
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::mock_tx_impl::*;
 use crate::payroll_db::PayrollDatabase;
 use crate::payroll_util::date;
 use crate::service::Transaction;
+use crate::service_impl::*;
 
 fn main() {
     env_logger::init();
