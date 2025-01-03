@@ -1,14 +1,7 @@
 use payroll_db;
+use payroll_util;
 use service;
 use service_impl;
-
-mod payroll_util {
-    use chrono::NaiveDate;
-
-    pub fn date(year: i32, month: u32, day: u32) -> NaiveDate {
-        NaiveDate::from_ymd_opt(year, month, day).unwrap()
-    }
-}
 
 use std::{cell::RefCell, rc::Rc};
 
