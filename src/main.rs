@@ -216,18 +216,18 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
-        pub struct TimeCard {
+        struct TimeCard {
             date: NaiveDate,
             hours: f32,
         }
         impl TimeCard {
-            pub fn new(date: NaiveDate, hours: f32) -> Self {
+            fn new(date: NaiveDate, hours: f32) -> Self {
                 Self { date, hours }
             }
-            pub fn get_date(&self) -> NaiveDate {
+            fn get_date(&self) -> NaiveDate {
                 self.date
             }
-            pub fn get_hours(&self) -> f32 {
+            fn get_hours(&self) -> f32 {
                 self.hours
             }
         }
@@ -244,10 +244,11 @@ mod payroll_impl {
                     timecards: vec![],
                 }
             }
-            pub fn add_timecard(&mut self, tc: TimeCard) {
+            pub fn add_timecard(&mut self, date: NaiveDate, hours: f32) {
+                let tc = TimeCard::new(date, hours);
                 self.timecards.push(tc);
             }
-            pub fn calculate_pay_for_timecard(&self, tc: &TimeCard) -> f32 {
+            fn calculate_pay_for_timecard(&self, tc: &TimeCard) -> f32 {
                 let hours = tc.get_hours();
                 let overtime = (hours - 8.0).max(0.0);
                 let straight_time = hours - overtime;
@@ -274,18 +275,18 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
-        pub struct SalesReceipt {
+        struct SalesReceipt {
             date: NaiveDate,
             amount: f32,
         }
         impl SalesReceipt {
-            pub fn new(date: NaiveDate, amount: f32) -> Self {
+            fn new(date: NaiveDate, amount: f32) -> Self {
                 Self { date, amount }
             }
-            pub fn get_date(&self) -> NaiveDate {
+            fn get_date(&self) -> NaiveDate {
                 self.date
             }
-            pub fn get_amount(&self) -> f32 {
+            fn get_amount(&self) -> f32 {
                 self.amount
             }
         }
@@ -304,10 +305,11 @@ mod payroll_impl {
                     sales_receipts: vec![],
                 }
             }
-            pub fn add_sales_receipt(&mut self, sr: SalesReceipt) {
+            pub fn add_sales_receipt(&mut self, date: NaiveDate, amount: f32) {
+                let sr = SalesReceipt::new(date, amount);
                 self.sales_receipts.push(sr);
             }
-            pub fn calculate_pay_for_sales_receipt(&self, sr: &SalesReceipt) -> f32 {
+            fn calculate_pay_for_sales_receipt(&self, sr: &SalesReceipt) -> f32 {
                 self.commission_rate * sr.get_amount()
             }
         }
@@ -448,15 +450,15 @@ mod payroll_impl {
         }
 
         #[derive(Debug, Clone)]
-        pub struct ServiceCharge {
+        struct ServiceCharge {
             date: NaiveDate,
             amount: f32,
         }
         impl ServiceCharge {
-            pub fn new(date: NaiveDate, amount: f32) -> Self {
+            fn new(date: NaiveDate, amount: f32) -> Self {
                 Self { date, amount }
             }
-            pub fn get_amount(&self) -> f32 {
+            fn get_amount(&self) -> f32 {
                 self.amount
             }
         }
@@ -478,7 +480,8 @@ mod payroll_impl {
             pub fn get_member_id(&self) -> MemberId {
                 self.member_id
             }
-            pub fn add_service_charge(&mut self, sc: ServiceCharge) {
+            pub fn add_service_charge(&mut self, date: NaiveDate, amount: f32) {
+                let sc = ServiceCharge::new(date, amount);
                 self.service_charges.push(sc);
             }
         }
@@ -577,7 +580,7 @@ mod usecase {
         },
         payroll_impl::{
             CommissionedClassification, HoldMethod, HourlyClassification, NoAffiliation,
-            SalesReceipt, ServiceCharge, TimeCard, UnionAffiliation,
+            UnionAffiliation,
         },
     };
 
@@ -831,7 +834,7 @@ mod usecase {
                     .ok_or(UsecaseError::Unexpected(
                         "didn't hourly classification".into(),
                     ))?
-                    .add_timecard(TimeCard::new(self.get_date(), self.get_hours()));
+                    .add_timecard(self.get_date(), self.get_hours());
                 self.dao()
                     .update(emp)
                     .run(ctx)
@@ -861,7 +864,7 @@ mod usecase {
                     .ok_or(UsecaseError::Unexpected(
                         "didn't commissioned classification".into(),
                     ))?
-                    .add_sales_receipt(SalesReceipt::new(self.get_date(), self.get_amount()));
+                    .add_sales_receipt(self.get_date(), self.get_amount());
                 self.dao()
                     .update(emp)
                     .run(ctx)
@@ -894,7 +897,7 @@ mod usecase {
                     .as_any_mut()
                     .downcast_mut::<UnionAffiliation>()
                     .ok_or(UsecaseError::Unexpected("didn't union affiliation".into()))?
-                    .add_service_charge(ServiceCharge::new(self.get_date(), self.get_amount()));
+                    .add_service_charge(self.get_date(), self.get_amount());
                 self.dao()
                     .update(emp)
                     .run(ctx)
