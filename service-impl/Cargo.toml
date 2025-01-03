@@ -7,7 +7,7 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
-chrono = { version = "0.4.38", features = ["serde"] }
+chrono.workspace = true
 
 payroll-db = { path = "../payroll-db" }
 payroll-domain = { path = "../payroll-domain" }

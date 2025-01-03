@@ -7,7 +7,7 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
-env_logger = "0.11.6"
+env_logger.workspace = true
 
 payroll-db = { path = "../payroll-db" }
 payroll-util = { path = "../payroll-util" }
