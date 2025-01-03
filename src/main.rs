@@ -3058,16 +3058,20 @@ mod mock_tx_impl {
     pub use payday::*;
 }
 
-use chrono::NaiveDate;
+mod payroll_util {
+    use chrono::NaiveDate;
+
+    pub fn date(year: i32, month: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(year, month, day).unwrap()
+    }
+}
+
 use std::{cell::RefCell, rc::Rc};
 
 use crate::mock_tx_impl::*;
 use crate::payroll_db::PayrollDatabase;
+use crate::payroll_util::date;
 use crate::service::Transaction;
-
-fn date(year: i32, month: u32, day: u32) -> NaiveDate {
-    NaiveDate::from_ymd_opt(year, month, day).unwrap()
-}
 
 fn main() {
     env_logger::init();
