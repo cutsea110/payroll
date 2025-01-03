@@ -180,6 +180,20 @@ mod payroll_domain {
                 fn calculate_deductions(&self, pc: &Paycheck) -> f32;
             }
             dyn_clone::clone_trait_object!(Affiliation);
+
+            #[derive(Debug, Clone)]
+            pub struct NoAffiliation;
+            impl Affiliation for NoAffiliation {
+                fn as_any(&self) -> &dyn Any {
+                    self
+                }
+                fn as_any_mut(&mut self) -> &mut dyn Any {
+                    self
+                }
+                fn calculate_deductions(&self, _pc: &Paycheck) -> f32 {
+                    0.0
+                }
+            }
         }
         pub use affiliation::*;
     }
@@ -436,20 +450,6 @@ mod payroll_impl {
         use crate::payroll_domain::{Affiliation, MemberId, Paycheck};
 
         #[derive(Debug, Clone)]
-        pub struct NoAffiliation;
-        impl Affiliation for NoAffiliation {
-            fn as_any(&self) -> &dyn Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn Any {
-                self
-            }
-            fn calculate_deductions(&self, _pc: &Paycheck) -> f32 {
-                0.0
-            }
-        }
-
-        #[derive(Debug, Clone)]
         struct ServiceCharge {
             date: NaiveDate,
             amount: f32,
@@ -575,12 +575,11 @@ mod usecase {
     use crate::{
         dao::{DaoError, EmployeeDao, HaveEmployeeDao},
         payroll_domain::{
-            Affiliation, Employee, EmployeeId, MemberId, Paycheck, PaymentClassification,
-            PaymentMethod, PaymentSchedule,
+            Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
+            PaymentClassification, PaymentMethod, PaymentSchedule,
         },
         payroll_impl::{
-            CommissionedClassification, HoldMethod, HourlyClassification, NoAffiliation,
-            UnionAffiliation,
+            CommissionedClassification, HoldMethod, HourlyClassification, UnionAffiliation,
         },
     };
 
@@ -948,6 +947,32 @@ mod service {
         },
     };
 
+    #[derive(Debug, Clone, Eq, PartialEq, Error)]
+    pub enum ServiceError {
+        #[error("failed to register employee: {0}")]
+        FailedToRegisterEmployee(UsecaseError),
+        #[error("failed to change employee: {0}")]
+        FailedToChangeEmployee(UsecaseError),
+        #[error("failed to delete employee: {0}")]
+        FailedToDeleteEmployee(UsecaseError),
+        #[error("failed to change classification: {0}")]
+        FailedToChangeClassification(UsecaseError),
+        #[error("failed to change method: {0}")]
+        FailedToChangeMethod(UsecaseError),
+        #[error("failed to register union member: {0}")]
+        FailedToRegisterUnionMember(UsecaseError),
+        #[error("failed to unregister union member: {0}")]
+        FailedToUnregisterUnionMember(UsecaseError),
+        #[error("failed to add time card: {0}")]
+        FailedToAddTimeCard(UsecaseError),
+        #[error("failed to add sales receipt: {0}")]
+        FailedToAddSalesReceipt(UsecaseError),
+        #[error("failed to add service charge: {0}")]
+        FailedToAddServiceCharge(UsecaseError),
+        #[error("failed to payday: {0}")]
+        FailedToPayday(UsecaseError),
+    }
+
     pub trait AddEmployeeTransaction<'a, Ctx>
     where
         Ctx: 'a,
@@ -1115,32 +1140,6 @@ mod service {
         fn execute(&'a mut self) -> Result<(), ServiceError> {
             self.run_tx(|usecase, ctx| usecase.execute().run(ctx))
         }
-    }
-
-    #[derive(Debug, Clone, Eq, PartialEq, Error)]
-    pub enum ServiceError {
-        #[error("failed to register employee: {0}")]
-        FailedToRegisterEmployee(UsecaseError),
-        #[error("failed to change employee: {0}")]
-        FailedToChangeEmployee(UsecaseError),
-        #[error("failed to delete employee: {0}")]
-        FailedToDeleteEmployee(UsecaseError),
-        #[error("failed to change classification: {0}")]
-        FailedToChangeClassification(UsecaseError),
-        #[error("failed to change method: {0}")]
-        FailedToChangeMethod(UsecaseError),
-        #[error("failed to register union member: {0}")]
-        FailedToRegisterUnionMember(UsecaseError),
-        #[error("failed to unregister union member: {0}")]
-        FailedToUnregisterUnionMember(UsecaseError),
-        #[error("failed to add time card: {0}")]
-        FailedToAddTimeCard(UsecaseError),
-        #[error("failed to add sales receipt: {0}")]
-        FailedToAddSalesReceipt(UsecaseError),
-        #[error("failed to add service charge: {0}")]
-        FailedToAddServiceCharge(UsecaseError),
-        #[error("failed to payday: {0}")]
-        FailedToPayday(UsecaseError),
     }
 
     pub trait Transaction {
@@ -1932,8 +1931,7 @@ mod tx_impl {
         use crate::{
             dao::{EmployeeDao, HaveEmployeeDao},
             payroll_db::{PayrollDbCtx, PayrollDbDao},
-            payroll_domain::{Affiliation, EmployeeId},
-            payroll_impl::NoAffiliation,
+            payroll_domain::{Affiliation, EmployeeId, NoAffiliation},
             usecase::DelUnionAffiliation,
         };
 
