@@ -26,10 +26,12 @@ mod domain {
 mod dao {
     use thiserror::Error;
 
-    #[derive(Debug, Error)]
+    #[derive(Debug, Clone, Error)]
     pub enum DaoError {
-        #[error("dummy")]
-        Dummy,
+        #[error("emp_id={0} not found")]
+        NotFound(i32),
+        #[error("emp_id={0} save failed")]
+        SaveFailed(i32),
     }
 
     // domain にのみ依存
@@ -43,10 +45,7 @@ mod dao {
         where
             F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
 
-        fn get<'a>(
-            &self,
-            id: i32,
-        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Option<Emp>, Err = DaoError>;
+        fn get<'a>(&self, id: i32) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError>;
         fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
     }
 
@@ -58,25 +57,36 @@ mod dao {
 }
 
 mod tx {
+    use thiserror::Error;
+
+    use crate::dao::DaoError;
+    #[derive(Debug, Clone, Error)]
+    pub enum UsecaseError {
+        #[error("add employee failed: {0}")]
+        AddEmpFailed(DaoError),
+        #[error("change employee name failed: {0}")]
+        ChgEmpNameFailed(DaoError),
+    }
+
     mod add_emp {
-        use log::info;
         use tx_rs::Tx;
 
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::Emp;
+        use crate::tx::UsecaseError;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait AddEmp: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_name(&self) -> &str;
-            fn execute<'a>(&self) -> Result<(), crate::dao::DaoError> {
-                info!("AddEmp execute");
-                self.dao().run_tx(|mut ctx| {
-                    let emp = Emp::new(self.get_id(), self.get_name());
-                    info!("AddEmp execute run_tx");
-                    self.dao().save(emp).run(&mut ctx)
-                })
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        let emp = Emp::new(self.get_id(), self.get_name());
+                        self.dao().save(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::AddEmpFailed)
             }
         }
 
@@ -128,30 +138,24 @@ mod tx {
     pub use add_emp::*;
 
     mod chg_name {
-        use log::info;
         use tx_rs::Tx;
 
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
+        use crate::tx::UsecaseError;
 
         // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgEmpName: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_new_name(&self) -> &str;
-            fn execute<'a>(&self) -> Result<(), crate::dao::DaoError> {
-                info!("ChgEmpName execute");
-                self.dao().run_tx(|mut ctx| {
-                    info!("ChgEmpName execute run_tx");
-                    let mut emp = self
-                        .dao()
-                        .get(self.get_id())
-                        .run(&mut ctx)?
-                        .ok_or(crate::dao::DaoError::Dummy)?;
-                    info!("get emp: {:?}", emp);
-                    emp.set_name(self.get_new_name());
-                    info!("name changed: {:?}", emp);
-                    self.dao().save(emp).run(&mut ctx)
-                })
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        emp.set_name(self.get_new_name());
+                        self.dao().save(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgEmpNameFailed)
             }
         }
 
@@ -205,8 +209,6 @@ mod tx {
 
 // 具体的な DB 実装
 mod hs_db {
-    use log::info;
-
     use std::cell::RefMut;
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -234,48 +236,37 @@ mod hs_db {
         where
             F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
         {
-            info!("HashDB run_tx: {:#?}", self);
             f(self.emps.borrow_mut())
         }
 
-        fn get<'a>(
-            &self,
-            id: i32,
-        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Option<Emp>, Err = DaoError> {
-            info!("HashDB get: {:#?}", self);
-            tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| Ok(tx.get(&id).cloned()))
+        fn get<'a>(&self, id: i32) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
+            tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+                tx.get(&id).cloned().ok_or(DaoError::NotFound(id))
+            })
         }
         fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-            info!("HashDB save: {:#?}", self);
-
             tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-                info!("save with_tx: {:?}", tx);
-                tx.insert(emp.id(), emp);
-                info!("saved with_tx: {:?}", tx);
-                Ok(())
+                let emp_id = emp.id();
+                tx.insert(emp_id, emp)
+                    .map(|_| ())
+                    .ok_or(DaoError::SaveFailed(emp_id))
             })
         }
     }
 }
 
 fn main() {
-    use log::info;
-
     use crate::hs_db::HashDB;
     use crate::tx::{AddEmp, AddEmpTx, ChgEmpName, ChgEmpNameTx};
-
-    env_logger::init();
 
     let db = HashDB::new();
 
     // ここで main が HashDB に依存しているだけで AddEmpTx/ChgEmpNameTx は具体的な DB 実装(HashDB)に依存していない
     let emp_dao = AddEmpTx::new(1, "Alice", db.clone());
-    info!("dao: {:#?}", emp_dao);
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
     let emp_dao = ChgEmpNameTx::new(1, "Bob", db.clone());
-    info!("dao: {:#?}", emp_dao);
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 }
