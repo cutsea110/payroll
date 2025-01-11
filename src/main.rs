@@ -58,7 +58,7 @@ mod dao {
     }
 }
 
-mod tx {
+mod tx_impl {
     use thiserror::Error;
 
     use crate::dao::DaoError;
@@ -76,7 +76,7 @@ mod tx {
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::{Emp, EmpId};
-        use crate::tx::UsecaseError;
+        use crate::tx_impl::UsecaseError;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait AddEmp: HaveEmpDao {
@@ -145,7 +145,7 @@ mod tx {
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::EmpId;
-        use crate::tx::UsecaseError;
+        use crate::tx_impl::UsecaseError;
 
         // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgEmpName: HaveEmpDao {
@@ -212,8 +212,11 @@ mod tx {
 
 // 具体的な DB 実装
 mod hs_db {
-    use std::cell::RefMut;
-    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+    use std::{
+        cell::{RefCell, RefMut},
+        collections::HashMap,
+        rc::Rc,
+    };
 
     // dao にのみ依存 (domain は当然 ok)
     use crate::dao::{DaoError, EmpDao};
@@ -260,7 +263,7 @@ mod hs_db {
 
 fn main() {
     use crate::hs_db::HashDB;
-    use crate::tx::{AddEmp, AddEmpTx, ChgEmpName, ChgEmpNameTx};
+    use crate::tx_impl::{AddEmp, AddEmpTx, ChgEmpName, ChgEmpNameTx};
 
     let db = HashDB::new();
 

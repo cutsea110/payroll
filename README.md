@@ -4,11 +4,11 @@
 graph TD
 
   dao --> domain
-  tx --> dao
-  tx --> domain
-  tx --> tx-rs
+  tx-impl --> dao
+  tx-impl --> domain
+  tx-impl --> tx-rs
   hs-db --> dao
   hs-db --> domain
   main --> hs-db
-  main --> tx
+  main --> tx-impl
 ```
