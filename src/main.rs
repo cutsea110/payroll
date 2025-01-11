@@ -19,7 +19,7 @@ trait EmpDao {
 }
 
 trait HaveEmpDao {
-    fn dao(&self) -> impl EmpDao;
+    fn dao(&self) -> &impl EmpDao;
 }
 
 // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
@@ -62,13 +62,13 @@ where
 }
 impl<T> HaveEmpDao for TxAddEmpImpl<T>
 where
-    T: EmpDao + Clone,
+    T: EmpDao,
 {
-    fn dao(&self) -> impl EmpDao {
-        self.db.clone()
+    fn dao(&self) -> &impl EmpDao {
+        &self.db
     }
 }
-impl<T> TxAddEmp for TxAddEmpImpl<T> where T: EmpDao + Clone {}
+impl<T> TxAddEmp for TxAddEmpImpl<T> where T: EmpDao {}
 
 fn main() {
     let db = DbImpl {
