@@ -269,7 +269,11 @@ fn main() {
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
-    let emp_dao = ChgEmpNameTx::new(1, "Bob", db.clone());
+    let emp_dao = AddEmpTx::new(2, "Bob", db.clone());
+    let _ = emp_dao.execute();
+    println!("db: {:#?}", db);
+
+    let emp_dao = ChgEmpNameTx::new(2, "Eve", db.clone());
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 }
