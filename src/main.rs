@@ -73,6 +73,20 @@ mod tx {
 
     // ユースケースのトランザクションのインターフェース
     mod interface {
+        use crate::domain::EmpId;
+        use crate::tx::UsecaseError;
+
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub enum Response {
+            Void,
+            EmpId(EmpId),
+        }
+
+        // トランザクションのインターフェース
+        pub trait Transaction {
+            fn execute(&self) -> Result<Response, UsecaseError>;
+        }
+
         mod add_emp {
             use tx_rs::Tx;
 
@@ -130,7 +144,7 @@ mod tx {
             // dao にのみ依存 (domain は当然 ok)
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::EmpId;
-            use crate::tx::AddEmp;
+            use crate::tx::{AddEmp, Response, Transaction, UsecaseError};
 
             // ユースケース: AddEmp トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -176,6 +190,15 @@ mod tx {
                     &self.name
                 }
             }
+            // 共通インターフェースの実装
+            impl<T> Transaction for AddEmpTx<T>
+            where
+                T: EmpDao,
+            {
+                fn execute(&self) -> Result<Response, UsecaseError> {
+                    AddEmp::execute(self).map(|_| Response::EmpId(self.id))
+                }
+            }
         }
         pub use add_emp_tx::*;
 
@@ -183,7 +206,7 @@ mod tx {
             // dao にのみ依存 (domain は当然 ok)
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::EmpId;
-            pub use crate::tx::ChgEmpName;
+            pub use crate::tx::{ChgEmpName, Response, Transaction, UsecaseError};
 
             // ユースケース: ChgEmpName トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -227,6 +250,15 @@ mod tx {
                 }
                 fn get_new_name(&self) -> &str {
                     &self.new_name
+                }
+            }
+            // 共通インターフェースの実装
+            impl<T> Transaction for ChgEmpNameTx<T>
+            where
+                T: EmpDao,
+            {
+                fn execute(&self) -> Result<Response, UsecaseError> {
+                    ChgEmpName::execute(self).map(|_| Response::Void)
                 }
             }
         }
@@ -289,20 +321,20 @@ mod hs_db {
 fn main() {
     // main hs_db と tx にのみ依存している
     use crate::hs_db::HashDB;
-    use crate::tx::{AddEmp, AddEmpTx, ChgEmpName, ChgEmpNameTx};
+    use crate::tx::{AddEmpTx, ChgEmpNameTx, Transaction};
 
     let db = HashDB::new();
 
     // ここで main が HashDB に依存しているだけで AddEmpTx/ChgEmpNameTx は具体的な DB 実装(HashDB)に依存していない
-    let emp_dao = AddEmpTx::new(1, "Alice", db.clone());
+    let emp_dao: &dyn Transaction = &AddEmpTx::new(1, "Alice", db.clone());
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
-    let emp_dao = AddEmpTx::new(2, "Bob", db.clone());
+    let emp_dao: &dyn Transaction = &AddEmpTx::new(2, "Bob", db.clone());
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
-    let emp_dao = ChgEmpNameTx::new(2, "Eve", db.clone());
+    let emp_dao: &dyn Transaction = &ChgEmpNameTx::new(2, "Eve", db.clone());
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 }
