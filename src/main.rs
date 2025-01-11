@@ -58,7 +58,7 @@ mod dao {
     }
 }
 
-mod tx_impl {
+mod abstract_tx {
     use thiserror::Error;
 
     use crate::dao::DaoError;
@@ -74,9 +74,9 @@ mod tx_impl {
         use tx_rs::Tx;
 
         // dao にのみ依存 (domain は当然 ok)
+        use crate::abstract_tx::UsecaseError;
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::{Emp, EmpId};
-        use crate::tx_impl::UsecaseError;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait AddEmp: HaveEmpDao {
@@ -91,6 +91,41 @@ mod tx_impl {
                     .map_err(UsecaseError::AddEmpFailed)
             }
         }
+    }
+    pub use add_emp::*;
+
+    mod chg_name {
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use crate::abstract_tx::UsecaseError;
+        use crate::dao::{EmpDao, HaveEmpDao};
+        use crate::domain::EmpId;
+
+        // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgEmpName: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+            fn get_new_name(&self) -> &str;
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        emp.set_name(self.get_new_name());
+                        self.dao().save(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgEmpNameFailed)
+            }
+        }
+    }
+    pub use chg_name::*;
+}
+
+mod tx_impl {
+    mod add_emp {
+        // dao と abstract-tx にのみ依存 (domain は当然 ok)
+        pub use crate::abstract_tx::AddEmp; // re-export
+        use crate::dao::{EmpDao, HaveEmpDao};
+        use crate::domain::EmpId;
 
         // ユースケース: AddEmp トランザクションの実装 (struct)
         #[derive(Debug)]
@@ -140,27 +175,11 @@ mod tx_impl {
     pub use add_emp::*;
 
     mod chg_name {
-        use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
+        // dao と abstract-tx にのみ依存 (domain は当然 ok)
+        pub use crate::abstract_tx::ChgEmpName; // re-export
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::EmpId;
-        use crate::tx_impl::UsecaseError;
-
-        // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgEmpName: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
-            fn get_new_name(&self) -> &str;
-            fn execute<'a>(&self) -> Result<(), UsecaseError> {
-                self.dao()
-                    .run_tx(|mut ctx| {
-                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
-                        emp.set_name(self.get_new_name());
-                        self.dao().save(emp).run(&mut ctx)
-                    })
-                    .map_err(UsecaseError::ChgEmpNameFailed)
-            }
-        }
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
         #[derive(Debug)]
