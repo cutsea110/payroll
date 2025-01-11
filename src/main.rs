@@ -27,7 +27,7 @@ mod dao {
     // domain にのみ依存
     use crate::domain::Emp;
 
-    // Dao のインターフェース (TxAddEmpImp にはこちらにだけ依存させる)
+    // Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
     pub trait EmpDao {
         fn get(&self, id: i32) -> Option<Emp>;
         fn save(&self, emp: Emp);
@@ -45,7 +45,7 @@ mod usecase {
         use crate::domain::Emp;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
-        pub trait TxAddEmpAbst: HaveEmpDao {
+        pub trait AddEmp: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_name(&self) -> &str;
             fn execute(&self) {
@@ -55,7 +55,7 @@ mod usecase {
 
         // ユースケース: AddEmp トランザクションの実装 (struct)
         #[derive(Debug)]
-        pub struct TxAddEmpImpl<T>
+        pub struct AddEmpTx<T>
         where
             T: EmpDao,
         {
@@ -63,7 +63,7 @@ mod usecase {
             name: String,
             db: T,
         }
-        impl<T> TxAddEmpImpl<T>
+        impl<T> AddEmpTx<T>
         where
             T: EmpDao,
         {
@@ -76,7 +76,7 @@ mod usecase {
             }
         }
 
-        impl<T> HaveEmpDao for TxAddEmpImpl<T>
+        impl<T> HaveEmpDao for AddEmpTx<T>
         where
             T: EmpDao,
         {
@@ -84,7 +84,7 @@ mod usecase {
                 &self.db
             }
         }
-        impl<T> TxAddEmpAbst for TxAddEmpImpl<T>
+        impl<T> AddEmp for AddEmpTx<T>
         where
             T: EmpDao,
         {
@@ -102,20 +102,24 @@ mod usecase {
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
 
-        // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
-        pub trait TxChgEmpNameAbst: HaveEmpDao {
+        // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgEmpName: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_new_name(&self) -> &str;
             fn execute(&self) {
-                let mut emp = self.dao().get(self.get_id()).unwrap();
-                emp.set_name(self.get_new_name());
-                self.dao().save(emp);
+                if let Some(mut emp) = self.dao().get(self.get_id()) {
+                    emp.set_name(self.get_new_name());
+                    self.dao().save(emp);
+
+                    return;
+                }
+                eprintln!("emp not found");
             }
         }
 
-        // ユースケース: AddEmp トランザクションの実装 (struct)
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
         #[derive(Debug)]
-        pub struct TxChgEmpNameImpl<T>
+        pub struct ChgEmpNameTx<T>
         where
             T: EmpDao,
         {
@@ -123,7 +127,7 @@ mod usecase {
             new_name: String,
             db: T,
         }
-        impl<T> TxChgEmpNameImpl<T>
+        impl<T> ChgEmpNameTx<T>
         where
             T: EmpDao,
         {
@@ -136,7 +140,7 @@ mod usecase {
             }
         }
 
-        impl<T> HaveEmpDao for TxChgEmpNameImpl<T>
+        impl<T> HaveEmpDao for ChgEmpNameTx<T>
         where
             T: EmpDao,
         {
@@ -144,7 +148,7 @@ mod usecase {
                 &self.db
             }
         }
-        impl<T> TxChgEmpNameAbst for TxChgEmpNameImpl<T>
+        impl<T> ChgEmpName for ChgEmpNameTx<T>
         where
             T: EmpDao,
         {
@@ -160,19 +164,19 @@ mod usecase {
 }
 
 // 具体的な DB 実装
-mod hash_db {
+mod hs_db {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     // dao にのみ依存 (domain は当然 ok)
     use crate::dao::EmpDao;
     use crate::domain::Emp;
 
-    // DB の実装 DbImpl は EmpDao にのみ依存する かつ DbImpl に依存するものはなにもない!! (main 以外には!)
+    // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
     #[derive(Debug, Clone)]
-    pub struct DbImpl {
+    pub struct HashDB {
         emps: Rc<RefCell<HashMap<i32, Emp>>>,
     }
-    impl DbImpl {
+    impl HashDB {
         pub fn new() -> Self {
             Self {
                 emps: Rc::new(RefCell::new(HashMap::new())),
@@ -180,7 +184,7 @@ mod hash_db {
         }
     }
     // DB の実装ごとに EmpDao トレイトを実装する
-    impl EmpDao for DbImpl {
+    impl EmpDao for HashDB {
         fn get(&self, id: i32) -> Option<Emp> {
             self.emps.borrow().get(&id).cloned()
         }
@@ -191,16 +195,17 @@ mod hash_db {
 }
 
 fn main() {
-    use crate::hash_db::DbImpl;
-    use crate::usecase::{TxAddEmpAbst, TxAddEmpImpl, TxChgEmpNameAbst, TxChgEmpNameImpl};
+    use crate::hs_db::HashDB;
+    use crate::usecase::{AddEmp, AddEmpTx, ChgEmpName, ChgEmpNameTx};
 
-    let db = DbImpl::new();
-    // ここで main が DbImpl に依存しているだけで TxAddEmpImpl は DbImpl に依存していない
-    let emp_dao = TxAddEmpImpl::new(1, "Alice", db.clone());
+    let db = HashDB::new();
+
+    // ここで main が HashDB に依存しているだけで AddEmpTx/ChgEmpNameTx は具体的な DB 実装(HashDB)に依存していない
+    let emp_dao = AddEmpTx::new(1, "Alice", db.clone());
     emp_dao.execute();
     println!("db: {:#?}", emp_dao);
 
-    let emp_dao = TxChgEmpNameImpl::new(1, "Bob", db);
+    let emp_dao = ChgEmpNameTx::new(1, "Bob", db);
     emp_dao.execute();
     println!("db: {:#?}", emp_dao);
 }
