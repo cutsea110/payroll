@@ -13,7 +13,7 @@ impl Emp {
 }
 
 // Dao のインターフェース (TxAddEmpImp にはこちらにだけ依存させる)
-trait EmpDao: Clone {
+trait EmpDao {
     fn get(&self, id: i32) -> Option<Emp>;
     fn save(&self, emp: Emp);
 }
@@ -62,13 +62,13 @@ where
 }
 impl<T> HaveEmpDao for TxAddEmpImpl<T>
 where
-    T: EmpDao,
+    T: EmpDao + Clone,
 {
     fn dao(&self) -> impl EmpDao {
         self.db.clone()
     }
 }
-impl<T> TxAddEmp for TxAddEmpImpl<T> where T: EmpDao {}
+impl<T> TxAddEmp for TxAddEmpImpl<T> where T: EmpDao + Clone {}
 
 fn main() {
     let db = DbImpl {
