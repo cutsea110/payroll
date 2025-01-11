@@ -24,22 +24,39 @@ mod domain {
 }
 
 mod dao {
+    use thiserror::Error;
+
+    #[derive(Debug, Error)]
+    pub enum DaoError {
+        #[error("dummy")]
+        Dummy,
+    }
+
     // domain にのみ依存
     use crate::domain::Emp;
 
     // Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
     pub trait EmpDao {
-        fn get(&self, id: i32) -> Option<Emp>;
-        fn save(&self, emp: Emp);
+        type Ctx<'a>;
+
+        fn get<'a>(
+            &self,
+            id: i32,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Option<Emp>, Err = DaoError>;
+        fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
     }
 
     pub trait HaveEmpDao {
-        fn dao(&self) -> &impl EmpDao;
+        type Ctx<'a>;
+
+        fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>>;
     }
 }
 
 mod usecase {
     mod add_emp {
+        use tx_rs::Tx;
+
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
         use crate::domain::Emp;
@@ -48,8 +65,14 @@ mod usecase {
         pub trait AddEmp: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_name(&self) -> &str;
-            fn execute(&self) {
-                self.dao().save(Emp::new(self.get_id(), self.get_name()));
+            fn execute<'a>(
+                &self,
+            ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = crate::dao::DaoError> {
+                tx_rs::with_tx(|ctx| {
+                    self.dao()
+                        .save(Emp::new(self.get_id(), self.get_name()))
+                        .run(ctx)
+                })
             }
         }
 
@@ -80,7 +103,9 @@ mod usecase {
         where
             T: EmpDao,
         {
-            fn dao(&self) -> &impl EmpDao {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
@@ -99,6 +124,8 @@ mod usecase {
     pub use add_emp::*;
 
     mod chg_name {
+        use tx_rs::Tx;
+
         // dao にのみ依存 (domain は当然 ok)
         use crate::dao::{EmpDao, HaveEmpDao};
 
@@ -106,14 +133,17 @@ mod usecase {
         pub trait ChgEmpName: HaveEmpDao {
             fn get_id(&self) -> i32;
             fn get_new_name(&self) -> &str;
-            fn execute(&self) {
-                if let Some(mut emp) = self.dao().get(self.get_id()) {
-                    emp.set_name(self.get_new_name());
-                    self.dao().save(emp);
-
-                    return;
-                }
-                eprintln!("emp not found");
+            fn execute<'a>(
+                &self,
+            ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = crate::dao::DaoError> {
+                tx_rs::with_tx(|ctx| {
+                    let emp = self.dao().get(self.get_id()).run(ctx)?;
+                    if let Some(mut emp) = emp {
+                        emp.set_name(self.get_new_name());
+                        self.dao().save(emp).run(ctx)?;
+                    }
+                    Ok(())
+                })
             }
         }
 
@@ -144,7 +174,9 @@ mod usecase {
         where
             T: EmpDao,
         {
-            fn dao(&self) -> &impl EmpDao {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
@@ -168,7 +200,7 @@ mod hs_db {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     // dao にのみ依存 (domain は当然 ok)
-    use crate::dao::EmpDao;
+    use crate::dao::{DaoError, EmpDao};
     use crate::domain::Emp;
 
     // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
@@ -185,11 +217,21 @@ mod hs_db {
     }
     // DB の実装ごとに EmpDao トレイトを実装する
     impl EmpDao for HashDB {
-        fn get(&self, id: i32) -> Option<Emp> {
-            self.emps.borrow().get(&id).cloned()
+        type Ctx<'a> = &'a mut (); // TODO
+
+        fn get<'a>(
+            &self,
+            id: i32,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Option<Emp>, Err = DaoError> {
+            // TODO: handle context
+            tx_rs::with_tx(move |_| Ok(self.emps.borrow().get(&id).cloned()))
         }
-        fn save(&self, emp: Emp) {
-            self.emps.borrow_mut().insert(emp.id(), emp);
+        fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            // TODO: handle context
+            tx_rs::with_tx(move |_| {
+                self.emps.borrow_mut().insert(emp.id(), emp);
+                Ok(())
+            })
         }
     }
 }
