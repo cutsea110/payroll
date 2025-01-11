@@ -267,6 +267,31 @@ mod tx {
     pub use tx_impl::*;
 }
 
+mod tx_factory {
+    // tx のインターフェースにのみ依存 (domain は当然 ok)
+    // TODO: tx::Transaction は tx-app モジュールを作ってそちらに移動する
+    use crate::domain::EmpId;
+    use crate::tx::Transaction;
+
+    pub trait TxFactory {
+        fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction>;
+        fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
+    }
+
+    pub struct TxFactoryImpl<'a> {
+        pub add_emp: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
+        pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
+    }
+    impl<'a> TxFactory for TxFactoryImpl<'a> {
+        fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction> {
+            (self.add_emp)(id, name)
+        }
+        fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
+            (self.chg_emp_name)(id, new_name)
+        }
+    }
+}
+
 // 具体的な DB 実装
 mod hs_db {
     use std::{
@@ -319,22 +344,27 @@ mod hs_db {
 }
 
 fn main() {
-    // main hs_db と tx にのみ依存している
+    // main hs_db と tx と tx-factory に依存
     use crate::hs_db::HashDB;
-    use crate::tx::{AddEmpTx, ChgEmpNameTx, Transaction};
+    use crate::tx::{AddEmpTx, ChgEmpNameTx};
+    use crate::tx_factory::TxFactory;
 
     let db = HashDB::new();
+    let tx_factory = tx_factory::TxFactoryImpl {
+        add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
+        chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
+    };
 
     // ここで main が HashDB に依存しているだけで AddEmpTx/ChgEmpNameTx は具体的な DB 実装(HashDB)に依存していない
-    let emp_dao: &dyn Transaction = &AddEmpTx::new(1, "Alice", db.clone());
+    let emp_dao = tx_factory.mk_add_emp_tx(1, "Alice");
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
-    let emp_dao: &dyn Transaction = &AddEmpTx::new(2, "Bob", db.clone());
+    let emp_dao = tx_factory.mk_add_emp_tx(2, "Bob");
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 
-    let emp_dao: &dyn Transaction = &ChgEmpNameTx::new(2, "Eve", db.clone());
+    let emp_dao = tx_factory.mk_chg_emp_name_tx(2, "Eve");
     let _ = emp_dao.execute();
     println!("db: {:#?}", db);
 }
