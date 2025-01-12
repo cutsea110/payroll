@@ -198,7 +198,7 @@ mod tx {
                     trace!("AddEmpTx::execute called");
                     AddEmp::execute(self)
                         .map(|_| Response::EmpId(self.id))
-                        .map_err(|e| e.into())
+                        .map_err(Into::into)
                 }
             }
         }
@@ -267,7 +267,7 @@ mod tx {
                     trace!("ChgEmpNameTx::execute called");
                     ChgEmpName::execute(self)
                         .map(|_| Response::Void)
-                        .map_err(|e| e.into())
+                        .map_err(Into::into)
                 }
             }
         }
@@ -414,9 +414,10 @@ mod text_parser_tx_source {
     impl TxSource for TextParserTxSource {
         fn get_tx_source(&self) -> Option<Tx> {
             trace!("TextParserTxSource::get_tx_source called");
-            let tx_src = self.txs.borrow_mut().pop_front();
-            debug!("tx_src={:?}", tx_src);
-            tx_src
+            self.txs.borrow_mut().pop_front().map(|tx| {
+                debug!("tx_src={:?}", tx);
+                tx
+            })
         }
     }
 
