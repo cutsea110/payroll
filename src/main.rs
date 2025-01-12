@@ -35,8 +35,6 @@ mod dao {
     pub enum DaoError {
         #[error("emp_id={0} not found")]
         NotFound(EmpId),
-        #[error("emp_id={0} save failed")]
-        SaveFailed(EmpId),
     }
 
     // Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
@@ -59,47 +57,40 @@ mod dao {
 }
 
 mod tx {
-    use thiserror::Error;
-
-    use crate::dao::DaoError;
-
-    #[derive(Debug, Clone, Error)]
-    pub enum UsecaseError {
-        #[error("add employee failed: {0}")]
-        AddEmpFailed(DaoError),
-        #[error("change employee name failed: {0}")]
-        ChgEmpNameFailed(DaoError),
-    }
 
     // ユースケースのトランザクションのインターフェース
     mod interface {
-        use crate::domain::EmpId;
-        use crate::tx::UsecaseError;
+        use thiserror::Error;
 
-        #[derive(Debug, Clone, PartialEq, Eq)]
-        pub enum Response {
-            Void,
-            EmpId(EmpId),
-        }
+        // dao にのみ依存
+        use crate::dao::DaoError;
 
-        // トランザクションのインターフェース
-        pub trait Transaction {
-            fn execute(&self) -> Result<Response, UsecaseError>;
+        #[derive(Debug, Clone, Error)]
+        pub enum UsecaseError {
+            #[error("add employee failed: {0}")]
+            AddEmpFailed(DaoError),
+            #[error("change employee name failed: {0}")]
+            ChgEmpNameFailed(DaoError),
         }
 
         mod add_emp {
             use tx_rs::Tx;
 
             // dao にのみ依存 (domain は当然 ok)
+            use super::UsecaseError;
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::{Emp, EmpId};
-            use crate::tx::UsecaseError;
 
             // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
             pub trait AddEmp: HaveEmpDao {
                 fn get_id(&self) -> EmpId;
                 fn get_name(&self) -> &str;
                 fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                    println!(
+                        "AddEmp::execute for id={}, name={}",
+                        self.get_id(),
+                        self.get_name()
+                    );
                     self.dao()
                         .run_tx(|mut ctx| {
                             let emp = Emp::new(self.get_id(), self.get_name());
@@ -115,9 +106,9 @@ mod tx {
             use tx_rs::Tx;
 
             // dao にのみ依存 (domain は当然 ok)
+            use super::UsecaseError;
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::EmpId;
-            use crate::tx::UsecaseError;
 
             // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
             pub trait ChgEmpName: HaveEmpDao {
@@ -141,10 +132,13 @@ mod tx {
     // ユースケースのトランザクションの実装
     mod tx_impl {
         mod add_emp_tx {
-            // dao にのみ依存 (domain は当然 ok)
+            use anyhow;
+
+            // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+            use super::super::AddEmp;
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::EmpId;
-            use crate::tx::{AddEmp, Response, Transaction, UsecaseError};
+            use crate::tx_app::{Response, Transaction};
 
             // ユースケース: AddEmp トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -195,18 +189,23 @@ mod tx {
             where
                 T: EmpDao,
             {
-                fn execute(&self) -> Result<Response, UsecaseError> {
-                    AddEmp::execute(self).map(|_| Response::EmpId(self.id))
+                fn execute(&self) -> Result<Response, anyhow::Error> {
+                    AddEmp::execute(self)
+                        .map(|_| Response::EmpId(self.id))
+                        .map_err(|e| e.into())
                 }
             }
         }
         pub use add_emp_tx::*;
 
         mod chg_name_tx {
-            // dao にのみ依存 (domain は当然 ok)
+            use anyhow;
+
+            // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+            use super::super::ChgEmpName;
             use crate::dao::{EmpDao, HaveEmpDao};
             use crate::domain::EmpId;
-            pub use crate::tx::{ChgEmpName, Response, Transaction, UsecaseError};
+            use crate::tx_app::{Response, Transaction};
 
             // ユースケース: ChgEmpName トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -257,8 +256,10 @@ mod tx {
             where
                 T: EmpDao,
             {
-                fn execute(&self) -> Result<Response, UsecaseError> {
-                    ChgEmpName::execute(self).map(|_| Response::Void)
+                fn execute(&self) -> Result<Response, anyhow::Error> {
+                    ChgEmpName::execute(self)
+                        .map(|_| Response::Void)
+                        .map_err(|e| e.into())
                 }
             }
         }
@@ -267,16 +268,91 @@ mod tx {
     pub use tx_impl::*;
 }
 
-mod tx_factory {
-    // tx のインターフェースにのみ依存 (domain は当然 ok)
-    // TODO: tx::Transaction は tx-app モジュールを作ってそちらに移動する
-    use crate::domain::EmpId;
-    use crate::tx::Transaction;
+mod tx_app {
+    mod tx {
+        use anyhow;
+        // なににも依存しない (domain は当然 ok)
+        use crate::domain::EmpId;
 
-    pub trait TxFactory {
-        fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction>;
-        fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
+        // トランザクションのインターフェース
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub enum Response {
+            Void,
+            EmpId(EmpId),
+        }
+        pub trait Transaction {
+            fn execute(&self) -> Result<Response, anyhow::Error>;
+        }
     }
+    pub use tx::*;
+
+    mod tx_source {
+        // なににも依存しない (domain は当然 ok)
+        use crate::domain::EmpId;
+
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub enum Tx {
+            AddEmp(EmpId, String),
+            ChgEmpName(EmpId, String),
+        }
+        pub trait TxSource {
+            fn get_tx_source(&self) -> Option<Tx>;
+        }
+    }
+    pub use tx_source::*;
+
+    mod tx_factory {
+        // なににも依存しない (domain は当然 ok)
+        use crate::domain::EmpId;
+        use crate::tx_app::{Transaction, Tx};
+
+        pub trait TxFactory {
+            fn convert(&self, src: Tx) -> Box<dyn Transaction> {
+                match src {
+                    Tx::AddEmp(id, name) => self.mk_add_emp_tx(id, &name),
+                    Tx::ChgEmpName(id, new_name) => self.mk_chg_emp_name_tx(id, &new_name),
+                }
+            }
+
+            fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction>;
+            fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
+        }
+    }
+    pub use tx_factory::*;
+
+    pub struct TxApp<S, F>
+    where
+        S: TxSource,
+        F: TxFactory,
+    {
+        tx_source: S,
+        tx_factory: F,
+    }
+    impl<S, F> TxApp<S, F>
+    where
+        S: TxSource,
+        F: TxFactory,
+    {
+        pub fn new(tx_source: S, tx_factory: F) -> Self {
+            Self {
+                tx_source,
+                tx_factory,
+            }
+        }
+        pub fn run(&self) -> Result<(), anyhow::Error> {
+            while let Some(cmd) = self.tx_source.get_tx_source() {
+                let tx = self.tx_factory.convert(cmd);
+                tx.execute()?;
+            }
+            Ok(())
+        }
+    }
+}
+
+mod tx_factory {
+    // tx_app にのみ依存 (domain は当然 ok)
+    use crate::domain::EmpId;
+    use crate::tx_app::{Transaction, TxFactory};
 
     pub struct TxFactoryImpl<'a> {
         pub add_emp: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
@@ -288,6 +364,35 @@ mod tx_factory {
         }
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
             (self.chg_emp_name)(id, new_name)
+        }
+    }
+}
+
+mod text_parser_tx_source {
+    use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+
+    // tx_app にのみ依存
+    use crate::tx_app::{Tx, TxSource};
+
+    pub struct TextParserTxSource {
+        txs: Rc<RefCell<VecDeque<Tx>>>,
+    }
+    impl TextParserTxSource {
+        pub fn new(_input: &str) -> Self {
+            Self {
+                // 今はテスト用の実装になっている
+                txs: Rc::new(RefCell::new(VecDeque::from(vec![
+                    Tx::AddEmp(1, "Alice".to_string()),
+                    Tx::AddEmp(2, "Bob".to_string()),
+                    Tx::ChgEmpName(2, "Eve".to_string()),
+                ]))),
+            }
+        }
+    }
+
+    impl TxSource for TextParserTxSource {
+        fn get_tx_source(&self) -> Option<Tx> {
+            self.txs.borrow_mut().pop_front()
         }
     }
 }
@@ -335,36 +440,31 @@ mod hs_db {
         fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
             tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
                 let emp_id = emp.id();
-                tx.insert(emp_id, emp)
-                    .map(|_| ())
-                    .ok_or(DaoError::SaveFailed(emp_id))
+                tx.insert(emp_id, emp);
+                Ok(())
             })
         }
     }
 }
 
-fn main() {
-    // main hs_db と tx と tx-factory に依存
+fn main() -> Result<(), anyhow::Error> {
     use crate::hs_db::HashDB;
+    use crate::text_parser_tx_source::TextParserTxSource;
     use crate::tx::{AddEmpTx, ChgEmpNameTx};
-    use crate::tx_factory::TxFactory;
+    use crate::tx_app::TxApp;
+    use crate::tx_factory::TxFactoryImpl;
 
     let db = HashDB::new();
-    let tx_factory = tx_factory::TxFactoryImpl {
+
+    let tx_factory = TxFactoryImpl {
         add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
     };
+    let tx_source = TextParserTxSource::new("no input yet");
+    let tx_app = TxApp::new(tx_source, tx_factory);
 
-    // ここで main が HashDB に依存しているだけで AddEmpTx/ChgEmpNameTx は具体的な DB 実装(HashDB)に依存していない
-    let emp_dao = tx_factory.mk_add_emp_tx(1, "Alice");
-    let _ = emp_dao.execute();
-    println!("db: {:#?}", db);
+    tx_app.run()?;
+    println!("{:#?}", db);
 
-    let emp_dao = tx_factory.mk_add_emp_tx(2, "Bob");
-    let _ = emp_dao.execute();
-    println!("db: {:#?}", db);
-
-    let emp_dao = tx_factory.mk_chg_emp_name_tx(2, "Eve");
-    let _ = emp_dao.execute();
-    println!("db: {:#?}", db);
+    Ok(())
 }
