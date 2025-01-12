@@ -542,18 +542,19 @@ fn main() -> Result<(), anyhow::Error> {
     use crate::tx_app::TxApp;
     use crate::tx_factory::TxFactoryImpl;
 
+    info!("TxApp starting");
     env_logger::init();
 
     let db = HashDB::new();
     info!("DB initialized: {:?}", db);
 
+    // テストスクリプトを読み込んでシナリオを実行
+    let input = fs::read_to_string("script/test.scr")?;
+    let tx_source = TextParserTxSource::new(&input);
     let tx_factory = TxFactoryImpl {
         add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
     };
-    // テストスクリプトを読み込んでシナリオを実行
-    let input = fs::read_to_string("script/test.scr")?;
-    let tx_source = TextParserTxSource::new(&input);
     let tx_app = TxApp::new(tx_source, tx_factory);
 
     info!("TxApp starting");
@@ -561,6 +562,7 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp finished");
 
     println!("{:#?}", db);
+    info!("TxApp finished");
 
     Ok(())
 }
