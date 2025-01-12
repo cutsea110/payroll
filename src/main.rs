@@ -57,7 +57,6 @@ mod dao {
 }
 
 mod tx {
-
     // ユースケースのトランザクションのインターフェース
     mod interface {
         use thiserror::Error;
@@ -370,6 +369,7 @@ mod tx_app {
     pub use tx_factory::*;
 }
 
+// TxFacotry の具体的な実装
 mod tx_factory {
     use log::trace;
 
@@ -393,6 +393,7 @@ mod tx_factory {
     }
 }
 
+// TxSource の具体的な実装
 mod text_parser_tx_source {
     use log::{debug, trace};
     use std::{cell::RefCell, collections::VecDeque, rc::Rc};
@@ -478,7 +479,7 @@ mod text_parser_tx_source {
     pub use parser::*;
 }
 
-// 具体的な DB 実装
+// dao の具体的な実装
 mod hs_db {
     use log::trace;
     use std::{
