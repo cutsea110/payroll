@@ -414,10 +414,9 @@ mod text_parser_tx_source {
     impl TxSource for TextParserTxSource {
         fn get_tx_source(&self) -> Option<Tx> {
             trace!("TextParserTxSource::get_tx_source called");
-            self.txs.borrow_mut().pop_front().map(|tx| {
-                debug!("tx_src={:?}", tx);
-                tx
-            })
+            let tx = self.txs.borrow_mut().pop_front();
+            debug!("tx_src={:?}", tx);
+            tx
         }
     }
 
@@ -431,7 +430,7 @@ mod text_parser_tx_source {
 
         pub fn read_txs(input: &str) -> VecDeque<Tx> {
             trace!("read_txs called");
-            let txs: VecDeque<Tx> = txs().parse(input).map(|p| p.0.into()).unwrap_or_default();
+            let txs = txs().parse(input).map(|p| p.0.into()).unwrap_or_default();
             debug!("txs={:?}", txs);
             txs
         }
