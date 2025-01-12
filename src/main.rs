@@ -513,6 +513,7 @@ mod hs_db {
             F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
         {
             trace!("HashDB::run_tx called");
+            // RefCell の borrow_mut が RDB におけるトランザクションに相当
             f(self.emps.borrow_mut())
         }
 
