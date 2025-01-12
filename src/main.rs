@@ -421,21 +421,27 @@ mod text_parser_tx_source {
     }
 
     mod parser {
+        use log::{debug, trace};
+
         use parsec_rs::{char, int32, keyword, pred, spaces, string, Parser};
         use std::collections::VecDeque;
 
         use crate::tx_app::Tx;
 
         pub fn read_txs(input: &str) -> VecDeque<Tx> {
+            trace!("read_txs called");
             let txs: VecDeque<Tx> = txs().parse(input).map(|p| p.0.into()).unwrap_or_default();
+            debug!("txs={:?}", txs);
             txs
         }
 
         fn txs() -> impl Parser<Item = Vec<Tx>> {
+            trace!("txs called");
             tx().many0()
         }
 
         fn tx() -> impl Parser<Item = Tx> {
+            trace!("tx called");
             go_through().skip(add_emp().or(chg_emp_name()))
         }
 
