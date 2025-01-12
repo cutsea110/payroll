@@ -74,6 +74,7 @@ mod tx {
         }
 
         mod add_emp {
+            use log::{debug, trace};
             use tx_rs::Tx;
 
             // dao にのみ依存 (domain は当然 ok)
@@ -86,9 +87,12 @@ mod tx {
                 fn get_id(&self) -> EmpId;
                 fn get_name(&self) -> &str;
                 fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                    trace!("AddEmp::execute called");
                     self.dao()
                         .run_tx(|mut ctx| {
+                            trace!("AddEmp::run_tx called");
                             let emp = Emp::new(self.get_id(), self.get_name());
+                            debug!("AddEmp::execute: emp={:?}", emp);
                             self.dao().save(emp).run(&mut ctx)
                         })
                         .map_err(UsecaseError::AddEmpFailed)
@@ -98,6 +102,7 @@ mod tx {
         pub use add_emp::*;
 
         mod chg_name {
+            use log::{debug, trace};
             use tx_rs::Tx;
 
             // dao にのみ依存 (domain は当然 ok)
@@ -110,10 +115,14 @@ mod tx {
                 fn get_id(&self) -> EmpId;
                 fn get_new_name(&self) -> &str;
                 fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                    trace!("ChgEmpName::execute called");
                     self.dao()
                         .run_tx(|mut ctx| {
+                            trace!("ChgEmpName::run_tx called");
                             let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                            debug!("changing emp name: emp={:?}", emp);
                             emp.set_name(self.get_new_name());
+                            debug!("changed emp name: emp={:?}", emp);
                             self.dao().save(emp).run(&mut ctx)
                         })
                         .map_err(UsecaseError::ChgEmpNameFailed)
@@ -128,6 +137,7 @@ mod tx {
     mod tx_impl {
         mod add_emp_tx {
             use anyhow;
+            use log::trace;
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::AddEmp;
@@ -185,6 +195,7 @@ mod tx {
                 T: EmpDao,
             {
                 fn execute(&self) -> Result<Response, anyhow::Error> {
+                    trace!("AddEmpTx::execute called");
                     AddEmp::execute(self)
                         .map(|_| Response::EmpId(self.id))
                         .map_err(|e| e.into())
@@ -195,6 +206,7 @@ mod tx {
 
         mod chg_name_tx {
             use anyhow;
+            use log::trace;
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::ChgEmpName;
@@ -252,6 +264,7 @@ mod tx {
                 T: EmpDao,
             {
                 fn execute(&self) -> Result<Response, anyhow::Error> {
+                    trace!("ChgEmpNameTx::execute called");
                     ChgEmpName::execute(self)
                         .map(|_| Response::Void)
                         .map_err(|e| e.into())
@@ -264,6 +277,38 @@ mod tx {
 }
 
 mod tx_app {
+    use log::trace;
+
+    pub struct TxApp<S, F>
+    where
+        S: TxSource,
+        F: TxFactory,
+    {
+        tx_source: S,
+        tx_factory: F,
+    }
+    impl<S, F> TxApp<S, F>
+    where
+        S: TxSource,
+        F: TxFactory,
+    {
+        pub fn new(tx_source: S, tx_factory: F) -> Self {
+            Self {
+                tx_source,
+                tx_factory,
+            }
+        }
+        pub fn run(&self) -> Result<(), anyhow::Error> {
+            trace!("TxApp::run called");
+            while let Some(tx_src) = self.tx_source.get_tx_source() {
+                trace!("get tx_source={:?}", tx_src);
+                let tx = self.tx_factory.convert(tx_src);
+                tx.execute()?;
+            }
+            Ok(())
+        }
+    }
+
     mod tx {
         use anyhow;
         // なににも依存しない (domain は当然 ok)
@@ -297,15 +342,24 @@ mod tx_app {
     pub use tx_source::*;
 
     mod tx_factory {
+        use log::trace;
+
         // なににも依存しない (domain は当然 ok)
         use super::{Transaction, Tx};
         use crate::domain::EmpId;
 
         pub trait TxFactory {
             fn convert(&self, src: Tx) -> Box<dyn Transaction> {
+                trace!("TxFactory::convert called");
                 match src {
-                    Tx::AddEmp(id, name) => self.mk_add_emp_tx(id, &name),
-                    Tx::ChgEmpName(id, new_name) => self.mk_chg_emp_name_tx(id, &new_name),
+                    Tx::AddEmp(id, name) => {
+                        trace!("convert Tx::AddEmp by mk_add_emp_tx called");
+                        self.mk_add_emp_tx(id, &name)
+                    }
+                    Tx::ChgEmpName(id, new_name) => {
+                        trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
+                        self.mk_chg_emp_name_tx(id, &new_name)
+                    }
                 }
             }
 
@@ -314,37 +368,11 @@ mod tx_app {
         }
     }
     pub use tx_factory::*;
-
-    pub struct TxApp<S, F>
-    where
-        S: TxSource,
-        F: TxFactory,
-    {
-        tx_source: S,
-        tx_factory: F,
-    }
-    impl<S, F> TxApp<S, F>
-    where
-        S: TxSource,
-        F: TxFactory,
-    {
-        pub fn new(tx_source: S, tx_factory: F) -> Self {
-            Self {
-                tx_source,
-                tx_factory,
-            }
-        }
-        pub fn run(&self) -> Result<(), anyhow::Error> {
-            while let Some(cmd) = self.tx_source.get_tx_source() {
-                let tx = self.tx_factory.convert(cmd);
-                tx.execute()?;
-            }
-            Ok(())
-        }
-    }
 }
 
 mod tx_factory {
+    use log::trace;
+
     // tx_app にのみ依存 (domain は当然 ok)
     use crate::domain::EmpId;
     use crate::tx_app::{Transaction, TxFactory};
@@ -355,15 +383,18 @@ mod tx_factory {
     }
     impl<'a> TxFactory for TxFactoryImpl<'a> {
         fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction> {
+            trace!("TxFactoryImpl::mk_add_emp_tx called");
             (self.add_emp)(id, name)
         }
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
+            trace!("TxFactoryImpl::mk_chg_emp_name_tx called");
             (self.chg_emp_name)(id, new_name)
         }
     }
 }
 
 mod text_parser_tx_source {
+    use log::trace;
     use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
     // tx_app にのみ依存
@@ -387,6 +418,7 @@ mod text_parser_tx_source {
 
     impl TxSource for TextParserTxSource {
         fn get_tx_source(&self) -> Option<Tx> {
+            trace!("TextParserTxSource::get_tx_source called");
             self.txs.borrow_mut().pop_front()
         }
     }
@@ -394,6 +426,7 @@ mod text_parser_tx_source {
 
 // 具体的な DB 実装
 mod hs_db {
+    use log::trace;
     use std::{
         cell::{RefCell, RefMut},
         collections::HashMap,
@@ -424,17 +457,26 @@ mod hs_db {
         where
             F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
         {
+            trace!("HashDB::run_tx called");
             f(self.emps.borrow_mut())
         }
 
         fn get<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
+            trace!("HashDB::get called");
             tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+                trace!("HashDB::get::with_tx called: id={}", id);
                 tx.get(&id).cloned().ok_or(DaoError::NotFound(id))
             })
         }
         fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            trace!("HashDB::save called");
             tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
                 let emp_id = emp.id();
+                trace!(
+                    "HashDB::save::with_tx called: emp_id={},emp={:?}",
+                    emp_id,
+                    emp
+                );
                 tx.insert(emp_id, emp);
                 Ok(())
             })
@@ -443,13 +485,18 @@ mod hs_db {
 }
 
 fn main() -> Result<(), anyhow::Error> {
+    use log::info;
+
     use crate::hs_db::HashDB;
     use crate::text_parser_tx_source::TextParserTxSource;
     use crate::tx::{AddEmpTx, ChgEmpNameTx};
     use crate::tx_app::TxApp;
     use crate::tx_factory::TxFactoryImpl;
 
+    env_logger::init();
+
     let db = HashDB::new();
+    info!("DB initialized: {:?}", db);
 
     let tx_factory = TxFactoryImpl {
         add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
@@ -458,7 +505,10 @@ fn main() -> Result<(), anyhow::Error> {
     let tx_source = TextParserTxSource::new("no input yet");
     let tx_app = TxApp::new(tx_source, tx_factory);
 
+    info!("TxApp starting");
     tx_app.run()?;
+    info!("TxApp finished");
+
     println!("{:#?}", db);
 
     Ok(())
