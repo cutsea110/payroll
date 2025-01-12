@@ -4,15 +4,25 @@
 graph TD
 
   dao --> domain
+  
   tx --> dao
   tx --> domain
   tx --> tx-rs
-  tx-factory --> dao
-  tx-factory --> tx
+  tx --> tx-app
+  
+  tx-app --> domain
+
+  tx-factory --> tx-app
   tx-factory --> domain
+  
+  text-parser-tx-source --> tx-app
+  
   hs-db --> domain
   hs-db --> dao
+  
   main --> hs-db
-  main --> tx-factory
   main --> tx
+  main --> text-parser-tx-source
+  main --> tx-app
+  main --> tx-factory
 ```

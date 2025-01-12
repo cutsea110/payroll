@@ -86,11 +86,6 @@ mod tx {
                 fn get_id(&self) -> EmpId;
                 fn get_name(&self) -> &str;
                 fn execute<'a>(&self) -> Result<(), UsecaseError> {
-                    println!(
-                        "AddEmp::execute for id={}, name={}",
-                        self.get_id(),
-                        self.get_name()
-                    );
                     self.dao()
                         .run_tx(|mut ctx| {
                             let emp = Emp::new(self.get_id(), self.get_name());
@@ -303,8 +298,8 @@ mod tx_app {
 
     mod tx_factory {
         // なににも依存しない (domain は当然 ok)
+        use super::{Transaction, Tx};
         use crate::domain::EmpId;
-        use crate::tx_app::{Transaction, Tx};
 
         pub trait TxFactory {
             fn convert(&self, src: Tx) -> Box<dyn Transaction> {
