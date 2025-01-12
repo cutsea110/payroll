@@ -394,7 +394,7 @@ mod tx_factory {
 }
 
 mod text_parser_tx_source {
-    use log::trace;
+    use log::{debug, trace};
     use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
     // tx_app にのみ依存
@@ -406,7 +406,6 @@ mod text_parser_tx_source {
     impl TextParserTxSource {
         pub fn new(input: &str) -> Self {
             Self {
-                // 今はテスト用の実装になっている
                 txs: Rc::new(RefCell::new(read_txs(input))),
             }
         }
@@ -415,7 +414,9 @@ mod text_parser_tx_source {
     impl TxSource for TextParserTxSource {
         fn get_tx_source(&self) -> Option<Tx> {
             trace!("TextParserTxSource::get_tx_source called");
-            self.txs.borrow_mut().pop_front()
+            let tx_src = self.txs.borrow_mut().pop_front();
+            debug!("tx_src={:?}", tx_src);
+            tx_src
         }
     }
 
