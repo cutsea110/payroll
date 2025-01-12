@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.95"
 thiserror = "1.0.63"
 tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
