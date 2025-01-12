@@ -404,14 +404,10 @@ mod text_parser_tx_source {
         txs: Rc<RefCell<VecDeque<Tx>>>,
     }
     impl TextParserTxSource {
-        pub fn new(_input: &str) -> Self {
+        pub fn new(input: &str) -> Self {
             Self {
                 // 今はテスト用の実装になっている
-                txs: Rc::new(RefCell::new(VecDeque::from(vec![
-                    Tx::AddEmp(1, "Alice".to_string()),
-                    Tx::AddEmp(2, "Bob".to_string()),
-                    Tx::ChgEmpName(2, "Eve".to_string()),
-                ]))),
+                txs: Rc::new(RefCell::new(read_txs(input))),
             }
         }
     }
@@ -422,6 +418,57 @@ mod text_parser_tx_source {
             self.txs.borrow_mut().pop_front()
         }
     }
+
+    mod parser {
+        use parsec_rs::{char, int32, keyword, pred, spaces, string, Parser};
+        use std::collections::VecDeque;
+
+        use crate::tx_app::Tx;
+
+        pub fn read_txs(input: &str) -> VecDeque<Tx> {
+            let txs: VecDeque<Tx> = txs().parse(input).map(|p| p.0.into()).unwrap_or_default();
+            txs
+        }
+
+        fn txs() -> impl Parser<Item = Vec<Tx>> {
+            tx().many0()
+        }
+
+        fn tx() -> impl Parser<Item = Tx> {
+            go_through().skip(add_emp().or(chg_emp_name()))
+        }
+
+        fn go_through() -> impl Parser<Item = ()> {
+            let comment = char('#').skip(pred(|c| c != '\n').many0().with(char('\n')));
+            let space_comment = spaces().skip(comment).map(|_| ());
+            let ignore = space_comment.many1().map(|_| ()).or(spaces().map(|_| ()));
+
+            spaces().skip(ignore).skip(spaces()).map(|_| ())
+        }
+
+        fn add_emp() -> impl Parser<Item = Tx> {
+            let prefix = keyword("AddEmp").skip(spaces());
+            let emp_id = int32().with(spaces());
+            let name = string().with(spaces());
+
+            prefix
+                .skip(emp_id)
+                .join(name)
+                .map(|(id, name)| Tx::AddEmp(id, name))
+        }
+
+        fn chg_emp_name() -> impl Parser<Item = Tx> {
+            let prefix = keyword("ChgEmp").skip(spaces());
+            let emp_id = int32().with(spaces());
+            let name = keyword("Name").skip(spaces()).skip(string());
+
+            prefix
+                .skip(emp_id)
+                .join(name)
+                .map(|(id, name)| Tx::ChgEmpName(id, name))
+        }
+    }
+    pub use parser::*;
 }
 
 // 具体的な DB 実装
@@ -486,6 +533,7 @@ mod hs_db {
 
 fn main() -> Result<(), anyhow::Error> {
     use log::info;
+    use std::fs;
 
     use crate::hs_db::HashDB;
     use crate::text_parser_tx_source::TextParserTxSource;
@@ -502,7 +550,9 @@ fn main() -> Result<(), anyhow::Error> {
         add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
     };
-    let tx_source = TextParserTxSource::new("no input yet");
+    // テストスクリプトを読み込んでシナリオを実行
+    let input = fs::read_to_string("script/test.scr")?;
+    let tx_source = TextParserTxSource::new(&input);
     let tx_app = TxApp::new(tx_source, tx_factory);
 
     info!("TxApp starting");

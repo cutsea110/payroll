@@ -1,0 +1,4 @@
+AddEmp 1 "Alice"
+AddEmp 2 "Bob"
+ChgEmp 2 Name "Eve"
+
