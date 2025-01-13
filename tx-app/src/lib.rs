@@ -51,9 +51,9 @@ mod tx_source {
     // なににも依存しない (domain は当然 ok)
     use payroll_domain::EmpId;
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub enum Tx {
-        AddEmp(EmpId, String),
+        AddSalariedEmp(EmpId, String, String, f32),
         ChgEmpName(EmpId, String),
     }
     pub trait TxSource {
@@ -73,9 +73,9 @@ mod tx_factory {
         fn convert(&self, src: Tx) -> Box<dyn Transaction> {
             trace!("TxFactory::convert called");
             match src {
-                Tx::AddEmp(id, name) => {
+                Tx::AddSalariedEmp(id, name, address, salary) => {
                     trace!("convert Tx::AddEmp by mk_add_emp_tx called");
-                    self.mk_add_emp_tx(id, &name)
+                    self.mk_add_emp_tx(id, &name, &address, salary)
                 }
                 Tx::ChgEmpName(id, new_name) => {
                     trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
@@ -84,7 +84,13 @@ mod tx_factory {
             }
         }
 
-        fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction>;
+        fn mk_add_emp_tx(
+            &self,
+            id: EmpId,
+            name: &str,
+            address: &str,
+            salary: f32,
+        ) -> Box<dyn Transaction>;
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
     }
 }

@@ -1,4 +1,4 @@
-AddEmp 1 "Alice"
-AddEmp 2 "Bob"
+AddEmp 1 "Alice" "Home" S 1020.25
+AddEmp 2 "Bob" "Office" S 1120.70
 ChgEmp 2 Name "Eve"
 

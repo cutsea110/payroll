@@ -3,10 +3,13 @@
 ```mermaid
 graph TD
 
+  payroll-impl --> payroll-domain
+
   dao --> payroll-domain
   
   tx-impl --> dao
   tx-impl --> payroll-domain
+  tx-impl --> payroll-impl
   tx-impl --> tx-app
   
   tx-app --> payroll-domain

@@ -1,5 +1,5 @@
 [package]
-name = "payroll-domain"
+name = "payroll-impl"
 version.workspace = true
 authors.workspace = true
 description.workspace = true
@@ -8,4 +8,5 @@ edition.workspace = true
 
 [dependencies]
 chrono.workspace = true
-dyn-clone.workspace = true
+
+payroll-domain = { path = "../payroll-domain" }

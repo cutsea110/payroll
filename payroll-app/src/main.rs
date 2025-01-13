@@ -18,7 +18,9 @@ fn main() -> Result<(), anyhow::Error> {
     let input = fs::read_to_string("script/test.scr")?;
     let tx_source = TextParserTxSource::new(&input);
     let tx_factory = TxFactoryImpl {
-        add_emp: &|id, name| Box::new(AddEmpTx::new(id, name, db.clone())),
+        add_emp: &|id, name, address, salary| {
+            Box::new(AddEmpTx::new(id, name, address, salary, db.clone()))
+        },
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
     };
     let tx_app = TxApp::new(tx_source, tx_factory);

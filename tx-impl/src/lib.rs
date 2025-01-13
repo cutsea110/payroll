@@ -15,23 +15,40 @@ mod interface {
 
     mod add_emp {
         use log::{debug, trace};
+        use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{Emp, EmpId};
+        use payroll_domain::{
+            Affiliation, Emp, EmpId, PaymentClassification, PaymentMethod, PaymentSchedule,
+        };
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait AddEmp: HaveEmpDao {
             fn get_id(&self) -> EmpId;
             fn get_name(&self) -> &str;
+            fn get_address(&self) -> &str;
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
+
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
                 trace!("AddEmp::execute called");
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("AddEmp::run_tx called");
-                        let emp = Emp::new(self.get_id(), self.get_name());
+                        let emp = Emp::new(
+                            self.get_id(),
+                            self.get_name(),
+                            self.get_address(),
+                            self.get_classification(),
+                            self.get_schedule(),
+                            self.get_method(),
+                            self.get_affiliation(),
+                        );
                         debug!("AddEmp::execute: emp={:?}", emp);
                         self.dao().save(emp).run(&mut ctx)
                     })
@@ -78,11 +95,16 @@ mod tx_impl {
     mod add_emp_tx {
         use anyhow;
         use log::trace;
+        use std::{cell::RefCell, rc::Rc};
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmp;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::{
+            Affiliation, EmpId, NoAffiliation, PaymentClassification, PaymentMethod,
+            PaymentSchedule,
+        };
+        use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
         use tx_app::{Response, Transaction};
 
         // ユースケース: AddEmp トランザクションの実装 (struct)
@@ -93,16 +115,22 @@ mod tx_impl {
         {
             id: EmpId,
             name: String,
+            address: String,
+            salary: f32,
+
             db: T,
         }
         impl<T> AddEmpTx<T>
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, name: &str, dao: T) -> Self {
+            pub fn new(id: EmpId, name: &str, address: &str, salary: f32, dao: T) -> Self {
                 Self {
                     id,
                     name: name.to_string(),
+                    address: address.to_string(),
+                    salary,
+
                     db: dao,
                 }
             }
@@ -127,6 +155,21 @@ mod tx_impl {
             }
             fn get_name(&self) -> &str {
                 &self.name
+            }
+            fn get_address(&self) -> &str {
+                &self.address
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+                Rc::new(RefCell::new(MonthlySchedule))
+            }
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+                Rc::new(RefCell::new(HoldMethod))
+            }
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+                Rc::new(RefCell::new(NoAffiliation))
             }
         }
         // 共通インターフェースの実装
