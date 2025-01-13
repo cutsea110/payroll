@@ -1,5 +1,5 @@
 [workspace]
-members = [ "main" ]
+members = [ "main" , "payroll-domain"]
 resolver = "2"
 
 [workspace.package]

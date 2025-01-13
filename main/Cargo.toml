@@ -13,3 +13,5 @@ log = "0.4.22"
 parsec-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 thiserror = "1.0.63"
 tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
+
+payroll-domain = { path = "../payroll-domain" }

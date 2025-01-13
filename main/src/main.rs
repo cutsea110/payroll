@@ -1,35 +1,7 @@
-mod domain {
-    // なににも依存なし!
-
-    pub type EmpId = i32;
-
-    #[derive(Debug, Clone)]
-    pub struct Emp {
-        id: EmpId,
-        name: String,
-    }
-
-    impl Emp {
-        pub fn new(id: EmpId, name: &str) -> Self {
-            Self {
-                id,
-                name: name.to_string(),
-            }
-        }
-        pub fn id(&self) -> EmpId {
-            self.id
-        }
-        pub fn set_name(&mut self, name: &str) {
-            self.name = name.to_string();
-        }
-    }
-}
-
 mod dao {
     use thiserror::Error;
 
-    // domain にのみ依存
-    use crate::domain::{Emp, EmpId};
+    use payroll_domain::{Emp, EmpId};
 
     #[derive(Debug, Clone, Error)]
     pub enum DaoError {
@@ -79,7 +51,7 @@ mod tx {
             // dao にのみ依存 (domain は当然 ok)
             use super::UsecaseError;
             use crate::dao::{EmpDao, HaveEmpDao};
-            use crate::domain::{Emp, EmpId};
+            use payroll_domain::{Emp, EmpId};
 
             // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
             pub trait AddEmp: HaveEmpDao {
@@ -107,7 +79,7 @@ mod tx {
             // dao にのみ依存 (domain は当然 ok)
             use super::UsecaseError;
             use crate::dao::{EmpDao, HaveEmpDao};
-            use crate::domain::EmpId;
+            use payroll_domain::EmpId;
 
             // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
             pub trait ChgEmpName: HaveEmpDao {
@@ -141,8 +113,8 @@ mod tx {
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::AddEmp;
             use crate::dao::{EmpDao, HaveEmpDao};
-            use crate::domain::EmpId;
             use crate::tx_app::{Response, Transaction};
+            use payroll_domain::EmpId;
 
             // ユースケース: AddEmp トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -210,8 +182,8 @@ mod tx {
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::ChgEmpName;
             use crate::dao::{EmpDao, HaveEmpDao};
-            use crate::domain::EmpId;
             use crate::tx_app::{Response, Transaction};
+            use payroll_domain::EmpId;
 
             // ユースケース: ChgEmpName トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -311,7 +283,7 @@ mod tx_app {
     mod tx {
         use anyhow;
         // なににも依存しない (domain は当然 ok)
-        use crate::domain::EmpId;
+        use payroll_domain::EmpId;
 
         // トランザクションのインターフェース
         #[derive(Debug, Clone, PartialEq, Eq)]
@@ -327,7 +299,7 @@ mod tx_app {
 
     mod tx_source {
         // なににも依存しない (domain は当然 ok)
-        use crate::domain::EmpId;
+        use payroll_domain::EmpId;
 
         #[derive(Debug, Clone, PartialEq, Eq)]
         pub enum Tx {
@@ -345,7 +317,7 @@ mod tx_app {
 
         // なににも依存しない (domain は当然 ok)
         use super::{Transaction, Tx};
-        use crate::domain::EmpId;
+        use payroll_domain::EmpId;
 
         pub trait TxFactory {
             fn convert(&self, src: Tx) -> Box<dyn Transaction> {
@@ -374,8 +346,8 @@ mod tx_factory {
     use log::trace;
 
     // tx_app にのみ依存 (domain は当然 ok)
-    use crate::domain::EmpId;
     use crate::tx_app::{Transaction, TxFactory};
+    use payroll_domain::EmpId;
 
     pub struct TxFactoryImpl<'a> {
         pub add_emp: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
@@ -490,7 +462,7 @@ mod hs_db {
 
     // dao にのみ依存 (domain は当然 ok)
     use crate::dao::{DaoError, EmpDao};
-    use crate::domain::{Emp, EmpId};
+    use payroll_domain::{Emp, EmpId};
 
     // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
     #[derive(Debug, Clone)]
