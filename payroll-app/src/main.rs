@@ -6,7 +6,9 @@ fn main() -> Result<(), anyhow::Error> {
     use text_parser_tx_source::TextParserTxSource;
     use tx_app::TxApp;
     use tx_factory::TxFactoryImpl;
-    use tx_impl::{AddSalariedEmpTx, ChgEmpNameTx};
+    use tx_impl::{
+        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgEmpAddressTx, ChgEmpNameTx,
+    };
 
     info!("TxApp starting");
     env_logger::init();
@@ -18,10 +20,32 @@ fn main() -> Result<(), anyhow::Error> {
     let input = fs::read_to_string("script/test.scr")?;
     let tx_source = TextParserTxSource::new(&input);
     let tx_factory = TxFactoryImpl {
-        add_emp: &|id, name, address, salary| {
+        add_salaried_emp: &|id, name, address, salary| {
             Box::new(AddSalariedEmpTx::new(id, name, address, salary, db.clone()))
         },
+        add_hourly_emp: &|id, name, address, hourly_rate| {
+            Box::new(AddHourlyEmpTx::new(
+                id,
+                name,
+                address,
+                hourly_rate,
+                db.clone(),
+            ))
+        },
+        add_commissioned_emp: &|id, name, address, salary, commission_rate| {
+            Box::new(AddCommissionedEmpTx::new(
+                id,
+                name,
+                address,
+                salary,
+                commission_rate,
+                db.clone(),
+            ))
+        },
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
+        chg_emp_address: &|id, new_address| {
+            Box::new(ChgEmpAddressTx::new(id, new_address, db.clone()))
+        },
     };
     let tx_app = TxApp::new(tx_source, tx_factory);
 

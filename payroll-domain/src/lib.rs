@@ -44,6 +44,9 @@ impl Emp {
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }
+    pub fn set_address(&mut self, address: &str) {
+        self.address = address.to_string();
+    }
 }
 
 #[derive(Debug, Clone)]
