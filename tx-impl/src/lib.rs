@@ -50,8 +50,9 @@ mod interface {
                             self.get_affiliation(),
                         );
                         debug!("AddEmp::execute: emp={:?}", emp);
-                        self.dao().save(emp).run(&mut ctx)
+                        self.dao().insert(emp).run(&mut ctx)
                     })
+                    .map(|_| ())
                     .map_err(UsecaseError::AddEmpFailed)
             }
         }
@@ -76,7 +77,7 @@ mod interface {
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("ChgEmpName::run_tx called");
-                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                         debug!(
                             r#"changing emp name: "{}" -> "{}""#,
                             emp.name(),
@@ -84,7 +85,7 @@ mod interface {
                         );
                         emp.set_name(self.get_new_name());
                         debug!(r#"changed emp name="{}""#, emp.name());
-                        self.dao().save(emp).run(&mut ctx)
+                        self.dao().update(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
             }
@@ -110,7 +111,7 @@ mod interface {
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("ChgEmpAddress::run_tx called");
-                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                         debug!(
                             r#"changing emp address: "{}" -> "{}""#,
                             emp.address(),
@@ -118,7 +119,7 @@ mod interface {
                         );
                         emp.set_address(self.get_new_address());
                         debug!(r#"changed emp address="{}""#, emp.address());
-                        self.dao().save(emp).run(&mut ctx)
+                        self.dao().update(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
             }
@@ -146,7 +147,7 @@ mod interface {
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("ChgClassification::run_tx called");
-                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                         debug!(
                             "changing emp classification: {:?} -> {:?}",
                             emp.classification(),
@@ -161,7 +162,7 @@ mod interface {
                         );
                         emp.set_schedule(self.get_schedule());
                         debug!("changed emp schedule={:?}", emp.schedule());
-                        self.dao().save(emp).run(&mut ctx)
+                        self.dao().update(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
             }
@@ -188,7 +189,7 @@ mod interface {
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("ChgMethod::run_tx called");
-                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                         debug!(
                             "changing emp method: {:?} -> {:?}",
                             emp.method(),
@@ -196,7 +197,7 @@ mod interface {
                         );
                         emp.set_method(self.get_method());
                         debug!("changed emp method={:?}", emp.method());
-                        self.dao().save(emp).run(&mut ctx)
+                        self.dao().update(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
             }

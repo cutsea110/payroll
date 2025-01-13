@@ -35,14 +35,31 @@ impl EmpDao for HashDB {
         f(self.emps.borrow_mut())
     }
 
-    fn get<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
-        trace!("HashDB::get called");
+    fn insert<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError> {
+        trace!("HashDB::insert called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!("HashDB::get::with_tx called: id={}", id);
+            let emp_id = emp.id();
+            trace!(
+                "HashDB::insert::with_tx called: emp_id={},emp={:?}",
+                emp_id,
+                emp
+            );
+            if tx.contains_key(&emp_id) {
+                return Err(DaoError::AlreadyExists(emp_id));
+            }
+            tx.insert(emp_id, emp);
+            Ok(emp_id)
+        })
+    }
+
+    fn fetch<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
+        trace!("HashDB::fetch called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!("HashDB::fetch::with_tx called: id={}", id);
             tx.get(&id).cloned().ok_or(DaoError::NotFound(id))
         })
     }
-    fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+    fn update<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::save called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();
@@ -51,8 +68,11 @@ impl EmpDao for HashDB {
                 emp_id,
                 emp
             );
-            tx.insert(emp_id, emp);
-            Ok(())
+            if tx.contains_key(&emp_id) {
+                tx.insert(emp_id, emp);
+                return Ok(());
+            }
+            Err(DaoError::NotFound(emp_id))
         })
     }
 }
