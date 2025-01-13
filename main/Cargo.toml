@@ -9,9 +9,10 @@ edition.workspace = true
 [dependencies]
 anyhow = "1.0.95"
 env_logger = "0.11.6"
-log = "0.4.22"
+log.workspace = true
 parsec-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
-thiserror = "1.0.63"
+thiserror.workspace = true
 tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 
+dao = { path = "../dao" }
 payroll-domain = { path = "../payroll-domain" }

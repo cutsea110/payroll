@@ -1,40 +1,10 @@
-mod dao {
-    use thiserror::Error;
-
-    use payroll_domain::{Emp, EmpId};
-
-    #[derive(Debug, Clone, Error)]
-    pub enum DaoError {
-        #[error("emp_id={0} not found")]
-        NotFound(EmpId),
-    }
-
-    // Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
-    pub trait EmpDao {
-        type Ctx<'a>;
-
-        fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>
-        where
-            F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
-
-        fn get<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError>;
-        fn save<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
-    }
-
-    pub trait HaveEmpDao {
-        type Ctx<'a>;
-
-        fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>>;
-    }
-}
-
 mod tx {
     // ユースケースのトランザクションのインターフェース
     mod interface {
         use thiserror::Error;
 
         // dao にのみ依存
-        use crate::dao::DaoError;
+        use dao::DaoError;
 
         #[derive(Debug, Clone, Error)]
         pub enum UsecaseError {
@@ -50,7 +20,7 @@ mod tx {
 
             // dao にのみ依存 (domain は当然 ok)
             use super::UsecaseError;
-            use crate::dao::{EmpDao, HaveEmpDao};
+            use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::{Emp, EmpId};
 
             // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
@@ -78,7 +48,7 @@ mod tx {
 
             // dao にのみ依存 (domain は当然 ok)
             use super::UsecaseError;
-            use crate::dao::{EmpDao, HaveEmpDao};
+            use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::EmpId;
 
             // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
@@ -112,8 +82,8 @@ mod tx {
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::AddEmp;
-            use crate::dao::{EmpDao, HaveEmpDao};
             use crate::tx_app::{Response, Transaction};
+            use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::EmpId;
 
             // ユースケース: AddEmp トランザクションの実装 (struct)
@@ -181,8 +151,8 @@ mod tx {
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::ChgEmpName;
-            use crate::dao::{EmpDao, HaveEmpDao};
             use crate::tx_app::{Response, Transaction};
+            use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::EmpId;
 
             // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -461,7 +431,7 @@ mod hs_db {
     };
 
     // dao にのみ依存 (domain は当然 ok)
-    use crate::dao::{DaoError, EmpDao};
+    use dao::{DaoError, EmpDao};
     use payroll_domain::{Emp, EmpId};
 
     // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
