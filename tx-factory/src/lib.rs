@@ -11,6 +11,9 @@ pub struct TxFactoryImpl<'a> {
     pub add_commissioned_emp: &'a dyn Fn(EmpId, &str, &str, f32, f32) -> Box<dyn Transaction>,
     pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
     pub chg_emp_address: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
+    pub chg_salaried: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
+    pub chg_hourly: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
+    pub chg_commissioned: &'a dyn Fn(EmpId, f32, f32) -> Box<dyn Transaction>,
 }
 impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_add_salaried_emp_tx(
@@ -51,5 +54,22 @@ impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_chg_emp_address_tx(&self, id: EmpId, new_address: &str) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_chg_emp_address_tx called");
         (self.chg_emp_address)(id, new_address)
+    }
+    fn mk_chg_salaried_tx(&self, id: EmpId, salary: f32) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_salaried_tx called");
+        (self.chg_salaried)(id, salary)
+    }
+    fn mk_chg_hourly_tx(&self, id: EmpId, hourly_rate: f32) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_hourly_tx called");
+        (self.chg_hourly)(id, hourly_rate)
+    }
+    fn mk_chg_commissioned_tx(
+        &self,
+        id: EmpId,
+        salary: f32,
+        commission_rate: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_commissioned_tx called");
+        (self.chg_commissioned)(id, salary, commission_rate)
     }
 }

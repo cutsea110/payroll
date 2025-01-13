@@ -117,6 +117,70 @@ mod interface {
         }
     }
     pub use chg_address::*;
+
+    mod chg_classification {
+        use log::{debug, trace};
+        use std::{cell::RefCell, rc::Rc};
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentClassification, PaymentSchedule};
+
+        // ユースケース: ChgClassification トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgClassification: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("ChgClassification::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("ChgClassification::run_tx called");
+                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        debug!("changing emp classification and scheudle: emp={:?}", emp);
+                        emp.set_classification(self.get_classification());
+                        emp.set_schedule(self.get_schedule());
+                        debug!("changed emp classification and scheudle: emp={:?}", emp);
+                        self.dao().save(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgEmpNameFailed)
+            }
+        }
+    }
+    pub use chg_classification::*;
+
+    mod chg_method {
+        use log::{debug, trace};
+        use std::{cell::RefCell, rc::Rc};
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentMethod};
+
+        // ユースケース: ChgMethod トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgMethod: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("ChgMethod::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("ChgMethod::run_tx called");
+                        let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
+                        debug!("changing emp method: emp={:?}", emp);
+                        emp.set_method(self.get_method());
+                        debug!("changed emp method: emp={:?}", emp);
+                        self.dao().save(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgEmpNameFailed)
+            }
+        }
+    }
+    pub use chg_method::*;
 }
 pub use interface::*;
 
@@ -556,5 +620,233 @@ mod tx_impl {
         }
     }
     pub use chg_address_tx::*;
+
+    mod chg_salary_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgClassification;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_impl::{MonthlySchedule, SalariedClassification};
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgSalariedTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            salary: f32,
+
+            db: T,
+        }
+        impl<T> ChgSalariedTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, salary: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    salary,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgSalariedTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgClassification for ChgSalariedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn payroll_domain::PaymentSchedule>> {
+                Rc::new(RefCell::new(MonthlySchedule))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgSalariedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgSalariedTx::execute called");
+                ChgClassification::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_salary_tx::*;
+
+    mod chg_hourly_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgClassification;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_impl::{HourlyClassification, WeeklySchedule};
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgHourlyTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            hourly_rate: f32,
+
+            db: T,
+        }
+        impl<T> ChgHourlyTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, hourly_rate: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    hourly_rate,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgHourlyTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgClassification for ChgHourlyTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn payroll_domain::PaymentSchedule>> {
+                Rc::new(RefCell::new(WeeklySchedule))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgHourlyTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgHourlyTx::execute called");
+                ChgClassification::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_hourly_tx::*;
+
+    mod chg_commissioned_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgClassification;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_impl::{BiweeklySchedule, CommissionedClassification};
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgCommissionedTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            salary: f32,
+            commission_rate: f32,
+
+            db: T,
+        }
+        impl<T> ChgCommissionedTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, salary: f32, commission_rate: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    salary,
+                    commission_rate,
+
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgCommissionedTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgClassification for ChgCommissionedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(CommissionedClassification::new(
+                    self.salary,
+                    self.commission_rate,
+                )))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn payroll_domain::PaymentSchedule>> {
+                Rc::new(RefCell::new(BiweeklySchedule))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgCommissionedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgCommissionedTx::execute called");
+                ChgClassification::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_commissioned_tx::*;
 }
 pub use tx_impl::*;

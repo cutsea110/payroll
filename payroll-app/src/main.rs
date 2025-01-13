@@ -7,7 +7,8 @@ fn main() -> Result<(), anyhow::Error> {
     use tx_app::TxApp;
     use tx_factory::TxFactoryImpl;
     use tx_impl::{
-        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgEmpAddressTx, ChgEmpNameTx,
+        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgCommissionedTx, ChgEmpAddressTx,
+        ChgEmpNameTx, ChgHourlyTx, ChgSalariedTx,
     };
 
     info!("TxApp starting");
@@ -45,6 +46,16 @@ fn main() -> Result<(), anyhow::Error> {
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
         chg_emp_address: &|id, new_address| {
             Box::new(ChgEmpAddressTx::new(id, new_address, db.clone()))
+        },
+        chg_salaried: &|id, salary| Box::new(ChgSalariedTx::new(id, salary, db.clone())),
+        chg_hourly: &|id, hourly_rate| Box::new(ChgHourlyTx::new(id, hourly_rate, db.clone())),
+        chg_commissioned: &|id, salary, commission_rate| {
+            Box::new(ChgCommissionedTx::new(
+                id,
+                salary,
+                commission_rate,
+                db.clone(),
+            ))
         },
     };
     let tx_app = TxApp::new(tx_source, tx_factory);

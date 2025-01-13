@@ -47,6 +47,18 @@ impl Emp {
     pub fn set_address(&mut self, address: &str) {
         self.address = address.to_string();
     }
+    pub fn set_classification(&mut self, classification: Rc<RefCell<dyn PaymentClassification>>) {
+        self.classification = classification;
+    }
+    pub fn set_schedule(&mut self, schedule: Rc<RefCell<dyn PaymentSchedule>>) {
+        self.schedule = schedule;
+    }
+    pub fn set_method(&mut self, method: Rc<RefCell<dyn PaymentMethod>>) {
+        self.method = method;
+    }
+    pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
+        self.affiliation = affiliation;
+    }
 }
 
 #[derive(Debug, Clone)]

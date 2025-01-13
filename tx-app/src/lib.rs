@@ -111,6 +111,18 @@ mod tx_factory {
                     trace!("convert Tx::ChgEmpAddress by mk_chg_emp_address_tx called");
                     self.mk_chg_emp_address_tx(id, &new_address)
                 }
+                Tx::ChgSalaried(id, salary) => {
+                    trace!("convert Tx::ChgSalaried by mk_chg_salaried_tx called");
+                    self.mk_chg_salaried_tx(id, salary)
+                }
+                Tx::ChgHourly(id, hourly_rate) => {
+                    trace!("convert Tx::ChgHourly by mk_chg_hourly_tx called");
+                    self.mk_chg_hourly_tx(id, hourly_rate)
+                }
+                Tx::ChgCommissioned(id, salary, commission_rate) => {
+                    trace!("convert Tx::ChgCommissioned by mk_chg_commissioned_tx called");
+                    self.mk_chg_commissioned_tx(id, salary, commission_rate)
+                }
                 _ => unimplemented!(),
             }
         }
@@ -139,6 +151,14 @@ mod tx_factory {
         ) -> Box<dyn Transaction>;
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
         fn mk_chg_emp_address_tx(&self, id: EmpId, new_address: &str) -> Box<dyn Transaction>;
+        fn mk_chg_salaried_tx(&self, id: EmpId, salary: f32) -> Box<dyn Transaction>;
+        fn mk_chg_hourly_tx(&self, id: EmpId, hourly_rate: f32) -> Box<dyn Transaction>;
+        fn mk_chg_commissioned_tx(
+            &self,
+            id: EmpId,
+            salary: f32,
+            commission_rate: f32,
+        ) -> Box<dyn Transaction>;
     }
 }
 pub use tx_factory::*;
