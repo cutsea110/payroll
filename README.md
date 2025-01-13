@@ -3,26 +3,25 @@
 ```mermaid
 graph TD
 
-  dao --> domain
+  dao --> payroll-domain
   
-  tx --> dao
-  tx --> domain
-  tx --> tx-rs
-  tx --> tx-app
+  tx-impl --> dao
+  tx-impl --> payroll-domain
+  tx-impl --> tx-app
   
-  tx-app --> domain
+  tx-app --> payroll-domain
 
   tx-factory --> tx-app
-  tx-factory --> domain
+  tx-factory --> payroll-domain
   
   text-parser-tx-source --> tx-app
   
-  hs-db --> domain
+  hs-db --> payroll-domain
   hs-db --> dao
   
-  main --> hs-db
-  main --> tx
-  main --> text-parser-tx-source
-  main --> tx-app
-  main --> tx-factory
+  payroll-app --> hs-db
+  payroll-app --> tx-impl
+  payroll-app --> text-parser-tx-source
+  payroll-app --> tx-app
+  payroll-app --> tx-factory
 ```
