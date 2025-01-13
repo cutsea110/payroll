@@ -42,8 +42,8 @@ ChgEmp 71 Hold
 ## Payday 2024-08-09
 ## Payday 2024-08-31
 ## 
-## # cleanup!
-## #
-## DelEmp 42
-## DelEmp 57
-## DelEmp 71
+# cleanup!
+#
+DelEmp 42
+DelEmp 57
+DelEmp 71

@@ -19,6 +19,7 @@ pub trait EmpDao {
         F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
 
     fn insert<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError>;
+    fn remove<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
     fn fetch<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError>;
     fn update<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
 }

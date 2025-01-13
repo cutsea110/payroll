@@ -9,6 +9,8 @@ mod interface {
     pub enum UsecaseError {
         #[error("add employee failed: {0}")]
         AddEmpFailed(DaoError),
+        #[error("delete employee failed: {0}")]
+        DelEmpFailed(DaoError),
         #[error("change employee name failed: {0}")]
         ChgEmpNameFailed(DaoError),
     }
@@ -58,6 +60,35 @@ mod interface {
         }
     }
     pub use add_emp::*;
+
+    mod del_emp {
+        use log::{debug, trace};
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+
+        // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
+        pub trait DelEmp: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("DelEmp::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("DelEmp::run_tx called");
+                        let emp_id = self.get_id();
+                        debug!("DelEmp::execute: emp_id={}", emp_id);
+                        self.dao().remove(emp_id).run(&mut ctx)
+                    })
+                    .map(|_| ())
+                    .map_err(UsecaseError::AddEmpFailed)
+            }
+        }
+    }
+    pub use del_emp::*;
 
     mod chg_name {
         use log::{debug, trace};
@@ -505,6 +536,67 @@ mod tx_impl {
         }
     }
     pub use add_commissioned_emp_tx::*;
+
+    mod del_emp_tx {
+        use anyhow;
+        use log::trace;
+
+        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+        use super::super::DelEmp;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct DelEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            db: T,
+        }
+        impl<T> DelEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, dao: T) -> Self {
+                Self { id, db: dao }
+            }
+        }
+
+        impl<T> HaveEmpDao for DelEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> DelEmp for DelEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for DelEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("DelEmpTx::execute called");
+                DelEmp::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use del_emp_tx::*;
 
     mod chg_name_tx {
         use anyhow;

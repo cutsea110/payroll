@@ -9,6 +9,7 @@ pub struct TxFactoryImpl<'a> {
     pub add_salaried_emp: &'a dyn Fn(EmpId, &str, &str, f32) -> Box<dyn Transaction>,
     pub add_hourly_emp: &'a dyn Fn(EmpId, &str, &str, f32) -> Box<dyn Transaction>,
     pub add_commissioned_emp: &'a dyn Fn(EmpId, &str, &str, f32, f32) -> Box<dyn Transaction>,
+    pub del_emp: &'a dyn Fn(EmpId) -> Box<dyn Transaction>,
     pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
     pub chg_emp_address: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
     pub chg_salaried: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
@@ -49,6 +50,10 @@ impl<'a> TxFactory for TxFactoryImpl<'a> {
     ) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_add_commissioned_emp_tx called");
         (self.add_commissioned_emp)(id, name, address, salary, commission_rate)
+    }
+    fn mk_del_emp_tx(&self, id: EmpId) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_del_emp_tx called");
+        (self.del_emp)(id)
     }
     fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_chg_emp_name_tx called");

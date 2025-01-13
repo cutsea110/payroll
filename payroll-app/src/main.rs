@@ -8,7 +8,7 @@ fn main() -> Result<(), anyhow::Error> {
     use tx_factory::TxFactoryImpl;
     use tx_impl::{
         AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgCommissionedTx, ChgDirectTx,
-        ChgEmpAddressTx, ChgEmpNameTx, ChgHoldTx, ChgHourlyTx, ChgMailTx, ChgSalariedTx,
+        ChgEmpAddressTx, ChgEmpNameTx, ChgHoldTx, ChgHourlyTx, ChgMailTx, ChgSalariedTx, DelEmpTx,
     };
 
     info!("TxApp starting");
@@ -43,6 +43,7 @@ fn main() -> Result<(), anyhow::Error> {
                 db.clone(),
             ))
         },
+        del_emp: &|id| Box::new(DelEmpTx::new(id, db.clone())),
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
         chg_emp_address: &|id, new_address| {
             Box::new(ChgEmpAddressTx::new(id, new_address, db.clone()))

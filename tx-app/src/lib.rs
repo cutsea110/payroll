@@ -107,6 +107,10 @@ mod tx_factory {
                     trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
                     self.mk_chg_emp_name_tx(id, &new_name)
                 }
+                Tx::DelEmp(id) => {
+                    trace!("convert Tx::DelEmp by mk_del_emp_tx called");
+                    self.mk_del_emp_tx(id)
+                }
                 Tx::ChgEmpAddress(id, new_address) => {
                     trace!("convert Tx::ChgEmpAddress by mk_chg_emp_address_tx called");
                     self.mk_chg_emp_address_tx(id, &new_address)
@@ -161,6 +165,7 @@ mod tx_factory {
             salary: f32,
             commission_rate: f32,
         ) -> Box<dyn Transaction>;
+        fn mk_del_emp_tx(&self, id: EmpId) -> Box<dyn Transaction>;
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
         fn mk_chg_emp_address_tx(&self, id: EmpId, new_address: &str) -> Box<dyn Transaction>;
         fn mk_chg_salaried_tx(&self, id: EmpId, salary: f32) -> Box<dyn Transaction>;

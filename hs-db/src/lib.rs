@@ -13,12 +13,12 @@ use payroll_domain::{Emp, EmpId};
 // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
 #[derive(Debug, Clone)]
 pub struct HashDB {
-    emps: Rc<RefCell<HashMap<EmpId, Emp>>>,
+    employees: Rc<RefCell<HashMap<EmpId, Emp>>>,
 }
 impl HashDB {
     pub fn new() -> Self {
         Self {
-            emps: Rc::new(RefCell::new(HashMap::new())),
+            employees: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 }
@@ -32,7 +32,7 @@ impl EmpDao for HashDB {
     {
         trace!("HashDB::run_tx called");
         // RefCell の borrow_mut が RDB におけるトランザクションに相当
-        f(self.emps.borrow_mut())
+        f(self.employees.borrow_mut())
     }
 
     fn insert<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError> {
@@ -51,7 +51,16 @@ impl EmpDao for HashDB {
             Ok(emp_id)
         })
     }
-
+    fn remove<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+        trace!("HashDB::remove called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!("HashDB::remove::with_tx called: id={}", id);
+            if tx.remove(&id).is_some() {
+                return Ok(());
+            }
+            Err(DaoError::NotFound(id))
+        })
+    }
     fn fetch<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
         trace!("HashDB::fetch called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
