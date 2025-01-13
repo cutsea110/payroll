@@ -1,0 +1,13 @@
+[package]
+name = "tx-factory"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+
+[dependencies]
+log.workspace = true
+
+payroll-domain = { path = "../payroll-domain" }
+tx-app = { path = "../tx-app" }
