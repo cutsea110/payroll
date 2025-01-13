@@ -1,5 +1,5 @@
 [workspace]
-members = [ "dao", "main" , "payroll-domain", "tx-app"]
+members = [ "dao", "main" , "payroll-domain", "tx-app", "tx-impl"]
 resolver = "2"
 
 [workspace.package]
@@ -10,6 +10,7 @@ documentation = "https://www.amazon.co.jp/dp/4797347783"
 edition = "2021"
 
 [workspace.dependencies]
+anyhow = "1.0.95"
 log = "0.4.22"
 thiserror = "1.0.63"
 tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }

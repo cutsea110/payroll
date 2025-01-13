@@ -1,5 +1,5 @@
 [package]
-name = "main"
+name = "tx-impl"
 version.workspace = true
 authors.workspace = true
 description.workspace = true
@@ -7,14 +7,11 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
-anyhow = "1.0.95"
-env_logger = "0.11.6"
+anyhow.workspace = true
 log.workspace = true
-parsec-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 thiserror.workspace = true
-tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
+tx-rs.workspace = true
 
 dao = { path = "../dao" }
 payroll-domain = { path = "../payroll-domain" }
 tx-app = { path = "../tx-app" }
-tx-impl = { path = "../tx-impl" }
