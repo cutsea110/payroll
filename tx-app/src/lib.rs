@@ -75,7 +75,7 @@ mod tx_factory {
             match src {
                 Tx::AddSalariedEmp(id, name, address, salary) => {
                     trace!("convert Tx::AddEmp by mk_add_emp_tx called");
-                    self.mk_add_emp_tx(id, &name, &address, salary)
+                    self.mk_add_salaried_emp_tx(id, &name, &address, salary)
                 }
                 Tx::ChgEmpName(id, new_name) => {
                     trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
@@ -84,7 +84,7 @@ mod tx_factory {
             }
         }
 
-        fn mk_add_emp_tx(
+        fn mk_add_salaried_emp_tx(
             &self,
             id: EmpId,
             name: &str,

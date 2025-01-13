@@ -6,7 +6,7 @@ fn main() -> Result<(), anyhow::Error> {
     use text_parser_tx_source::TextParserTxSource;
     use tx_app::TxApp;
     use tx_factory::TxFactoryImpl;
-    use tx_impl::{AddEmpTx, ChgEmpNameTx};
+    use tx_impl::{AddSalariedEmpTx, ChgEmpNameTx};
 
     info!("TxApp starting");
     env_logger::init();
@@ -19,7 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
     let tx_source = TextParserTxSource::new(&input);
     let tx_factory = TxFactoryImpl {
         add_emp: &|id, name, address, salary| {
-            Box::new(AddEmpTx::new(id, name, address, salary, db.clone()))
+            Box::new(AddSalariedEmpTx::new(id, name, address, salary, db.clone()))
         },
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
     };

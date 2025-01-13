@@ -92,7 +92,7 @@ pub use interface::*;
 
 // ユースケースのトランザクションの実装
 mod tx_impl {
-    mod add_emp_tx {
+    mod add_salaried_emp_tx {
         use anyhow;
         use log::trace;
         use std::{cell::RefCell, rc::Rc};
@@ -107,9 +107,9 @@ mod tx_impl {
         use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
         use tx_app::{Response, Transaction};
 
-        // ユースケース: AddEmp トランザクションの実装 (struct)
+        // ユースケース: AddSalariedEmp トランザクションの実装 (struct)
         #[derive(Debug)]
-        pub struct AddEmpTx<T>
+        pub struct AddSalariedEmpTx<T>
         where
             T: EmpDao,
         {
@@ -120,7 +120,7 @@ mod tx_impl {
 
             db: T,
         }
-        impl<T> AddEmpTx<T>
+        impl<T> AddSalariedEmpTx<T>
         where
             T: EmpDao,
         {
@@ -136,7 +136,7 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddEmpTx<T>
+        impl<T> HaveEmpDao for AddSalariedEmpTx<T>
         where
             T: EmpDao,
         {
@@ -146,7 +146,7 @@ mod tx_impl {
                 &self.db
             }
         }
-        impl<T> AddEmp for AddEmpTx<T>
+        impl<T> AddEmp for AddSalariedEmpTx<T>
         where
             T: EmpDao,
         {
@@ -173,19 +173,19 @@ mod tx_impl {
             }
         }
         // 共通インターフェースの実装
-        impl<T> Transaction for AddEmpTx<T>
+        impl<T> Transaction for AddSalariedEmpTx<T>
         where
             T: EmpDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
-                trace!("AddEmpTx::execute called");
+                trace!("AddSalariedEmpTx::execute called");
                 AddEmp::execute(self)
                     .map(|_| Response::EmpId(self.id))
                     .map_err(Into::into)
             }
         }
     }
-    pub use add_emp_tx::*;
+    pub use add_salaried_emp_tx::*;
 
     mod chg_name_tx {
         use anyhow;

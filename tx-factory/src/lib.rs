@@ -10,7 +10,7 @@ pub struct TxFactoryImpl<'a> {
     pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
 }
 impl<'a> TxFactory for TxFactoryImpl<'a> {
-    fn mk_add_emp_tx(
+    fn mk_add_salaried_emp_tx(
         &self,
         id: EmpId,
         name: &str,
