@@ -28,7 +28,7 @@ impl TxSource for TextParserTxSource {
 mod parser {
     use log::{debug, trace};
 
-    use parsec_rs::{char, int32, keyword, pred, spaces, string, Parser};
+    use parsec_rs::{char, float32, keyword, pred, spaces, string, uint32, Parser};
     use std::collections::VecDeque;
 
     use tx_app::Tx;
@@ -47,7 +47,7 @@ mod parser {
 
     fn tx() -> impl Parser<Item = Tx> {
         trace!("tx called");
-        go_through().skip(add_emp().or(chg_emp_name()))
+        go_through().skip(add_salaried_emp().or(chg_emp_name()))
     }
 
     fn go_through() -> impl Parser<Item = ()> {
@@ -58,20 +58,26 @@ mod parser {
         spaces().skip(ignore).skip(spaces()).map(|_| ())
     }
 
-    fn add_emp() -> impl Parser<Item = Tx> {
+    fn add_salaried_emp() -> impl Parser<Item = Tx> {
         let prefix = keyword("AddEmp").skip(spaces());
-        let emp_id = int32().with(spaces());
+        let emp_id = uint32().with(spaces());
         let name = string().with(spaces());
+        let address = string().with(spaces());
+        let monthly_rate = char('S').skip(spaces()).skip(float32());
 
         prefix
             .skip(emp_id)
             .join(name)
-            .map(|(id, name)| Tx::AddEmp(id, name))
+            .join(address)
+            .join(monthly_rate)
+            .map(|(((emp_id, name), address), salary)| {
+                Tx::AddSalariedEmp(emp_id, name, address, salary)
+            })
     }
 
     fn chg_emp_name() -> impl Parser<Item = Tx> {
         let prefix = keyword("ChgEmp").skip(spaces());
-        let emp_id = int32().with(spaces());
+        let emp_id = uint32().with(spaces());
         let name = keyword("Name").skip(spaces()).skip(string());
 
         prefix
