@@ -17,4 +17,5 @@ tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 dao = { path = "../dao" }
 payroll-domain = { path = "../payroll-domain" }
 tx-app = { path = "../tx-app" }
+tx-factory = { path = "../tx-factory" }
 tx-impl = { path = "../tx-impl" }

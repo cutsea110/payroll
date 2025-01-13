@@ -1,27 +1,3 @@
-// TxFacotry の具体的な実装
-mod tx_factory {
-    use log::trace;
-
-    // tx_app にのみ依存 (domain は当然 ok)
-    use payroll_domain::EmpId;
-    use tx_app::{Transaction, TxFactory};
-
-    pub struct TxFactoryImpl<'a> {
-        pub add_emp: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
-        pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
-    }
-    impl<'a> TxFactory for TxFactoryImpl<'a> {
-        fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction> {
-            trace!("TxFactoryImpl::mk_add_emp_tx called");
-            (self.add_emp)(id, name)
-        }
-        fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
-            trace!("TxFactoryImpl::mk_chg_emp_name_tx called");
-            (self.chg_emp_name)(id, new_name)
-        }
-    }
-}
-
 // TxSource の具体的な実装
 mod text_parser_tx_source {
     use log::{debug, trace};
@@ -175,8 +151,8 @@ fn main() -> Result<(), anyhow::Error> {
 
     use crate::hs_db::HashDB;
     use crate::text_parser_tx_source::TextParserTxSource;
-    use crate::tx_factory::TxFactoryImpl;
     use tx_app::TxApp;
+    use tx_factory::TxFactoryImpl;
     use tx_impl::{AddEmpTx, ChgEmpNameTx};
 
     info!("TxApp starting");
