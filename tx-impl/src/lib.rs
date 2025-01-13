@@ -187,6 +187,101 @@ mod tx_impl {
     }
     pub use add_salaried_emp_tx::*;
 
+    mod add_hourly_emp_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+        use super::super::AddEmp;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{
+            Affiliation, EmpId, NoAffiliation, PaymentClassification, PaymentMethod,
+            PaymentSchedule,
+        };
+        use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: AddSalariedEmp トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct AddHourlyEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            name: String,
+            address: String,
+            hourly_rate: f32,
+
+            db: T,
+        }
+        impl<T> AddHourlyEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, name: &str, address: &str, hourly_rate: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    name: name.to_string(),
+                    address: address.to_string(),
+                    hourly_rate,
+
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for AddHourlyEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> AddEmp for AddHourlyEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_name(&self) -> &str {
+                &self.name
+            }
+            fn get_address(&self) -> &str {
+                &self.address
+            }
+            fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+                Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
+            }
+            fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+                Rc::new(RefCell::new(WeeklySchedule))
+            }
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+                Rc::new(RefCell::new(HoldMethod))
+            }
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+                Rc::new(RefCell::new(NoAffiliation))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for AddHourlyEmpTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("AddHourlyEmpTx::execute called");
+                AddEmp::execute(self)
+                    .map(|_| Response::EmpId(self.id))
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use add_hourly_emp_tx::*;
+
     mod chg_name_tx {
         use anyhow;
         use log::trace;

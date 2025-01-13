@@ -8,6 +8,7 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 log.workspace = true
 
 payroll-domain = { path = "../payroll-domain" }

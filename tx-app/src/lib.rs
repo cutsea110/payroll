@@ -48,13 +48,31 @@ mod tx {
 pub use tx::*;
 
 mod tx_source {
+    use chrono::NaiveDate;
+
     // なににも依存しない (domain は当然 ok)
-    use payroll_domain::EmpId;
+    use payroll_domain::{EmpId, MemberId};
 
     #[derive(Debug, Clone, PartialEq)]
     pub enum Tx {
         AddSalariedEmp(EmpId, String, String, f32),
+        AddHourlyEmp(EmpId, String, String, f32),
+        AddCommissionedEmp(EmpId, String, String, f32, f32),
+        DelEmp(EmpId),
+        TimeCard(EmpId, NaiveDate, f32),
+        SalesReceipt(EmpId, NaiveDate, f32),
+        ServiceCharge(EmpId, NaiveDate, f32),
         ChgEmpName(EmpId, String),
+        ChgEmpAddress(EmpId, String),
+        ChgSalaried(EmpId, f32),
+        ChgHourly(EmpId, f32),
+        ChgCommissioned(EmpId, f32, f32),
+        ChgHoldMethod(EmpId),
+        ChgDirectMethod(EmpId, String, String),
+        ChgMailMethod(EmpId, String),
+        ChgMember(EmpId, MemberId, f32),
+        ChgNoMember(EmpId),
+        Payday(NaiveDate),
     }
     pub trait TxSource {
         fn get_tx_source(&self) -> Option<Tx>;
@@ -81,6 +99,7 @@ mod tx_factory {
                     trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
                     self.mk_chg_emp_name_tx(id, &new_name)
                 }
+                _ => unimplemented!(),
             }
         }
 
