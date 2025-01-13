@@ -82,9 +82,9 @@ mod tx {
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::AddEmp;
-            use crate::tx_app::{Response, Transaction};
             use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::EmpId;
+            use tx_app::{Response, Transaction};
 
             // ユースケース: AddEmp トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -151,9 +151,9 @@ mod tx {
 
             // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
             use super::super::ChgEmpName;
-            use crate::tx_app::{Response, Transaction};
             use dao::{EmpDao, HaveEmpDao};
             use payroll_domain::EmpId;
+            use tx_app::{Response, Transaction};
 
             // ユースケース: ChgEmpName トランザクションの実装 (struct)
             #[derive(Debug)]
@@ -217,107 +217,13 @@ mod tx {
     pub use tx_impl::*;
 }
 
-mod tx_app {
-    use log::trace;
-
-    pub struct TxApp<S, F>
-    where
-        S: TxSource,
-        F: TxFactory,
-    {
-        tx_source: S,
-        tx_factory: F,
-    }
-    impl<S, F> TxApp<S, F>
-    where
-        S: TxSource,
-        F: TxFactory,
-    {
-        pub fn new(tx_source: S, tx_factory: F) -> Self {
-            Self {
-                tx_source,
-                tx_factory,
-            }
-        }
-        pub fn run(&self) -> Result<(), anyhow::Error> {
-            trace!("TxApp::run called");
-            while let Some(tx_src) = self.tx_source.get_tx_source() {
-                trace!("get tx_source={:?}", tx_src);
-                let tx = self.tx_factory.convert(tx_src);
-                tx.execute()?;
-            }
-            Ok(())
-        }
-    }
-
-    mod tx {
-        use anyhow;
-        // なににも依存しない (domain は当然 ok)
-        use payroll_domain::EmpId;
-
-        // トランザクションのインターフェース
-        #[derive(Debug, Clone, PartialEq, Eq)]
-        pub enum Response {
-            Void,
-            EmpId(EmpId),
-        }
-        pub trait Transaction {
-            fn execute(&self) -> Result<Response, anyhow::Error>;
-        }
-    }
-    pub use tx::*;
-
-    mod tx_source {
-        // なににも依存しない (domain は当然 ok)
-        use payroll_domain::EmpId;
-
-        #[derive(Debug, Clone, PartialEq, Eq)]
-        pub enum Tx {
-            AddEmp(EmpId, String),
-            ChgEmpName(EmpId, String),
-        }
-        pub trait TxSource {
-            fn get_tx_source(&self) -> Option<Tx>;
-        }
-    }
-    pub use tx_source::*;
-
-    mod tx_factory {
-        use log::trace;
-
-        // なににも依存しない (domain は当然 ok)
-        use super::{Transaction, Tx};
-        use payroll_domain::EmpId;
-
-        pub trait TxFactory {
-            fn convert(&self, src: Tx) -> Box<dyn Transaction> {
-                trace!("TxFactory::convert called");
-                match src {
-                    Tx::AddEmp(id, name) => {
-                        trace!("convert Tx::AddEmp by mk_add_emp_tx called");
-                        self.mk_add_emp_tx(id, &name)
-                    }
-                    Tx::ChgEmpName(id, new_name) => {
-                        trace!("convert Tx::ChgEmpName by mk_chg_emp_name_tx called");
-                        self.mk_chg_emp_name_tx(id, &new_name)
-                    }
-                }
-            }
-
-            fn mk_add_emp_tx(&self, id: EmpId, name: &str) -> Box<dyn Transaction>;
-            fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
-        }
-    }
-    pub use tx_factory::*;
-}
-
 // TxFacotry の具体的な実装
 mod tx_factory {
     use log::trace;
 
     // tx_app にのみ依存 (domain は当然 ok)
-    use crate::tx_app::{Transaction, TxFactory};
     use payroll_domain::EmpId;
+    use tx_app::{Transaction, TxFactory};
 
     pub struct TxFactoryImpl<'a> {
         pub add_emp: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
@@ -341,7 +247,7 @@ mod text_parser_tx_source {
     use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
     // tx_app にのみ依存
-    use crate::tx_app::{Tx, TxSource};
+    use tx_app::{Tx, TxSource};
 
     pub struct TextParserTxSource {
         txs: Rc<RefCell<VecDeque<Tx>>>,
@@ -369,7 +275,7 @@ mod text_parser_tx_source {
         use parsec_rs::{char, int32, keyword, pred, spaces, string, Parser};
         use std::collections::VecDeque;
 
-        use crate::tx_app::Tx;
+        use tx_app::Tx;
 
         pub fn read_txs(input: &str) -> VecDeque<Tx> {
             trace!("read_txs called");
@@ -489,8 +395,8 @@ fn main() -> Result<(), anyhow::Error> {
     use crate::hs_db::HashDB;
     use crate::text_parser_tx_source::TextParserTxSource;
     use crate::tx::{AddEmpTx, ChgEmpNameTx};
-    use crate::tx_app::TxApp;
     use crate::tx_factory::TxFactoryImpl;
+    use tx_app::TxApp;
 
     info!("TxApp starting");
     env_logger::init();

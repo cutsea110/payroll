@@ -1,5 +1,5 @@
 [workspace]
-members = [ "dao", "main" , "payroll-domain"]
+members = [ "dao", "main" , "payroll-domain", "tx-app"]
 resolver = "2"
 
 [workspace.package]
