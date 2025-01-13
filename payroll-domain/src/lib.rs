@@ -41,6 +41,21 @@ impl Emp {
     pub fn id(&self) -> EmpId {
         self.id
     }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+    pub fn classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+        self.classification.clone()
+    }
+    pub fn schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        self.schedule.clone()
+    }
+    pub fn method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+        self.method.clone()
+    }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }

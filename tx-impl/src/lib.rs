@@ -77,9 +77,13 @@ mod interface {
                     .run_tx(|mut ctx| {
                         trace!("ChgEmpName::run_tx called");
                         let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
-                        debug!("changing emp name: emp={:?}", emp);
+                        debug!(
+                            r#"changing emp name: "{}" -> "{}""#,
+                            emp.name(),
+                            self.get_new_name()
+                        );
                         emp.set_name(self.get_new_name());
-                        debug!("changed emp name: emp={:?}", emp);
+                        debug!(r#"changed emp name="{}""#, emp.name());
                         self.dao().save(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
@@ -107,9 +111,13 @@ mod interface {
                     .run_tx(|mut ctx| {
                         trace!("ChgEmpAddress::run_tx called");
                         let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
-                        debug!("changing emp address: emp={:?}", emp);
+                        debug!(
+                            r#"changing emp address: "{}" -> "{}""#,
+                            emp.address(),
+                            self.get_new_address()
+                        );
                         emp.set_address(self.get_new_address());
-                        debug!("changed emp address: emp={:?}", emp);
+                        debug!(r#"changed emp address="{}""#, emp.address());
                         self.dao().save(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
@@ -139,10 +147,20 @@ mod interface {
                     .run_tx(|mut ctx| {
                         trace!("ChgClassification::run_tx called");
                         let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
-                        debug!("changing emp classification and scheudle: emp={:?}", emp);
+                        debug!(
+                            "changing emp classification: {:?} -> {:?}",
+                            emp.classification(),
+                            self.get_classification()
+                        );
                         emp.set_classification(self.get_classification());
+                        debug!("changed emp classification={:?}", emp.classification());
+                        debug!(
+                            "changing emp schedule: {:?} -> {:?}",
+                            emp.schedule(),
+                            self.get_schedule()
+                        );
                         emp.set_schedule(self.get_schedule());
-                        debug!("changed emp classification and scheudle: emp={:?}", emp);
+                        debug!("changed emp schedule={:?}", emp.schedule());
                         self.dao().save(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
@@ -171,9 +189,13 @@ mod interface {
                     .run_tx(|mut ctx| {
                         trace!("ChgMethod::run_tx called");
                         let mut emp = self.dao().get(self.get_id()).run(&mut ctx)?;
-                        debug!("changing emp method: emp={:?}", emp);
+                        debug!(
+                            "changing emp method: {:?} -> {:?}",
+                            emp.method(),
+                            self.get_method()
+                        );
                         emp.set_method(self.get_method());
-                        debug!("changed emp method: emp={:?}", emp);
+                        debug!("changed emp method={:?}", emp.method());
                         self.dao().save(emp).run(&mut ctx)
                     })
                     .map_err(UsecaseError::ChgEmpNameFailed)
