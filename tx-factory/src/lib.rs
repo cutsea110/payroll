@@ -14,6 +14,9 @@ pub struct TxFactoryImpl<'a> {
     pub chg_salaried: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
     pub chg_hourly: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
     pub chg_commissioned: &'a dyn Fn(EmpId, f32, f32) -> Box<dyn Transaction>,
+    pub chg_hold_method: &'a dyn Fn(EmpId) -> Box<dyn Transaction>,
+    pub chg_direct_method: &'a dyn Fn(EmpId, &str, &str) -> Box<dyn Transaction>,
+    pub chg_mail_method: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
 }
 impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_add_salaried_emp_tx(
@@ -71,5 +74,22 @@ impl<'a> TxFactory for TxFactoryImpl<'a> {
     ) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_chg_commissioned_tx called");
         (self.chg_commissioned)(id, salary, commission_rate)
+    }
+    fn mk_chg_hold_method_tx(&self, id: EmpId) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_hold_method_tx called");
+        (self.chg_hold_method)(id)
+    }
+    fn mk_chg_direct_method_tx(
+        &self,
+        id: EmpId,
+        bank: &str,
+        account: &str,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_direct_method_tx called");
+        (self.chg_direct_method)(id, bank, account)
+    }
+    fn mk_chg_mail_method_tx(&self, id: EmpId, address: &str) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_mail_method_tx called");
+        (self.chg_mail_method)(id, address)
     }
 }

@@ -7,8 +7,8 @@ fn main() -> Result<(), anyhow::Error> {
     use tx_app::TxApp;
     use tx_factory::TxFactoryImpl;
     use tx_impl::{
-        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgCommissionedTx, ChgEmpAddressTx,
-        ChgEmpNameTx, ChgHourlyTx, ChgSalariedTx,
+        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgCommissionedTx, ChgDirectTx,
+        ChgEmpAddressTx, ChgEmpNameTx, ChgHoldTx, ChgHourlyTx, ChgMailTx, ChgSalariedTx,
     };
 
     info!("TxApp starting");
@@ -57,6 +57,11 @@ fn main() -> Result<(), anyhow::Error> {
                 db.clone(),
             ))
         },
+        chg_hold_method: &|id| Box::new(ChgHoldTx::new(id, db.clone())),
+        chg_direct_method: &|id, bank, account| {
+            Box::new(ChgDirectTx::new(id, bank, account, db.clone()))
+        },
+        chg_mail_method: &|id, address| Box::new(ChgMailTx::new(id, address, db.clone())),
     };
     let tx_app = TxApp::new(tx_source, tx_factory);
 

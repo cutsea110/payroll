@@ -848,5 +848,216 @@ mod tx_impl {
         }
     }
     pub use chg_commissioned_tx::*;
+
+    mod chg_hold_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgMethod;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_impl::HoldMethod;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgHoldTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+
+            db: T,
+        }
+        impl<T> ChgHoldTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, dao: T) -> Self {
+                Self { id, db: dao }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgHoldTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgMethod for ChgHoldTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+                Rc::new(RefCell::new(HoldMethod))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgHoldTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgHoldTx::execute called");
+                ChgMethod::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_hold_tx::*;
+
+    mod chg_direct_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgMethod;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_impl::DirectMethod;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgDirectTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            bank: String,
+            account: String,
+
+            db: T,
+        }
+        impl<T> ChgDirectTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, bank: &str, account: &str, dao: T) -> Self {
+                Self {
+                    id,
+                    bank: bank.to_string(),
+                    account: account.to_string(),
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgDirectTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgMethod for ChgDirectTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+                Rc::new(RefCell::new(DirectMethod::new(&self.bank, &self.account)))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgDirectTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgDirectTx::execute called");
+                ChgMethod::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_direct_tx::*;
+
+    mod chg_mail_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgMethod;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_impl::MailMethod;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgMailTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            address: String,
+
+            db: T,
+        }
+        impl<T> ChgMailTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, address: &str, dao: T) -> Self {
+                Self {
+                    id,
+                    address: address.to_string(),
+
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgMailTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgMethod for ChgMailTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+                Rc::new(RefCell::new(MailMethod::new(&self.address)))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgMailTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgMailTx::execute called");
+                ChgMethod::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_mail_tx::*;
 }
 pub use tx_impl::*;

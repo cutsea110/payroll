@@ -67,9 +67,9 @@ mod tx_source {
         ChgSalaried(EmpId, f32),
         ChgHourly(EmpId, f32),
         ChgCommissioned(EmpId, f32, f32),
-        ChgHoldMethod(EmpId),
-        ChgDirectMethod(EmpId, String, String),
-        ChgMailMethod(EmpId, String),
+        ChgHold(EmpId),
+        ChgDirect(EmpId, String, String),
+        ChgMail(EmpId, String),
         ChgMember(EmpId, MemberId, f32),
         ChgNoMember(EmpId),
         Payday(NaiveDate),
@@ -123,6 +123,18 @@ mod tx_factory {
                     trace!("convert Tx::ChgCommissioned by mk_chg_commissioned_tx called");
                     self.mk_chg_commissioned_tx(id, salary, commission_rate)
                 }
+                Tx::ChgHold(id) => {
+                    trace!("convert Tx::ChgHoldMethod by mk_chg_hold_method_tx called");
+                    self.mk_chg_hold_method_tx(id)
+                }
+                Tx::ChgDirect(id, bank, account) => {
+                    trace!("convert Tx::ChgDirectMethod by mk_chg_direct_method_tx called");
+                    self.mk_chg_direct_method_tx(id, &bank, &account)
+                }
+                Tx::ChgMail(id, address) => {
+                    trace!("convert Tx::ChgMailMethod by mk_chg_mail_method_tx called");
+                    self.mk_chg_mail_method_tx(id, &address)
+                }
                 _ => unimplemented!(),
             }
         }
@@ -159,6 +171,14 @@ mod tx_factory {
             salary: f32,
             commission_rate: f32,
         ) -> Box<dyn Transaction>;
+        fn mk_chg_hold_method_tx(&self, id: EmpId) -> Box<dyn Transaction>;
+        fn mk_chg_direct_method_tx(
+            &self,
+            id: EmpId,
+            bank: &str,
+            account: &str,
+        ) -> Box<dyn Transaction>;
+        fn mk_chg_mail_method_tx(&self, id: EmpId, address: &str) -> Box<dyn Transaction>;
     }
 }
 pub use tx_factory::*;

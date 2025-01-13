@@ -215,7 +215,7 @@ mod parser {
         fn test_chg_hold() {
             let input = r#"ChgEmp 42 Hold"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHoldMethod(42), "")));
+            assert_eq!(result, Ok((Tx::ChgHold(42), "")));
         }
         #[test]
         fn test_chg_direct() {
@@ -224,7 +224,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChgDirectMethod(42, "mufg".to_string(), "1234567".to_string()),
+                    Tx::ChgDirect(42, "mufg".to_string(), "1234567".to_string()),
                     ""
                 ))
             );
@@ -235,7 +235,7 @@ mod parser {
             let result = transaction().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgMailMethod(42, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChgMail(42, "bob@gmail.com".to_string()), ""))
             );
         }
         #[test]
@@ -635,7 +635,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .with(hold)
-            .map(|emp_id| Tx::ChgHoldMethod(emp_id))
+            .map(|emp_id| Tx::ChgHold(emp_id))
     }
     #[cfg(test)]
     mod test_chg_hold {
@@ -646,7 +646,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Hold"#;
             let result = chg_hold().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHoldMethod(1), "")));
+            assert_eq!(result, Ok((Tx::ChgHold(1), "")));
         }
     }
 
@@ -663,7 +663,7 @@ mod parser {
             .skip(emp_id)
             .join(bank)
             .join(account)
-            .map(|((emp_id, bank), account)| Tx::ChgDirectMethod(emp_id, bank, account))
+            .map(|((emp_id, bank), account)| Tx::ChgDirect(emp_id, bank, account))
     }
     #[cfg(test)]
     mod test_chg_direct {
@@ -677,7 +677,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChgDirectMethod(1, "Bank".to_string(), "Account".to_string()),
+                    Tx::ChgDirect(1, "Bank".to_string(), "Account".to_string()),
                     ""
                 ))
             );
@@ -692,7 +692,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(address)
-            .map(|(emp_id, address)| Tx::ChgMailMethod(emp_id, address))
+            .map(|(emp_id, address)| Tx::ChgMail(emp_id, address))
     }
     #[cfg(test)]
     mod test_chg_mail {
@@ -705,7 +705,7 @@ mod parser {
             let result = chg_mail().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgMailMethod(1, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChgMail(1, "bob@gmail.com".to_string()), ""))
             );
         }
     }

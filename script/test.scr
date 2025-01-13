@@ -4,7 +4,7 @@ AddEmp 42 "Amy" "Home" S 1020.85
 ChgEmp 42 Name "Alice"
 ChgEmp 42 Address "123 Wall St."
 ChgEmp 42 Salaried 1085.50
-## ChgEmp 42 Direct "mufg" "1234567"
+ChgEmp 42 Direct "mufg" "1234567"
 ## ChgEmp 42 Member 7234 Dues 9.45
 ## ServiceCharge 7234 2024-08-02 37.75
 ## 
@@ -12,7 +12,7 @@ ChgEmp 42 Salaried 1085.50
 ## #
 AddEmp 57 "Bob" "Home" H 15.25
 ChgEmp 57 Hourly 17.50
-## ChgEmp 57 Mail "bob@gmail.com"
+ChgEmp 57 Mail "bob@gmail.com"
 ## 
 ## TimeCard 57 2024-08-01 8.0
 ## TimeCard 57 2024-08-02 5.0
@@ -24,6 +24,7 @@ ChgEmp 57 Hourly 17.50
 ## #
 AddEmp 71 "Charlie" "Office" C 500.20 0.1
 ChgEmp 71 Commissioned 502.50 0.125
+ChgEmp 71 Hold
 ## ChgEmp 71 Member 7235 Dues 8.75
 ## 
 ## SalesReceipt 71 2024-08-06 1000.0
