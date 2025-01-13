@@ -1,5 +1,5 @@
 [workspace]
-members = [ "dao", "main" , "payroll-domain", "tx-app", "tx-factory", "tx-impl"]
+members = [ "dao", "main" , "payroll-domain", "text-parser-tx-source", "tx-app", "tx-factory", "tx-impl"]
 resolver = "2"
 
 [workspace.package]
@@ -12,6 +12,7 @@ edition = "2021"
 [workspace.dependencies]
 anyhow = "1.0.95"
 log = "0.4.22"
+parsec-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 thiserror = "1.0.63"
 tx-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 
