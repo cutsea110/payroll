@@ -14,29 +14,29 @@ use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 #[derive(Debug, Clone)]
 pub struct HashDB {
     // HashDB を DBMS として EmpDb がデータベースを表現
-    emp_db: Rc<RefCell<EmpDb>>,
+    payroll_db: Rc<RefCell<PayrollDb>>,
 }
 impl HashDB {
     pub fn new() -> Self {
-        let emp_db = EmpDb {
+        let db = PayrollDb {
             employees: HashMap::new(),
             union_members: HashMap::new(),
             paychecks: HashMap::new(),
         };
         Self {
-            emp_db: Rc::new(RefCell::new(emp_db)),
+            payroll_db: Rc::new(RefCell::new(db)),
         }
     }
 }
 #[derive(Debug, Clone)]
-pub struct EmpDb {
+pub struct PayrollDb {
     employees: HashMap<EmployeeId, Employee>,
     union_members: HashMap<MemberId, EmployeeId>,
     paychecks: HashMap<EmployeeId, Vec<Paycheck>>,
 }
 // DB の実装ごとに EmployeeDao トレイトを実装する
 impl EmployeeDao for HashDB {
-    type Ctx<'a> = RefMut<'a, EmpDb>;
+    type Ctx<'a> = RefMut<'a, PayrollDb>;
 
     fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>
     where
@@ -44,7 +44,7 @@ impl EmployeeDao for HashDB {
     {
         trace!("HashDB::run_tx called");
         // RefCell の borrow_mut が RDB におけるトランザクションに相当
-        f(self.emp_db.borrow_mut())
+        f(self.payroll_db.borrow_mut())
     }
 
     fn insert<'a>(
