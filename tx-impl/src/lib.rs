@@ -542,7 +542,7 @@ mod tx_impl {
             address: String,
             hourly_rate: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddHourlyEmployeeTx<T>
         where
@@ -560,8 +560,7 @@ mod tx_impl {
                     name: name.to_string(),
                     address: address.to_string(),
                     hourly_rate,
-
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -573,7 +572,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddEmployee for AddHourlyEmployeeTx<T>
@@ -643,7 +642,7 @@ mod tx_impl {
             address: String,
             salary: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddSalariedEmployeeTx<T>
         where
@@ -655,8 +654,7 @@ mod tx_impl {
                     name: name.to_string(),
                     address: address.to_string(),
                     salary,
-
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -668,7 +666,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddEmployee for AddSalariedEmployeeTx<T>
@@ -739,7 +737,7 @@ mod tx_impl {
             salary: f32,
             commission_rate: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddCommissionedEmployeeTx<T>
         where
@@ -759,8 +757,7 @@ mod tx_impl {
                     address: address.to_string(),
                     salary,
                     commission_rate,
-
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -772,7 +769,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddEmployee for AddCommissionedEmployeeTx<T>
@@ -836,14 +833,14 @@ mod tx_impl {
             T: EmployeeDao,
         {
             id: EmployeeId,
-            db: T,
+            dao: T,
         }
         impl<T> DeleteEmployeeTx<T>
         where
             T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, dao: T) -> Self {
-                Self { id, db: dao }
+                Self { id, dao }
             }
         }
 
@@ -854,7 +851,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> DeleteEmployee for DeleteEmployeeTx<T>
@@ -901,7 +898,7 @@ mod tx_impl {
             date: NaiveDate,
             hours: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddTimeCardTx<T>
         where
@@ -912,7 +909,7 @@ mod tx_impl {
                     id,
                     date,
                     hours,
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -924,7 +921,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddTimeCard for AddTimeCardTx<T>
@@ -977,7 +974,7 @@ mod tx_impl {
             date: NaiveDate,
             amount: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddSalesReceiptTx<T>
         where
@@ -988,7 +985,7 @@ mod tx_impl {
                     id,
                     date,
                     amount,
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1000,7 +997,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddSalesReceipt for AddSalesReceiptTx<T>
@@ -1052,7 +1049,7 @@ mod tx_impl {
             date: NaiveDate,
             amount: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> AddServiceChargeTx<T>
         where
@@ -1063,7 +1060,7 @@ mod tx_impl {
                     member_id,
                     date,
                     amount,
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1075,7 +1072,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> AddServiceCharge for AddServiceChargeTx<T>
@@ -1125,7 +1122,7 @@ mod tx_impl {
         {
             id: EmployeeId,
             new_name: String,
-            db: T,
+            dao: T,
         }
         impl<T> ChangeEmployeeNameTx<T>
         where
@@ -1135,7 +1132,7 @@ mod tx_impl {
                 Self {
                     id,
                     new_name: new_name.to_string(),
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1147,7 +1144,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeEmployeeName for ChangeEmployeeNameTx<T>
@@ -1194,7 +1191,7 @@ mod tx_impl {
         {
             id: EmployeeId,
             new_address: String,
-            db: T,
+            dao: T,
         }
         impl<T> ChangeEmployeeAddressTx<T>
         where
@@ -1204,7 +1201,7 @@ mod tx_impl {
                 Self {
                     id,
                     new_address: new_address.to_string(),
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1216,7 +1213,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeEmployeeAddress for ChangeEmployeeAddressTx<T>
@@ -1265,7 +1262,7 @@ mod tx_impl {
             id: EmployeeId,
             hourly_rate: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeHourlyTx<T>
         where
@@ -1275,7 +1272,7 @@ mod tx_impl {
                 Self {
                     id,
                     hourly_rate,
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1287,7 +1284,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeClassification for ChangeHourlyTx<T>
@@ -1339,18 +1336,14 @@ mod tx_impl {
             id: EmployeeId,
             salary: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeSalariedTx<T>
         where
             T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, salary: f32, dao: T) -> Self {
-                Self {
-                    id,
-                    salary,
-                    db: dao,
-                }
+                Self { id, salary, dao }
             }
         }
 
@@ -1361,7 +1354,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeClassification for ChangeSalariedTx<T>
@@ -1414,7 +1407,7 @@ mod tx_impl {
             salary: f32,
             commission_rate: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeCommissionedTx<T>
         where
@@ -1425,8 +1418,7 @@ mod tx_impl {
                     id,
                     salary,
                     commission_rate,
-
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1438,7 +1430,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeClassification for ChangeCommissionedTx<T>
@@ -1492,14 +1484,14 @@ mod tx_impl {
         {
             id: EmployeeId,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeHoldTx<T>
         where
             T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, dao: T) -> Self {
-                Self { id, db: dao }
+                Self { id, dao }
             }
         }
 
@@ -1510,7 +1502,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChgMethod for ChangeHoldTx<T>
@@ -1560,7 +1552,7 @@ mod tx_impl {
             bank: String,
             account: String,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeDirectTx<T>
         where
@@ -1571,7 +1563,7 @@ mod tx_impl {
                     id,
                     bank: bank.to_string(),
                     account: account.to_string(),
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1583,7 +1575,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChgMethod for ChangeDirectTx<T>
@@ -1632,7 +1624,7 @@ mod tx_impl {
             id: EmployeeId,
             address: String,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeMailTx<T>
         where
@@ -1642,8 +1634,7 @@ mod tx_impl {
                 Self {
                     id,
                     address: address.to_string(),
-
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1655,7 +1646,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChgMethod for ChangeMailTx<T>
@@ -1705,7 +1696,7 @@ mod tx_impl {
             emp_id: EmployeeId,
             dues: f32,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeMemberTx<T>
         where
@@ -1716,7 +1707,7 @@ mod tx_impl {
                     member_id,
                     emp_id,
                     dues,
-                    db: dao,
+                    dao,
                 }
             }
         }
@@ -1728,7 +1719,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeMember for ChangeMemberTx<T>
@@ -1783,14 +1774,14 @@ mod tx_impl {
         {
             emp_id: EmployeeId,
 
-            db: T,
+            dao: T,
         }
         impl<T> ChangeNoMemberTx<T>
         where
             T: EmployeeDao,
         {
             pub fn new(emp_id: EmployeeId, dao: T) -> Self {
-                Self { emp_id, db: dao }
+                Self { emp_id, dao }
             }
         }
 
@@ -1801,7 +1792,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> ChangeNoMember for ChangeNoMemberTx<T>
@@ -1844,14 +1835,14 @@ mod tx_impl {
         {
             pay_date: NaiveDate,
 
-            db: T,
+            dao: T,
         }
         impl<T> PaydayTx<T>
         where
             T: EmployeeDao,
         {
             pub fn new(pay_date: NaiveDate, dao: T) -> Self {
-                Self { pay_date, db: dao }
+                Self { pay_date, dao }
             }
         }
 
@@ -1862,7 +1853,7 @@ mod tx_impl {
             type Ctx<'a> = T::Ctx<'a>;
 
             fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
-                &self.db
+                &self.dao
             }
         }
         impl<T> Payday for PaydayTx<T>
