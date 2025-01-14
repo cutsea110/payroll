@@ -202,7 +202,7 @@ mod interface {
         use payroll_domain::MemberId;
         use payroll_impl::UnionAffiliation;
 
-        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        // ユースケース: AddServiceCharge トランザクション(抽象レベルのビジネスロジック)
         pub trait AddServiceCharge: HaveEmployeeDao {
             fn get_member_id(&self) -> MemberId;
             fn get_date(&self) -> NaiveDate;
@@ -486,7 +486,7 @@ mod interface {
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::Paycheck;
 
-        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        // ユースケース: Payday トランザクション(抽象レベルのビジネスロジック)
         pub trait Payday: HaveEmployeeDao {
             fn get_pay_date(&self) -> NaiveDate;
 
@@ -829,7 +829,7 @@ mod tx_impl {
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
-        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        // ユースケース: DeleteEmployee トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct DeleteEmployeeTx<T>
         where
@@ -891,7 +891,7 @@ mod tx_impl {
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
-        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        // ユースケース: AddTimeCard トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct AddTimeCardTx<T>
         where
@@ -967,7 +967,7 @@ mod tx_impl {
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
-        // ユースケース: ChgSalesReceipt トランザクションの実装 (struct)
+        // ユースケース: AddSalesReceipt トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct AddSalesReceiptTx<T>
         where
@@ -1042,7 +1042,7 @@ mod tx_impl {
         use payroll_domain::MemberId;
         use tx_app::{Response, Transaction};
 
-        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        // ユースケース: AddServiceCharge トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct AddServiceChargeTx<T>
         where
@@ -1836,7 +1836,7 @@ mod tx_impl {
         use dao::{EmployeeDao, HaveEmployeeDao};
         use tx_app::{Response, Transaction};
 
-        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        // ユースケース: Payday トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct PaydayTx<T>
         where
