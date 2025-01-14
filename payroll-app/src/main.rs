@@ -13,9 +13,9 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
     info!("DB initialized: {:?}", db);
 
-    let tx_factory = TxFactoryImpl::new(db.clone());
     // テストスクリプトを読み込んでシナリオを実行
     let input = fs::read_to_string("script/test.scr")?;
+    let tx_factory = TxFactoryImpl::new(db.clone());
     let tx_source = TextParserTxSource::new(&input, tx_factory);
     let tx_app = TxApp::new(tx_source);
 

@@ -20,6 +20,7 @@ graph TD
   
   text-parser-tx-source --> tx-app
   text-parser-tx-source --> tx-factory
+  text-parser-tx-source --> payroll-domain
   
   hs-db --> payroll-domain
   hs-db --> dao
