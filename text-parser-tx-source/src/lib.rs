@@ -21,11 +21,11 @@ where
 {
     pub fn new(input: &str, tx_factory: F) -> Self {
         Self {
-            txs: Rc::new(RefCell::new(read_txs(input))),
+            txs: Rc::new(RefCell::new(parser::read_txs(input))),
             tx_factory,
         }
     }
-    pub fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
+    fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
         match tx {
             Tx::AddHourlyEmployee(id, name, address, hourly_rate) => self
                 .tx_factory
@@ -89,7 +89,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Tx {
+enum Tx {
     AddHourlyEmployee(EmployeeId, String, String, f32),
     AddSalariedEmployee(EmployeeId, String, String, f32),
     AddCommissionedEmployee(EmployeeId, String, String, f32, f32),
@@ -129,10 +129,10 @@ mod parser {
         txs
     }
 
-    pub fn transactions() -> impl Parser<Item = Vec<Tx>> {
+    fn transactions() -> impl Parser<Item = Vec<Tx>> {
         transaction().many0()
     }
-    pub fn transaction() -> impl Parser<Item = Tx> {
+    fn transaction() -> impl Parser<Item = Tx> {
         go_through().skip(
             add_hourly_emp()
                 .or(add_salary_emp())
@@ -980,4 +980,3 @@ mod parser {
         }
     }
 }
-pub use parser::*;
