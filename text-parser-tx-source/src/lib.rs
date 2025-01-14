@@ -298,6 +298,10 @@ mod parser {
             .join(address)
             .join(hourly_rate)
             .map(|(((emp_id, name), address), hourly_rate)| {
+                debug!(
+                    "parsed AddHourlyEmployee: emp_id={}, name={}, address={}, hourly_rate={}",
+                    emp_id, name, address, hourly_rate
+                );
                 Tx::AddHourlyEmployee(emp_id, name, address, hourly_rate)
             })
     }
@@ -333,6 +337,10 @@ mod parser {
             .join(address)
             .join(monthly_rate)
             .map(|(((emp_id, name), address), salary)| {
+                debug!(
+                    "parsed AddSalariedEmployee: emp_id={}, name={}, address={}, salary={}",
+                    emp_id, name, address, salary
+                );
                 Tx::AddSalariedEmployee(emp_id, name, address, salary)
             })
     }
@@ -370,6 +378,14 @@ mod parser {
             .join(salary)
             .join(commission_rate)
             .map(|((((emp_id, name), address), salary), commission_rate)| {
+		debug!(
+		    "parsed AddCommissionedEmployee: emp_id={}, name={}, address={}, salary={}, commission_rate={}",
+		    emp_id,
+		    name,
+		    address,
+		    salary,
+		    commission_rate
+		);
                 Tx::AddCommissionedEmployee(emp_id, name, address, salary, commission_rate)
             })
     }
@@ -402,7 +418,10 @@ mod parser {
         let prefix = keyword("DelEmp").skip(spaces());
         let emp_id = uint32();
 
-        prefix.skip(emp_id).map(|emp_id| Tx::DeleteEmployee(emp_id))
+        prefix.skip(emp_id).map(|emp_id| {
+            debug!("parsed DeleteEmployee: emp_id={}", emp_id);
+            Tx::DeleteEmployee(emp_id)
+        })
     }
     #[cfg(test)]
     mod test_del_emp {
@@ -422,9 +441,10 @@ mod parser {
         let month = uint32().with(char('-'));
         let day = uint32();
 
-        year.join(month)
-            .join(day)
-            .map(|((y, m), d)| NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32).expect("date"))
+        year.join(month).join(day).map(|((y, m), d)| {
+            debug!("parsed date: {}-{}-{}", y, m, d);
+            NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32).expect("date")
+        })
     }
     #[cfg(test)]
     mod test_date {
@@ -452,7 +472,13 @@ mod parser {
             .skip(emp_id)
             .join(date)
             .join(hours)
-            .map(|((emp_id, date), hours)| Tx::AddTimeCard(emp_id, date, hours))
+            .map(|((emp_id, date), hours)| {
+                debug!(
+                    "parsed TimeCard: emp_id={}, date={}, hours={}",
+                    emp_id, date, hours
+                );
+                Tx::AddTimeCard(emp_id, date, hours)
+            })
     }
     #[cfg(test)]
     mod test_time_card {
@@ -483,7 +509,13 @@ mod parser {
             .skip(emp_id)
             .join(date)
             .join(amount)
-            .map(|((emp_id, date), amount)| Tx::AddSalesReceipt(emp_id, date, amount))
+            .map(|((emp_id, date), amount)| {
+                debug!(
+                    "parsed SalesReceipt: emp_id={}, date={}, amount={}",
+                    emp_id, date, amount
+                );
+                Tx::AddSalesReceipt(emp_id, date, amount)
+            })
     }
     #[cfg(test)]
     mod test_sales_receipt {
@@ -514,7 +546,13 @@ mod parser {
             .skip(member_id)
             .join(date)
             .join(amount)
-            .map(|((member_id, date), amount)| Tx::AddServiceCharge(member_id, date, amount))
+            .map(|((member_id, date), amount)| {
+                debug!(
+                    "parsed ServiceCharge: member_id={}, date={}, amount={}",
+                    member_id, date, amount
+                );
+                Tx::AddServiceCharge(member_id, date, amount)
+            })
     }
     #[cfg(test)]
     mod test_service_charge {
@@ -540,10 +578,13 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let name = keyword("Name").skip(spaces()).skip(string());
 
-        prefix
-            .skip(emp_id)
-            .join(name)
-            .map(|(emp_id, name)| Tx::ChangeEmployeeName(emp_id, name))
+        prefix.skip(emp_id).join(name).map(|(emp_id, name)| {
+            debug!(
+                "parsed ChangeEmployeeName: emp_id={}, name={}",
+                emp_id, name
+            );
+            Tx::ChangeEmployeeName(emp_id, name)
+        })
     }
     #[cfg(test)]
     mod test_chg_name {
@@ -566,10 +607,13 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let address = keyword("Address").skip(spaces()).skip(string());
 
-        prefix
-            .skip(emp_id)
-            .join(address)
-            .map(|(emp_id, address)| Tx::ChangeEmployeeAddress(emp_id, address))
+        prefix.skip(emp_id).join(address).map(|(emp_id, address)| {
+            debug!(
+                "parsed ChangeEmployeeAddress: emp_id={}, address={}",
+                emp_id, address
+            );
+            Tx::ChangeEmployeeAddress(emp_id, address)
+        })
     }
     #[cfg(test)]
     mod test_chg_address {
@@ -595,7 +639,13 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(hourly_rate)
-            .map(|(emp_id, hourly_rate)| Tx::ChangeEmployeeHourly(emp_id, hourly_rate))
+            .map(|(emp_id, hourly_rate)| {
+                debug!(
+                    "parsed ChangeEmployeeHourly: emp_id={}, hourly_rate={}",
+                    emp_id, hourly_rate
+                );
+                Tx::ChangeEmployeeHourly(emp_id, hourly_rate)
+            })
     }
     #[cfg(test)]
     mod test_chg_hourly {
@@ -615,10 +665,13 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let salaried = keyword("Salaried").skip(spaces()).skip(float32());
 
-        prefix
-            .skip(emp_id)
-            .join(salaried)
-            .map(|(emp_id, salary)| Tx::ChangeEmployeeSalaried(emp_id, salary))
+        prefix.skip(emp_id).join(salaried).map(|(emp_id, salary)| {
+            debug!(
+                "parsed ChangeEmployeeSalaried: emp_id={}, salary={}",
+                emp_id, salary
+            );
+            Tx::ChangeEmployeeSalaried(emp_id, salary)
+        })
     }
     #[cfg(test)]
     mod test_chg_salaried {
@@ -644,6 +697,10 @@ mod parser {
 
         prefix.skip(emp_id).join(salary).join(commission_rate).map(
             |((emp_id, salary), commission_rate)| {
+                debug!(
+                    "parsed ChangeEmployeeCommissioned: emp_id={}, salary={}, commission_rate={}",
+                    emp_id, salary, commission_rate
+                );
                 Tx::ChangeEmployeeCommissioned(emp_id, salary, commission_rate)
             },
         )
@@ -669,10 +726,10 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let hold = keyword("Hold");
 
-        prefix
-            .skip(emp_id)
-            .with(hold)
-            .map(|emp_id| Tx::ChangeEmployeeHold(emp_id))
+        prefix.skip(emp_id).with(hold).map(|emp_id| {
+            debug!("parsed ChangeEmployeeHold: emp_id={}", emp_id);
+            Tx::ChangeEmployeeHold(emp_id)
+        })
     }
     #[cfg(test)]
     mod test_chg_hold {
@@ -700,7 +757,13 @@ mod parser {
             .skip(emp_id)
             .join(bank)
             .join(account)
-            .map(|((emp_id, bank), account)| Tx::ChangeEmployeeDirect(emp_id, bank, account))
+            .map(|((emp_id, bank), account)| {
+                debug!(
+                    "parsed ChangeEmployeeDirect: emp_id={}, bank={}, account={}",
+                    emp_id, bank, account
+                );
+                Tx::ChangeEmployeeDirect(emp_id, bank, account)
+            })
     }
     #[cfg(test)]
     mod test_chg_direct {
@@ -726,10 +789,13 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let address = keyword("Mail").skip(spaces()).skip(string());
 
-        prefix
-            .skip(emp_id)
-            .join(address)
-            .map(|(emp_id, address)| Tx::ChangeEmployeeMail(emp_id, address))
+        prefix.skip(emp_id).join(address).map(|(emp_id, address)| {
+            debug!(
+                "parsed ChangeEmployeeMail: emp_id={}, address={}",
+                emp_id, address
+            );
+            Tx::ChangeEmployeeMail(emp_id, address)
+        })
     }
     #[cfg(test)]
     mod test_chg_mail {
@@ -760,7 +826,13 @@ mod parser {
             .skip(emp_id)
             .join(member_id)
             .join(dues)
-            .map(|((emp_id, member_id), dues)| Tx::ChangeEmployeeMember(emp_id, member_id, dues))
+            .map(|((emp_id, member_id), dues)| {
+                debug!(
+                    "parsed ChangeEmployeeMember: emp_id={}, member_id={}, dues={}",
+                    emp_id, member_id, dues
+                );
+                Tx::ChangeEmployeeMember(emp_id, member_id, dues)
+            })
     }
     #[cfg(test)]
     mod test_chg_member {
@@ -780,10 +852,10 @@ mod parser {
         let emp_id = uint32().with(spaces());
         let no_member = keyword("NoMember");
 
-        prefix
-            .skip(emp_id)
-            .with(no_member)
-            .map(|emp_id| Tx::ChangeEmployeeNoMember(emp_id))
+        prefix.skip(emp_id).with(no_member).map(|emp_id| {
+            debug!("parsed ChangeEmployeeNoMember: emp_id={}", emp_id);
+            Tx::ChangeEmployeeNoMember(emp_id)
+        })
     }
     #[cfg(test)]
     mod test_chg_no_member {
@@ -802,7 +874,10 @@ mod parser {
         let prefix = keyword("Payday").skip(spaces());
         let date = date();
 
-        prefix.skip(date).map(|pay_date| Tx::Payday(pay_date))
+        prefix.skip(date).map(|pay_date| {
+            debug!("parsed Payday: pay_date={}", pay_date);
+            Tx::Payday(pay_date)
+        })
     }
     #[cfg(test)]
     mod test_payday {
