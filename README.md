@@ -11,6 +11,7 @@ graph TD
   tx-impl --> payroll-domain
   tx-impl --> payroll-impl
   tx-impl --> tx-app
+  tx-impl --> tx-factory
   
   tx-app --> payroll-domain
 
@@ -18,6 +19,8 @@ graph TD
   tx-factory --> payroll-domain
   
   text-parser-tx-source --> tx-app
+  text-parser-tx-source --> tx-factory
+  text-parser-tx-source --> payroll-domain
   
   hs-db --> payroll-domain
   hs-db --> dao

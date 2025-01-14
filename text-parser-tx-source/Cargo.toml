@@ -11,4 +11,6 @@ chrono.workspace = true
 log.workspace = true
 parsec-rs.workspace = true
 
+payroll-domain = { path = "../payroll-domain" }
 tx-app = { path = "../tx-app" }
+tx-factory = { path = "../tx-factory" }
