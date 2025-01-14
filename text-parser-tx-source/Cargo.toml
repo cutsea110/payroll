@@ -12,3 +12,4 @@ log.workspace = true
 parsec-rs.workspace = true
 
 tx-app = { path = "../tx-app" }
+tx-factory = { path = "../tx-factory" }

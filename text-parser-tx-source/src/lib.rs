@@ -3,25 +3,38 @@ use log::{debug, trace};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 // tx_app にのみ依存
-use tx_app::{Tx, TxSource};
+use tx_app::{Transaction, TxSource};
+use tx_factory::{Tx, TxFactory};
 
-pub struct TextParserTxSource {
+pub struct TextParserTxSource<F>
+where
+    F: TxFactory,
+{
     txs: Rc<RefCell<VecDeque<Tx>>>,
+    tx_factory: F,
 }
-impl TextParserTxSource {
-    pub fn new(input: &str) -> Self {
+impl<F> TextParserTxSource<F>
+where
+    F: TxFactory,
+{
+    pub fn new(input: &str, tx_factory: F) -> Self {
         Self {
             txs: Rc::new(RefCell::new(read_txs(input))),
+            tx_factory,
         }
     }
 }
 
-impl TxSource for TextParserTxSource {
-    fn get_tx_source(&self) -> Option<Tx> {
+impl<F> TxSource for TextParserTxSource<F>
+where
+    F: TxFactory,
+{
+    fn get_tx_source(&self) -> Option<Box<dyn Transaction + 'static>> {
         trace!("TextParserTxSource::get_tx_source called");
-        let tx = self.txs.borrow_mut().pop_front();
-        debug!("tx_src={:?}", tx);
-        tx
+        self.txs.borrow_mut().pop_front().map(|tx| {
+            debug!("tx_src={:?}", tx);
+            self.tx_factory.convert(tx)
+        })
     }
 }
 
@@ -32,7 +45,7 @@ mod parser {
     use chrono::NaiveDate;
     use parsec_rs::{char, float32, int32, keyword, pred, spaces, string, uint32, Parser};
 
-    use tx_app::Tx;
+    use tx_factory::Tx;
 
     pub fn read_txs(script: &str) -> VecDeque<Tx> {
         trace!("read_txs called");
