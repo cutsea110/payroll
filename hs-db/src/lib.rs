@@ -60,7 +60,7 @@ impl EmployeeDao for HashDB {
                 emp
             );
             if tx.employees.contains_key(&emp_id) {
-                return Err(DaoError::AlreadyExists(emp_id));
+                return Err(DaoError::EmployeeAlreadyExists(emp_id));
             }
             tx.employees.insert(emp_id, emp);
             Ok(emp_id)
@@ -76,7 +76,7 @@ impl EmployeeDao for HashDB {
             if tx.employees.remove(&id).is_some() {
                 return Ok(());
             }
-            Err(DaoError::NotFound(id))
+            Err(DaoError::EmployeeNotFound(id))
         })
     }
     fn fetch<'a>(
@@ -86,7 +86,10 @@ impl EmployeeDao for HashDB {
         trace!("HashDB::fetch called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::fetch::with_tx called: id={}", id);
-            tx.employees.get(&id).cloned().ok_or(DaoError::NotFound(id))
+            tx.employees
+                .get(&id)
+                .cloned()
+                .ok_or(DaoError::EmployeeNotFound(id))
         })
     }
     fn fetch_all<'a>(
@@ -114,7 +117,7 @@ impl EmployeeDao for HashDB {
                 tx.employees.insert(emp_id, emp);
                 return Ok(());
             }
-            Err(DaoError::NotFound(emp_id))
+            Err(DaoError::EmployeeNotFound(emp_id))
         })
     }
     fn add_union_member<'a>(
@@ -130,7 +133,7 @@ impl EmployeeDao for HashDB {
                 emp_id
             );
             if tx.union_members.contains_key(&member_id) {
-                return Err(DaoError::UnionMemberAlreadyExists(member_id, emp_id));
+                return Err(DaoError::MemberAlreadyExists(member_id, emp_id));
             }
             tx.union_members.insert(member_id, emp_id);
             Ok(())
@@ -147,7 +150,7 @@ impl EmployeeDao for HashDB {
                 member_id
             );
             if tx.union_members.remove(&member_id).is_none() {
-                return Err(DaoError::UnionMemberNotFound(member_id));
+                return Err(DaoError::MemberNotFound(member_id));
             }
             Ok(())
         })
@@ -165,7 +168,7 @@ impl EmployeeDao for HashDB {
             tx.union_members
                 .get(&member_id)
                 .cloned()
-                .ok_or(DaoError::UnionMemberNotFound(member_id))
+                .ok_or(DaoError::MemberNotFound(member_id))
         })
     }
     fn record_paycheck<'a>(

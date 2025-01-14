@@ -5,13 +5,13 @@ use payroll_domain::{Employee, EmployeeId, MemberId};
 #[derive(Debug, Clone, Error)]
 pub enum DaoError {
     #[error("emp_id={0} already exists")]
-    AlreadyExists(EmployeeId),
+    EmployeeAlreadyExists(EmployeeId),
     #[error("emp_id={0} not found")]
-    NotFound(EmployeeId),
+    EmployeeNotFound(EmployeeId),
     #[error("union member_id={0} emp_id={1} already exists")]
-    UnionMemberAlreadyExists(MemberId, EmployeeId),
+    MemberAlreadyExists(MemberId, EmployeeId),
     #[error("union member_id={0} not found")]
-    UnionMemberNotFound(MemberId),
+    MemberNotFound(MemberId),
     #[error("unexpected error: {0}")]
     UnexpectedError(String),
 }
