@@ -107,7 +107,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddSalariedEmp(42, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    Tx::AddSalariedEmployee(42, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
@@ -119,7 +119,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddHourlyEmp(42, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    Tx::AddHourlyEmployee(42, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
@@ -131,7 +131,13 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddCommissionedEmp(42, "Bob".to_string(), "Home".to_string(), 1000.0, 0.1),
+                    Tx::AddCommissionedEmployee(
+                        42,
+                        "Bob".to_string(),
+                        "Home".to_string(),
+                        1000.0,
+                        0.1
+                    ),
                     ""
                 ))
             );
@@ -140,7 +146,7 @@ mod parser {
         fn test_del_emp() {
             let input = r#"DelEmp 42"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::DelEmp(42), "")));
+            assert_eq!(result, Ok((Tx::DeleteEmployee(42), "")));
         }
         #[test]
         fn test_time_card() {
@@ -149,7 +155,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::TimeCard(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 8.0),
+                    Tx::AddTimeCard(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 8.0),
                     ""
                 ))
             );
@@ -161,7 +167,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::SalesReceipt(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
+                    Tx::AddSalesReceipt(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
                     ""
                 ))
             );
@@ -173,7 +179,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ServiceCharge(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
+                    Tx::AddServiceCharge(42, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
                     ""
                 ))
             );
@@ -182,7 +188,10 @@ mod parser {
         fn test_chg_name() {
             let input = r#"ChgEmp 42 Name "Bob""#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgEmpName(42, "Bob".to_string()), "")));
+            assert_eq!(
+                result,
+                Ok((Tx::ChangeEmployeeName(42, "Bob".to_string()), ""))
+            );
         }
         #[test]
         fn test_chg_address() {
@@ -190,32 +199,38 @@ mod parser {
             let result = transaction().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgEmpAddress(42, "123 Wall St.".to_string()), ""))
+                Ok((
+                    Tx::ChangeEmployeeAddress(42, "123 Wall St.".to_string()),
+                    ""
+                ))
             );
         }
         #[test]
         fn test_chg_hourly() {
             let input = r#"ChgEmp 42 Hourly 1000.0"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHourly(42, 1000.0), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeHourly(42, 1000.0), "")));
         }
         #[test]
         fn test_chg_salaried() {
             let input = r#"ChgEmp 42 Salaried 1000.0"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgSalaried(42, 1000.0), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeSalaried(42, 1000.0), "")));
         }
         #[test]
         fn test_chg_commissioned() {
             let input = r#"ChgEmp 42 Commissioned 1000.0 0.1"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgCommissioned(42, 1000.0, 0.1), "")));
+            assert_eq!(
+                result,
+                Ok((Tx::ChangeEmployeeCommissioned(42, 1000.0, 0.1), ""))
+            );
         }
         #[test]
         fn test_chg_hold() {
             let input = r#"ChgEmp 42 Hold"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHold(42), "")));
+            assert_eq!(result, Ok((Tx::ChangeMethodHold(42), "")));
         }
         #[test]
         fn test_chg_direct() {
@@ -224,7 +239,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChgDirect(42, "mufg".to_string(), "1234567".to_string()),
+                    Tx::ChangeMethodDirect(42, "mufg".to_string(), "1234567".to_string()),
                     ""
                 ))
             );
@@ -235,20 +250,20 @@ mod parser {
             let result = transaction().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgMail(42, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChangeMethodMail(42, "bob@gmail.com".to_string()), ""))
             );
         }
         #[test]
         fn test_chg_member() {
             let input = r#"ChgEmp 42 Member 7234 Dues 9.45"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgMember(42, 7234, 9.45,), "",)));
+            assert_eq!(result, Ok((Tx::AddUnionMember(42, 7234, 9.45,), "",)));
         }
         #[test]
         fn test_no_member() {
             let input = r#"ChgEmp 42 NoMember"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChgNoMember(42), "")));
+            assert_eq!(result, Ok((Tx::DeleteUnionMember(42), "")));
         }
     }
 
@@ -273,7 +288,7 @@ mod parser {
             .join(address)
             .join(monthly_rate)
             .map(|(((emp_id, name), address), salary)| {
-                Tx::AddSalariedEmp(emp_id, name, address, salary)
+                Tx::AddSalariedEmployee(emp_id, name, address, salary)
             })
     }
     #[cfg(test)]
@@ -288,7 +303,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddSalariedEmp(1, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    Tx::AddSalariedEmployee(1, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
@@ -308,7 +323,7 @@ mod parser {
             .join(address)
             .join(hourly_rate)
             .map(|(((emp_id, name), address), hourly_rate)| {
-                Tx::AddHourlyEmp(emp_id, name, address, hourly_rate)
+                Tx::AddHourlyEmployee(emp_id, name, address, hourly_rate)
             })
     }
     #[cfg(test)]
@@ -323,7 +338,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddHourlyEmp(1, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    Tx::AddHourlyEmployee(1, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
@@ -345,7 +360,7 @@ mod parser {
             .join(salary)
             .join(commission_rate)
             .map(|((((emp_id, name), address), salary), commission_rate)| {
-                Tx::AddCommissionedEmp(emp_id, name, address, salary, commission_rate)
+                Tx::AddCommissionedEmployee(emp_id, name, address, salary, commission_rate)
             })
     }
     #[cfg(test)]
@@ -360,7 +375,13 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::AddCommissionedEmp(1, "Bob".to_string(), "Home".to_string(), 1000.0, 0.1),
+                    Tx::AddCommissionedEmployee(
+                        1,
+                        "Bob".to_string(),
+                        "Home".to_string(),
+                        1000.0,
+                        0.1
+                    ),
                     ""
                 ))
             );
@@ -371,7 +392,7 @@ mod parser {
         let prefix = keyword("DelEmp").skip(spaces());
         let emp_id = uint32();
 
-        prefix.skip(emp_id).map(|emp_id| Tx::DelEmp(emp_id))
+        prefix.skip(emp_id).map(|emp_id| Tx::DeleteEmployee(emp_id))
     }
     #[cfg(test)]
     mod test_del_emp {
@@ -382,7 +403,7 @@ mod parser {
         fn test() {
             let input = r#"DelEmp 1"#;
             let result = del_emp().parse(input);
-            assert_eq!(result, Ok((Tx::DelEmp(1), "")));
+            assert_eq!(result, Ok((Tx::DeleteEmployee(1), "")));
         }
     }
 
@@ -421,7 +442,7 @@ mod parser {
             .skip(emp_id)
             .join(date)
             .join(hours)
-            .map(|((emp_id, date), hours)| Tx::TimeCard(emp_id, date, hours))
+            .map(|((emp_id, date), hours)| Tx::AddTimeCard(emp_id, date, hours))
     }
     #[cfg(test)]
     mod test_time_card {
@@ -435,7 +456,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::TimeCard(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 8.0),
+                    Tx::AddTimeCard(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 8.0),
                     ""
                 ))
             );
@@ -452,7 +473,7 @@ mod parser {
             .skip(emp_id)
             .join(date)
             .join(amount)
-            .map(|((emp_id, date), amount)| Tx::SalesReceipt(emp_id, date, amount))
+            .map(|((emp_id, date), amount)| Tx::AddSalesReceipt(emp_id, date, amount))
     }
     #[cfg(test)]
     mod test_sales_receipt {
@@ -466,7 +487,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::SalesReceipt(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
+                    Tx::AddSalesReceipt(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
                     ""
                 ))
             );
@@ -483,7 +504,7 @@ mod parser {
             .skip(member_id)
             .join(date)
             .join(amount)
-            .map(|((member_id, date), amount)| Tx::ServiceCharge(member_id, date, amount))
+            .map(|((member_id, date), amount)| Tx::AddServiceCharge(member_id, date, amount))
     }
     #[cfg(test)]
     mod test_service_charge {
@@ -497,7 +518,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ServiceCharge(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
+                    Tx::AddServiceCharge(1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(), 1000.0),
                     ""
                 ))
             );
@@ -512,7 +533,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(name)
-            .map(|(emp_id, name)| Tx::ChgEmpName(emp_id, name))
+            .map(|(emp_id, name)| Tx::ChangeEmployeeName(emp_id, name))
     }
     #[cfg(test)]
     mod test_chg_name {
@@ -523,7 +544,10 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Name "Bob""#;
             let result = chg_name().parse(input);
-            assert_eq!(result, Ok((Tx::ChgEmpName(1, "Bob".to_string()), "")));
+            assert_eq!(
+                result,
+                Ok((Tx::ChangeEmployeeName(1, "Bob".to_string()), ""))
+            );
         }
     }
 
@@ -535,7 +559,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(address)
-            .map(|(emp_id, address)| Tx::ChgEmpAddress(emp_id, address))
+            .map(|(emp_id, address)| Tx::ChangeEmployeeAddress(emp_id, address))
     }
     #[cfg(test)]
     mod test_chg_address {
@@ -548,7 +572,7 @@ mod parser {
             let result = chg_address().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgEmpAddress(1, "123 Main St".to_string()), ""))
+                Ok((Tx::ChangeEmployeeAddress(1, "123 Main St".to_string()), ""))
             );
         }
     }
@@ -561,7 +585,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(hourly_rate)
-            .map(|(emp_id, hourly_rate)| Tx::ChgHourly(emp_id, hourly_rate))
+            .map(|(emp_id, hourly_rate)| Tx::ChangeEmployeeHourly(emp_id, hourly_rate))
     }
     #[cfg(test)]
     mod test_chg_hourly {
@@ -572,7 +596,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Hourly 13.78"#;
             let result = chg_hourly().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHourly(1, 13.78), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeHourly(1, 13.78), "")));
         }
     }
 
@@ -584,7 +608,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(salaried)
-            .map(|(emp_id, salary)| Tx::ChgSalaried(emp_id, salary))
+            .map(|(emp_id, salary)| Tx::ChangeEmployeeSalaried(emp_id, salary))
     }
     #[cfg(test)]
     mod test_chg_salaried {
@@ -595,7 +619,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Salaried 1023.456"#;
             let result = chg_salaried().parse(input);
-            assert_eq!(result, Ok((Tx::ChgSalaried(1, 1023.456), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeSalaried(1, 1023.456), "")));
         }
     }
 
@@ -610,7 +634,7 @@ mod parser {
 
         prefix.skip(emp_id).join(salary).join(commission_rate).map(
             |((emp_id, salary), commission_rate)| {
-                Tx::ChgCommissioned(emp_id, salary, commission_rate)
+                Tx::ChangeEmployeeCommissioned(emp_id, salary, commission_rate)
             },
         )
     }
@@ -623,7 +647,10 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Commissioned 1018.91 0.19"#;
             let result = chg_commissioned().parse(input);
-            assert_eq!(result, Ok((Tx::ChgCommissioned(1, 1018.91, 0.19), "")));
+            assert_eq!(
+                result,
+                Ok((Tx::ChangeEmployeeCommissioned(1, 1018.91, 0.19), ""))
+            );
         }
     }
 
@@ -635,7 +662,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .with(hold)
-            .map(|emp_id| Tx::ChgHold(emp_id))
+            .map(|emp_id| Tx::ChangeMethodHold(emp_id))
     }
     #[cfg(test)]
     mod test_chg_hold {
@@ -646,7 +673,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Hold"#;
             let result = chg_hold().parse(input);
-            assert_eq!(result, Ok((Tx::ChgHold(1), "")));
+            assert_eq!(result, Ok((Tx::ChangeMethodHold(1), "")));
         }
     }
 
@@ -663,7 +690,7 @@ mod parser {
             .skip(emp_id)
             .join(bank)
             .join(account)
-            .map(|((emp_id, bank), account)| Tx::ChgDirect(emp_id, bank, account))
+            .map(|((emp_id, bank), account)| Tx::ChangeMethodDirect(emp_id, bank, account))
     }
     #[cfg(test)]
     mod test_chg_direct {
@@ -677,7 +704,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChgDirect(1, "Bank".to_string(), "Account".to_string()),
+                    Tx::ChangeMethodDirect(1, "Bank".to_string(), "Account".to_string()),
                     ""
                 ))
             );
@@ -692,7 +719,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(address)
-            .map(|(emp_id, address)| Tx::ChgMail(emp_id, address))
+            .map(|(emp_id, address)| Tx::ChangeMethodMail(emp_id, address))
     }
     #[cfg(test)]
     mod test_chg_mail {
@@ -705,7 +732,7 @@ mod parser {
             let result = chg_mail().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChgMail(1, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChangeMethodMail(1, "bob@gmail.com".to_string()), ""))
             );
         }
     }
@@ -723,7 +750,7 @@ mod parser {
             .skip(emp_id)
             .join(member_id)
             .join(dues)
-            .map(|((emp_id, member_id), dues)| Tx::ChgMember(emp_id, member_id, dues))
+            .map(|((emp_id, member_id), dues)| Tx::AddUnionMember(emp_id, member_id, dues))
     }
     #[cfg(test)]
     mod test_chg_member {
@@ -734,7 +761,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Member 2 Dues 100.0"#;
             let result = chg_member().parse(input);
-            assert_eq!(result, Ok((Tx::ChgMember(1, 2, 100.0), "")));
+            assert_eq!(result, Ok((Tx::AddUnionMember(1, 2, 100.0), "")));
         }
     }
 
@@ -746,7 +773,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .with(no_member)
-            .map(|emp_id| Tx::ChgNoMember(emp_id))
+            .map(|emp_id| Tx::DeleteUnionMember(emp_id))
     }
     #[cfg(test)]
     mod test_chg_no_member {
@@ -757,7 +784,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 NoMember"#;
             let result = chg_no_member().parse(input);
-            assert_eq!(result, Ok((Tx::ChgNoMember(1), "")));
+            assert_eq!(result, Ok((Tx::DeleteUnionMember(1), "")));
         }
     }
 

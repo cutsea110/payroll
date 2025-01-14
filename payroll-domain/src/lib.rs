@@ -2,12 +2,12 @@ use chrono::NaiveDate;
 use dyn_clone::DynClone;
 use std::{any::Any, cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 
-pub type EmpId = u32;
+pub type EmployeeId = u32;
 pub type MemberId = u32;
 
 #[derive(Debug, Clone)]
 pub struct Emp {
-    id: EmpId,
+    id: EmployeeId,
     name: String,
     address: String,
 
@@ -19,7 +19,7 @@ pub struct Emp {
 
 impl Emp {
     pub fn new(
-        id: EmpId,
+        id: EmployeeId,
         name: &str,
         address: &str,
         classification: Rc<RefCell<dyn PaymentClassification>>,
@@ -38,7 +38,7 @@ impl Emp {
         }
     }
 
-    pub fn id(&self) -> EmpId {
+    pub fn id(&self) -> EmployeeId {
         self.id
     }
     pub fn name(&self) -> &str {

@@ -8,7 +8,7 @@ use std::{
 
 // dao にのみ依存 (domain は当然 ok)
 use dao::{DaoError, EmpDao};
-use payroll_domain::{Emp, EmpId, MemberId, Paycheck};
+use payroll_domain::{Emp, EmployeeId, MemberId, Paycheck};
 
 // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
 #[derive(Debug, Clone)]
@@ -30,9 +30,9 @@ impl HashDB {
 }
 #[derive(Debug, Clone)]
 pub struct EmpDb {
-    employees: HashMap<EmpId, Emp>,
-    union_members: HashMap<MemberId, EmpId>,
-    paychecks: HashMap<EmpId, Vec<Paycheck>>,
+    employees: HashMap<EmployeeId, Emp>,
+    union_members: HashMap<MemberId, EmployeeId>,
+    paychecks: HashMap<EmployeeId, Vec<Paycheck>>,
 }
 // DB の実装ごとに EmpDao トレイトを実装する
 impl EmpDao for HashDB {
@@ -47,7 +47,10 @@ impl EmpDao for HashDB {
         f(self.emp_db.borrow_mut())
     }
 
-    fn insert<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError> {
+    fn insert<'a>(
+        &self,
+        emp: Emp,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
         trace!("HashDB::insert called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();
@@ -63,7 +66,10 @@ impl EmpDao for HashDB {
             Ok(emp_id)
         })
     }
-    fn remove<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+    fn remove<'a>(
+        &self,
+        id: EmployeeId,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::remove called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::remove::with_tx called: id={}", id);
@@ -73,7 +79,10 @@ impl EmpDao for HashDB {
             Err(DaoError::NotFound(id))
         })
     }
-    fn fetch<'a>(&self, id: EmpId) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
+    fn fetch<'a>(
+        &self,
+        id: EmployeeId,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
         trace!("HashDB::fetch called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::fetch::with_tx called: id={}", id);
@@ -82,7 +91,7 @@ impl EmpDao for HashDB {
     }
     fn fetch_all<'a>(
         &self,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmpId, Emp)>, Err = DaoError> {
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Emp)>, Err = DaoError> {
         trace!("HashDB::fetch_all called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::fetch_all::with_tx called");
@@ -108,7 +117,7 @@ impl EmpDao for HashDB {
     fn add_union_member<'a>(
         &self,
         member_id: MemberId,
-        emp_id: EmpId,
+        emp_id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::add_union_member called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
@@ -143,7 +152,7 @@ impl EmpDao for HashDB {
     fn find_union_member<'a>(
         &self,
         member_id: MemberId,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError> {
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
         trace!("HashDB::find_union_members called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
@@ -158,7 +167,7 @@ impl EmpDao for HashDB {
     }
     fn record_paycheck<'a>(
         &self,
-        emp_id: EmpId,
+        emp_id: EmployeeId,
         pc: Paycheck,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::record_paycheck called");

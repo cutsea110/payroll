@@ -46,12 +46,12 @@ mod interface {
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
         use payroll_domain::{
-            Affiliation, Emp, EmpId, PaymentClassification, PaymentMethod, PaymentSchedule,
+            Affiliation, Emp, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
         };
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait AddEmp: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_name(&self) -> &str;
             fn get_address(&self) -> &str;
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
@@ -90,11 +90,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
         pub trait DelEmp: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
 
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
                 trace!("DelEmp::execute called");
@@ -121,11 +121,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
 
         // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
         pub trait AddTimeCard: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_date(&self) -> NaiveDate;
             fn get_hours(&self) -> f32;
 
@@ -160,11 +160,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
 
         // ユースケース: AddSalesReceipt トランザクション(抽象レベルのビジネスロジック)
         pub trait AddSalesReceipt: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_date(&self) -> NaiveDate;
             fn get_amount(&self) -> f32;
 
@@ -197,11 +197,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
 
         // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgEmpName: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_new_name(&self) -> &str;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
                 trace!("ChgEmpName::execute called");
@@ -231,11 +231,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
 
         // ユースケース: ChgEmpAddress トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgEmpAddress: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_new_address(&self) -> &str;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
                 trace!("ChgEmpAddress::execute called");
@@ -266,11 +266,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentClassification, PaymentSchedule};
+        use payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule};
 
         // ユースケース: ChgClassification トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgClassification: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
             fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -309,11 +309,11 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_domain::{EmployeeId, PaymentMethod};
 
         // ユースケース: ChgMethod トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgMethod: HaveEmpDao {
-            fn get_id(&self) -> EmpId;
+            fn get_id(&self) -> EmployeeId;
             fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
                 trace!("ChgMethod::execute called");
@@ -344,12 +344,12 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmpDao, HaveEmpDao};
-        use payroll_domain::{Affiliation, EmpId, MemberId};
+        use payroll_domain::{Affiliation, EmployeeId, MemberId};
 
         // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgMember: HaveEmpDao {
             fn get_member_id(&self) -> MemberId;
-            fn get_emp_id(&self) -> EmpId;
+            fn get_emp_id(&self) -> EmployeeId;
             fn get_dues(&self) -> f32;
             fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
@@ -391,12 +391,12 @@ mod interface {
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, NoAffiliation};
+        use payroll_domain::{EmployeeId, NoAffiliation};
         use payroll_impl::UnionAffiliation;
 
         // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
         pub trait ChgUnaffiliated: HaveEmpDao {
-            fn get_emp_id(&self) -> EmpId;
+            fn get_emp_id(&self) -> EmployeeId;
 
             fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
                 trace!("record_membership called");
@@ -524,7 +524,7 @@ mod tx_impl {
         use super::super::AddEmp;
         use dao::{EmpDao, HaveEmpDao};
         use payroll_domain::{
-            Affiliation, EmpId, NoAffiliation, PaymentClassification, PaymentMethod,
+            Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
         };
         use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
@@ -536,7 +536,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             name: String,
             address: String,
             salary: f32,
@@ -547,7 +547,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, name: &str, address: &str, salary: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, name: &str, address: &str, salary: f32, dao: T) -> Self {
                 Self {
                     id,
                     name: name.to_string(),
@@ -573,7 +573,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_name(&self) -> &str {
@@ -603,7 +603,7 @@ mod tx_impl {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddSalariedEmpTx::execute called");
                 AddEmp::execute(self)
-                    .map(|_| Response::EmpId(self.id))
+                    .map(|_| Response::EmployeeId(self.id))
                     .map_err(Into::into)
             }
         }
@@ -619,7 +619,7 @@ mod tx_impl {
         use super::super::AddEmp;
         use dao::{EmpDao, HaveEmpDao};
         use payroll_domain::{
-            Affiliation, EmpId, NoAffiliation, PaymentClassification, PaymentMethod,
+            Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
         };
         use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
@@ -631,7 +631,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             name: String,
             address: String,
             hourly_rate: f32,
@@ -642,7 +642,13 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, name: &str, address: &str, hourly_rate: f32, dao: T) -> Self {
+            pub fn new(
+                id: EmployeeId,
+                name: &str,
+                address: &str,
+                hourly_rate: f32,
+                dao: T,
+            ) -> Self {
                 Self {
                     id,
                     name: name.to_string(),
@@ -668,7 +674,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_name(&self) -> &str {
@@ -698,7 +704,7 @@ mod tx_impl {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddHourlyEmpTx::execute called");
                 AddEmp::execute(self)
-                    .map(|_| Response::EmpId(self.id))
+                    .map(|_| Response::EmployeeId(self.id))
                     .map_err(Into::into)
             }
         }
@@ -714,7 +720,7 @@ mod tx_impl {
         use super::super::AddEmp;
         use dao::{EmpDao, HaveEmpDao};
         use payroll_domain::{
-            Affiliation, EmpId, NoAffiliation, PaymentClassification, PaymentMethod,
+            Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
         };
         use payroll_impl::{BiweeklySchedule, CommissionedClassification, HoldMethod};
@@ -726,7 +732,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             name: String,
             address: String,
             salary: f32,
@@ -739,7 +745,7 @@ mod tx_impl {
             T: EmpDao,
         {
             pub fn new(
-                id: EmpId,
+                id: EmployeeId,
                 name: &str,
                 address: &str,
                 salary: f32,
@@ -772,7 +778,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_name(&self) -> &str {
@@ -805,7 +811,7 @@ mod tx_impl {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddCommissionedEmpTx::execute called");
                 AddEmp::execute(self)
-                    .map(|_| Response::EmpId(self.id))
+                    .map(|_| Response::EmployeeId(self.id))
                     .map_err(Into::into)
             }
         }
@@ -819,7 +825,7 @@ mod tx_impl {
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::DelEmp;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -828,14 +834,14 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             db: T,
         }
         impl<T> DelEmpTx<T>
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, dao: T) -> Self {
+            pub fn new(id: EmployeeId, dao: T) -> Self {
                 Self { id, db: dao }
             }
         }
@@ -854,7 +860,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
         }
@@ -881,7 +887,7 @@ mod tx_impl {
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddTimeCard;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -890,7 +896,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             date: NaiveDate,
             hours: f32,
 
@@ -900,7 +906,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, date: NaiveDate, hours: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, date: NaiveDate, hours: f32, dao: T) -> Self {
                 Self {
                     id,
                     date,
@@ -924,7 +930,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_date(&self) -> NaiveDate {
@@ -957,7 +963,7 @@ mod tx_impl {
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddSalesReceipt;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgSalesReceipt トランザクションの実装 (struct)
@@ -966,7 +972,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             date: NaiveDate,
             amount: f32,
 
@@ -976,7 +982,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, date: NaiveDate, amount: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, date: NaiveDate, amount: f32, dao: T) -> Self {
                 Self {
                     id,
                     date,
@@ -1000,7 +1006,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_date(&self) -> NaiveDate {
@@ -1032,7 +1038,7 @@ mod tx_impl {
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChgEmpName;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -1041,7 +1047,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             new_name: String,
             db: T,
         }
@@ -1049,7 +1055,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, new_name: &str, dao: T) -> Self {
+            pub fn new(id: EmployeeId, new_name: &str, dao: T) -> Self {
                 Self {
                     id,
                     new_name: new_name.to_string(),
@@ -1072,7 +1078,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_new_name(&self) -> &str {
@@ -1101,7 +1107,7 @@ mod tx_impl {
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChgEmpAddress;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -1110,7 +1116,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             new_address: String,
             db: T,
         }
@@ -1118,7 +1124,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, new_address: &str, dao: T) -> Self {
+            pub fn new(id: EmployeeId, new_address: &str, dao: T) -> Self {
                 Self {
                     id,
                     new_address: new_address.to_string(),
@@ -1141,7 +1147,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_new_address(&self) -> &str {
@@ -1170,7 +1176,7 @@ mod tx_impl {
 
         use super::super::ChgClassification;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{MonthlySchedule, SalariedClassification};
         use tx_app::{Response, Transaction};
 
@@ -1180,7 +1186,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             salary: f32,
 
             db: T,
@@ -1189,7 +1195,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, salary: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, salary: f32, dao: T) -> Self {
                 Self {
                     id,
                     salary,
@@ -1212,7 +1218,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
@@ -1244,7 +1250,7 @@ mod tx_impl {
 
         use super::super::ChgClassification;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{HourlyClassification, WeeklySchedule};
         use tx_app::{Response, Transaction};
 
@@ -1254,7 +1260,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             hourly_rate: f32,
 
             db: T,
@@ -1263,7 +1269,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, hourly_rate: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, hourly_rate: f32, dao: T) -> Self {
                 Self {
                     id,
                     hourly_rate,
@@ -1286,7 +1292,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
@@ -1318,7 +1324,7 @@ mod tx_impl {
 
         use super::super::ChgClassification;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentClassification};
+        use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{BiweeklySchedule, CommissionedClassification};
         use tx_app::{Response, Transaction};
 
@@ -1328,7 +1334,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             salary: f32,
             commission_rate: f32,
 
@@ -1338,7 +1344,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, salary: f32, commission_rate: f32, dao: T) -> Self {
+            pub fn new(id: EmployeeId, salary: f32, commission_rate: f32, dao: T) -> Self {
                 Self {
                     id,
                     salary,
@@ -1363,7 +1369,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
@@ -1398,7 +1404,7 @@ mod tx_impl {
 
         use super::super::ChgMethod;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::HoldMethod;
         use tx_app::{Response, Transaction};
 
@@ -1408,7 +1414,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
 
             db: T,
         }
@@ -1416,7 +1422,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, dao: T) -> Self {
+            pub fn new(id: EmployeeId, dao: T) -> Self {
                 Self { id, db: dao }
             }
         }
@@ -1435,7 +1441,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
@@ -1464,7 +1470,7 @@ mod tx_impl {
 
         use super::super::ChgMethod;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::DirectMethod;
         use tx_app::{Response, Transaction};
 
@@ -1474,7 +1480,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             bank: String,
             account: String,
 
@@ -1484,7 +1490,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, bank: &str, account: &str, dao: T) -> Self {
+            pub fn new(id: EmployeeId, bank: &str, account: &str, dao: T) -> Self {
                 Self {
                     id,
                     bank: bank.to_string(),
@@ -1508,7 +1514,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
@@ -1537,7 +1543,7 @@ mod tx_impl {
 
         use super::super::ChgMethod;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, PaymentMethod};
+        use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::MailMethod;
         use tx_app::{Response, Transaction};
 
@@ -1547,7 +1553,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            id: EmpId,
+            id: EmployeeId,
             address: String,
 
             db: T,
@@ -1556,7 +1562,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(id: EmpId, address: &str, dao: T) -> Self {
+            pub fn new(id: EmployeeId, address: &str, dao: T) -> Self {
                 Self {
                     id,
                     address: address.to_string(),
@@ -1580,7 +1586,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_id(&self) -> EmpId {
+            fn get_id(&self) -> EmployeeId {
                 self.id
             }
             fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
@@ -1609,7 +1615,7 @@ mod tx_impl {
 
         use super::super::ChgMember;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::{EmpId, MemberId};
+        use payroll_domain::{EmployeeId, MemberId};
         use payroll_impl::UnionAffiliation;
         use tx_app::{Response, Transaction};
 
@@ -1620,7 +1626,7 @@ mod tx_impl {
             T: EmpDao,
         {
             member_id: MemberId,
-            emp_id: EmpId,
+            emp_id: EmployeeId,
             dues: f32,
 
             db: T,
@@ -1629,7 +1635,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(member_id: MemberId, emp_id: EmpId, dues: f32, dao: T) -> Self {
+            pub fn new(member_id: MemberId, emp_id: EmployeeId, dues: f32, dao: T) -> Self {
                 Self {
                     member_id,
                     emp_id,
@@ -1656,7 +1662,7 @@ mod tx_impl {
             fn get_member_id(&self) -> MemberId {
                 self.member_id
             }
-            fn get_emp_id(&self) -> EmpId {
+            fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
             fn get_dues(&self) -> f32 {
@@ -1690,7 +1696,7 @@ mod tx_impl {
 
         use super::super::ChgUnaffiliated;
         use dao::{EmpDao, HaveEmpDao};
-        use payroll_domain::EmpId;
+        use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
@@ -1699,7 +1705,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            emp_id: EmpId,
+            emp_id: EmployeeId,
 
             db: T,
         }
@@ -1707,7 +1713,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            pub fn new(emp_id: EmpId, dao: T) -> Self {
+            pub fn new(emp_id: EmployeeId, dao: T) -> Self {
                 Self { emp_id, db: dao }
             }
         }
@@ -1726,7 +1732,7 @@ mod tx_impl {
         where
             T: EmpDao,
         {
-            fn get_emp_id(&self) -> EmpId {
+            fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
             }
         }
