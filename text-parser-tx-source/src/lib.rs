@@ -662,7 +662,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .with(hold)
-            .map(|emp_id| Tx::ChangeMethodHold(emp_id))
+            .map(|emp_id| Tx::ChangeEmployeeHold(emp_id))
     }
     #[cfg(test)]
     mod test_chg_hold {
@@ -673,7 +673,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Hold"#;
             let result = chg_hold().parse(input);
-            assert_eq!(result, Ok((Tx::ChangeMethodHold(1), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeHold(1), "")));
         }
     }
 
@@ -690,7 +690,7 @@ mod parser {
             .skip(emp_id)
             .join(bank)
             .join(account)
-            .map(|((emp_id, bank), account)| Tx::ChangeMethodDirect(emp_id, bank, account))
+            .map(|((emp_id, bank), account)| Tx::ChangeEmployeeDirect(emp_id, bank, account))
     }
     #[cfg(test)]
     mod test_chg_direct {
@@ -704,7 +704,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChangeMethodDirect(1, "Bank".to_string(), "Account".to_string()),
+                    Tx::ChangeEmployeeDirect(1, "Bank".to_string(), "Account".to_string()),
                     ""
                 ))
             );
@@ -719,7 +719,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .join(address)
-            .map(|(emp_id, address)| Tx::ChangeMethodMail(emp_id, address))
+            .map(|(emp_id, address)| Tx::ChangeEmployeeMail(emp_id, address))
     }
     #[cfg(test)]
     mod test_chg_mail {
@@ -732,7 +732,7 @@ mod parser {
             let result = chg_mail().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChangeMethodMail(1, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChangeEmployeeMail(1, "bob@gmail.com".to_string()), ""))
             );
         }
     }
@@ -750,7 +750,7 @@ mod parser {
             .skip(emp_id)
             .join(member_id)
             .join(dues)
-            .map(|((emp_id, member_id), dues)| Tx::AddUnionMember(emp_id, member_id, dues))
+            .map(|((emp_id, member_id), dues)| Tx::ChangeEmployeeMember(emp_id, member_id, dues))
     }
     #[cfg(test)]
     mod test_chg_member {
@@ -761,7 +761,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 Member 2 Dues 100.0"#;
             let result = chg_member().parse(input);
-            assert_eq!(result, Ok((Tx::AddUnionMember(1, 2, 100.0), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeMember(1, 2, 100.0), "")));
         }
     }
 
@@ -773,7 +773,7 @@ mod parser {
         prefix
             .skip(emp_id)
             .with(no_member)
-            .map(|emp_id| Tx::DeleteUnionMember(emp_id))
+            .map(|emp_id| Tx::ChangeEmployeeNoMember(emp_id))
     }
     #[cfg(test)]
     mod test_chg_no_member {
@@ -784,7 +784,7 @@ mod parser {
         fn test() {
             let input = r#"ChgEmp 1 NoMember"#;
             let result = chg_no_member().parse(input);
-            assert_eq!(result, Ok((Tx::DeleteUnionMember(1), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeNoMember(1), "")));
         }
     }
 

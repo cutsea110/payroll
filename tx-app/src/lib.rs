@@ -55,23 +55,23 @@ mod tx_source {
 
     #[derive(Debug, Clone, PartialEq)]
     pub enum Tx {
-        AddSalariedEmployee(EmployeeId, String, String, f32),
         AddHourlyEmployee(EmployeeId, String, String, f32),
+        AddSalariedEmployee(EmployeeId, String, String, f32),
         AddCommissionedEmployee(EmployeeId, String, String, f32, f32),
         DeleteEmployee(EmployeeId),
         AddTimeCard(EmployeeId, NaiveDate, f32),
         AddSalesReceipt(EmployeeId, NaiveDate, f32),
+        AddServiceCharge(MemberId, NaiveDate, f32),
         ChangeEmployeeName(EmployeeId, String),
         ChangeEmployeeAddress(EmployeeId, String),
-        ChangeEmployeeSalaried(EmployeeId, f32),
         ChangeEmployeeHourly(EmployeeId, f32),
+        ChangeEmployeeSalaried(EmployeeId, f32),
         ChangeEmployeeCommissioned(EmployeeId, f32, f32),
-        ChangeMethodHold(EmployeeId),
-        ChangeMethodDirect(EmployeeId, String, String),
-        ChangeMethodMail(EmployeeId, String),
-        AddUnionMember(EmployeeId, MemberId, f32),
-        DeleteUnionMember(EmployeeId),
-        AddServiceCharge(MemberId, NaiveDate, f32),
+        ChangeEmployeeHold(EmployeeId),
+        ChangeEmployeeDirect(EmployeeId, String, String),
+        ChangeEmployeeMail(EmployeeId, String),
+        ChangeEmployeeMember(EmployeeId, MemberId, f32),
+        ChangeEmployeeNoMember(EmployeeId),
         Payday(NaiveDate),
     }
     pub trait TxSource {
@@ -92,13 +92,13 @@ mod tx_factory {
         fn convert(&self, src: Tx) -> Box<dyn Transaction> {
             trace!("TxFactory::convert called");
             match src {
-                Tx::AddSalariedEmployee(id, name, address, salary) => {
-                    trace!("convert Tx::AddSalariedEmployee by mk_add_salaried_employee_tx called");
-                    self.mk_add_salaried_employee_tx(id, &name, &address, salary)
-                }
                 Tx::AddHourlyEmployee(id, name, address, hourly_rate) => {
                     trace!("convert Tx::AddHourlyEmployee by mk_add_hourly_employee_tx called");
                     self.mk_add_hourly_employee_tx(id, &name, &address, hourly_rate)
+                }
+                Tx::AddSalariedEmployee(id, name, address, salary) => {
+                    trace!("convert Tx::AddSalariedEmployee by mk_add_salaried_employee_tx called");
+                    self.mk_add_salaried_employee_tx(id, &name, &address, salary)
                 }
                 Tx::AddCommissionedEmployee(id, name, address, salary, commission_rate) => {
                     trace!(
@@ -134,9 +134,9 @@ mod tx_factory {
                     trace!("convert Tx::AddSalesReceipt by mk_add_sales_receipt_tx called");
                     self.mk_add_sales_receipt_tx(id, date, amount)
                 }
-                Tx::ChangeEmployeeSalaried(id, salary) => {
-                    trace!("convert Tx::ChangeEmployeeSalaried by mk_change_employee_salaried_tx called");
-                    self.mk_change_employee_salaried_tx(id, salary)
+                Tx::AddServiceCharge(member_id, date, amount) => {
+                    trace!("convert Tx::AddServiceCharge by mk_add_service_charge_tx called");
+                    self.mk_add_service_charge_tx(member_id, date, amount)
                 }
                 Tx::ChangeEmployeeHourly(id, hourly_rate) => {
                     trace!(
@@ -144,35 +144,37 @@ mod tx_factory {
                     );
                     self.mk_change_employee_hourly_tx(id, hourly_rate)
                 }
+                Tx::ChangeEmployeeSalaried(id, salary) => {
+                    trace!("convert Tx::ChangeEmployeeSalaried by mk_change_employee_salaried_tx called");
+                    self.mk_change_employee_salaried_tx(id, salary)
+                }
                 Tx::ChangeEmployeeCommissioned(id, salary, commission_rate) => {
                     trace!(
                         "convert Tx::ChangeEmployeeCommissioned by mk_change_employee_commissioned_tx called"
                     );
                     self.mk_change_employee_commissioned_tx(id, salary, commission_rate)
                 }
-                Tx::ChangeMethodHold(id) => {
-                    trace!("convert Tx::ChangeMethodHold by mk_change_method_hold_tx called");
-                    self.mk_change_method_hold_tx(id)
+                Tx::ChangeEmployeeHold(id) => {
+                    trace!("convert Tx::ChangeEmployeeHold by mk_change_employee_hold_tx called");
+                    self.mk_change_employee_hold_tx(id)
                 }
-                Tx::ChangeMethodDirect(id, bank, account) => {
-                    trace!("convert Tx::ChangeMethodDirect by mk_change_method_direct_tx called");
-                    self.mk_change_method_direct_tx(id, &bank, &account)
+                Tx::ChangeEmployeeDirect(id, bank, account) => {
+                    trace!(
+                        "convert Tx::ChangeEmployeeDirect by mk_change_employee_direct_tx called"
+                    );
+                    self.mk_change_employee_direct_tx(id, &bank, &account)
                 }
-                Tx::ChangeMethodMail(id, address) => {
-                    trace!("convert Tx::ChangeMethodMail by mk_change_method_mail_tx called");
-                    self.mk_change_method_mail_tx(id, &address)
+                Tx::ChangeEmployeeMail(id, address) => {
+                    trace!("convert Tx::ChangeEmployeeMail by mk_change_employee_mail_tx called");
+                    self.mk_change_employee_mail_tx(id, &address)
                 }
-                Tx::AddUnionMember(id, member_id, dues) => {
+                Tx::ChangeEmployeeMember(id, member_id, dues) => {
                     trace!("convert Tx::AddUnionMember by mk_add_union_member_tx called");
-                    self.mk_add_union_member_tx(id, member_id, dues)
+                    self.mk_change_employee_member_tx(id, member_id, dues)
                 }
-                Tx::DeleteUnionMember(id) => {
+                Tx::ChangeEmployeeNoMember(id) => {
                     trace!("convert Tx::DeleteUnionMember by mk_delete_union_member_tx called");
-                    self.mk_delete_union_member_tx(id)
-                }
-                Tx::AddServiceCharge(member_id, date, amount) => {
-                    trace!("convert Tx::AddServiceCharge by mk_add_service_charge_tx called");
-                    self.mk_add_service_charge_tx(member_id, date, amount)
+                    self.mk_change_employee_no_member_tx(id)
                 }
                 Tx::Payday(date) => {
                     trace!("convert Tx::Payday by mk_payday_tx called");
@@ -181,19 +183,19 @@ mod tx_factory {
             }
         }
 
-        fn mk_add_salaried_employee_tx(
-            &self,
-            id: EmployeeId,
-            name: &str,
-            address: &str,
-            salary: f32,
-        ) -> Box<dyn Transaction>;
         fn mk_add_hourly_employee_tx(
             &self,
             id: EmployeeId,
             name: &str,
             address: &str,
             hourly_rate: f32,
+        ) -> Box<dyn Transaction>;
+        fn mk_add_salaried_employee_tx(
+            &self,
+            id: EmployeeId,
+            name: &str,
+            address: &str,
+            salary: f32,
         ) -> Box<dyn Transaction>;
         fn mk_add_commissioned_employee_tx(
             &self,
@@ -216,6 +218,12 @@ mod tx_factory {
             date: NaiveDate,
             amount: f32,
         ) -> Box<dyn Transaction>;
+        fn mk_add_service_charge_tx(
+            &self,
+            member_id: MemberId,
+            date: NaiveDate,
+            amount: f32,
+        ) -> Box<dyn Transaction>;
         fn mk_change_employee_name_tx(
             &self,
             id: EmployeeId,
@@ -226,15 +234,15 @@ mod tx_factory {
             id: EmployeeId,
             new_address: &str,
         ) -> Box<dyn Transaction>;
-        fn mk_change_employee_salaried_tx(
-            &self,
-            id: EmployeeId,
-            salary: f32,
-        ) -> Box<dyn Transaction>;
         fn mk_change_employee_hourly_tx(
             &self,
             id: EmployeeId,
             hourly_rate: f32,
+        ) -> Box<dyn Transaction>;
+        fn mk_change_employee_salaried_tx(
+            &self,
+            id: EmployeeId,
+            salary: f32,
         ) -> Box<dyn Transaction>;
         fn mk_change_employee_commissioned_tx(
             &self,
@@ -242,27 +250,22 @@ mod tx_factory {
             salary: f32,
             commission_rate: f32,
         ) -> Box<dyn Transaction>;
-        fn mk_change_method_hold_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
-        fn mk_change_method_direct_tx(
+        fn mk_change_employee_hold_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
+        fn mk_change_employee_direct_tx(
             &self,
             id: EmployeeId,
             bank: &str,
             account: &str,
         ) -> Box<dyn Transaction>;
-        fn mk_change_method_mail_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction>;
-        fn mk_add_union_member_tx(
+        fn mk_change_employee_mail_tx(&self, id: EmployeeId, address: &str)
+            -> Box<dyn Transaction>;
+        fn mk_change_employee_member_tx(
             &self,
             id: EmployeeId,
             member_id: MemberId,
             dues: f32,
         ) -> Box<dyn Transaction>;
-        fn mk_delete_union_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
-        fn mk_add_service_charge_tx(
-            &self,
-            member_id: MemberId,
-            date: NaiveDate,
-            amount: f32,
-        ) -> Box<dyn Transaction>;
+        fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
         fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction>;
     }
 }
