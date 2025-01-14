@@ -28,6 +28,6 @@ graph TD
   payroll-app --> hs-db
   payroll-app --> tx-impl
   payroll-app --> text-parser-tx-source
-  payroll-app --> tx-app
   payroll-app --> tx-factory
+  payroll-app --> tx-app
 ```
