@@ -9,10 +9,32 @@ mod interface {
     pub enum UsecaseError {
         #[error("add employee failed: {0}")]
         AddEmpFailed(DaoError),
+        #[error("employee retrieval failed: {0}")]
+        EmpRetrievalFailed(DaoError),
         #[error("delete employee failed: {0}")]
         DelEmpFailed(DaoError),
+        #[error("add timecard failed: {0}")]
+        AddTimeCardFailed(DaoError),
+        #[error("add sales receipt failed: {0}")]
+        AddSalesReceiptFailed(DaoError),
         #[error("change employee name failed: {0}")]
         ChgEmpNameFailed(DaoError),
+        #[error("change employee address failed: {0}")]
+        ChgEmpAddressFailed(DaoError),
+        #[error("change employee classification failed: {0}")]
+        ChgPaymentClassificationFailed(DaoError),
+        #[error("change employee method failed: {0}")]
+        ChgPaymentMethodFailed(DaoError),
+        #[error("change member failed: {0}")]
+        ChgMemberFailed(DaoError),
+        #[error("change unaffiliated failed: {0}")]
+        ChgUnaffiliatedFailed(DaoError),
+        #[error("add service charge failed: {0}")]
+        AddServiceChargeFailed(DaoError),
+        #[error("payday failed: {0}")]
+        PaydayFailed(DaoError),
+        #[error("unexpected error: {0}")]
+        UnexpectedError(String),
     }
 
     mod add_emp {
@@ -84,11 +106,89 @@ mod interface {
                         self.dao().remove(emp_id).run(&mut ctx)
                     })
                     .map(|_| ())
-                    .map_err(UsecaseError::AddEmpFailed)
+                    .map_err(UsecaseError::DelEmpFailed)
             }
         }
     }
     pub use del_emp::*;
+
+    mod add_timecard {
+        use chrono::NaiveDate;
+        use log::trace;
+        use payroll_impl::HourlyClassification;
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+
+        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        pub trait AddTimeCard: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+            fn get_date(&self) -> NaiveDate;
+            fn get_hours(&self) -> f32;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("AddTimeCard::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("AddTimeCard::run_tx called");
+                        let emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
+                        emp.classification()
+                            .borrow_mut()
+                            .as_any_mut()
+                            .downcast_mut::<HourlyClassification>()
+                            .ok_or(DaoError::UnexpectedError(
+                                "classification is not HourlyClassification".to_string(),
+                            ))?
+                            .add_timecard(self.get_date(), self.get_hours());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::AddTimeCardFailed)
+            }
+        }
+    }
+    pub use add_timecard::*;
+
+    mod add_sales_receipt {
+        use chrono::NaiveDate;
+        use log::trace;
+        use payroll_impl::CommissionedClassification;
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+
+        // ユースケース: AddSalesReceipt トランザクション(抽象レベルのビジネスロジック)
+        pub trait AddSalesReceipt: HaveEmpDao {
+            fn get_id(&self) -> EmpId;
+            fn get_date(&self) -> NaiveDate;
+            fn get_amount(&self) -> f32;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("AddSalesReceipt::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("AddSalesReceipt::run_tx called");
+                        let emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
+                        emp.classification()
+                            .borrow_mut()
+                            .as_any_mut()
+                            .downcast_mut::<CommissionedClassification>()
+                            .ok_or(DaoError::UnexpectedError(
+                                "classification is not CommissionedClassification".into(),
+                            ))?
+                            .add_sales_receipt(self.get_date(), self.get_amount());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::AddSalesReceiptFailed)
+            }
+        }
+    }
+    pub use add_sales_receipt::*;
 
     mod chg_name {
         use log::{debug, trace};
@@ -152,7 +252,7 @@ mod interface {
                         debug!(r#"changed emp address="{}""#, emp.address());
                         self.dao().update(emp).run(&mut ctx)
                     })
-                    .map_err(UsecaseError::ChgEmpNameFailed)
+                    .map_err(UsecaseError::ChgEmpAddressFailed)
             }
         }
     }
@@ -195,7 +295,7 @@ mod interface {
                         debug!("changed emp schedule={:?}", emp.schedule());
                         self.dao().update(emp).run(&mut ctx)
                     })
-                    .map_err(UsecaseError::ChgEmpNameFailed)
+                    .map_err(UsecaseError::ChgPaymentClassificationFailed)
             }
         }
     }
@@ -230,11 +330,186 @@ mod interface {
                         debug!("changed emp method={:?}", emp.method());
                         self.dao().update(emp).run(&mut ctx)
                     })
-                    .map_err(UsecaseError::ChgEmpNameFailed)
+                    .map_err(UsecaseError::ChgPaymentMethodFailed)
             }
         }
     }
     pub use chg_method::*;
+
+    mod chg_member {
+        use log::{debug, trace};
+        use std::{cell::RefCell, rc::Rc};
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::{Affiliation, EmpId, MemberId};
+
+        // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgMember: HaveEmpDao {
+            fn get_member_id(&self) -> MemberId;
+            fn get_emp_id(&self) -> EmpId;
+            fn get_dues(&self) -> f32;
+            fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
+
+            fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
+                trace!("record_membership called");
+                self.dao()
+                    .add_union_member(self.get_member_id(), self.get_emp_id())
+                    .run(ctx)
+            }
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("ChgMember::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("ChgMember::run_tx called");
+                        self.record_membership(&mut ctx)?;
+
+                        let mut emp = self.dao().fetch(self.get_emp_id()).run(&mut ctx)?;
+                        debug!(
+                            "changing emp member: {:?} -> {:?}",
+                            emp.affiliation(),
+                            self.get_affiliation()
+                        );
+                        emp.set_affiliation(self.get_affiliation());
+                        debug!("changed emp member={:?}", emp.affiliation());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgMemberFailed)
+            }
+        }
+    }
+    pub use chg_member::*;
+
+    mod chg_unaffiliated {
+        use log::{debug, trace};
+        use std::{cell::RefCell, rc::Rc};
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, NoAffiliation};
+        use payroll_impl::UnionAffiliation;
+
+        // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
+        pub trait ChgUnaffiliated: HaveEmpDao {
+            fn get_emp_id(&self) -> EmpId;
+
+            fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
+                trace!("record_membership called");
+                let emp = self.dao().fetch(self.get_emp_id()).run(ctx)?;
+                let member_id = emp
+                    .affiliation()
+                    .borrow()
+                    .as_any()
+                    .downcast_ref::<UnionAffiliation>()
+                    .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
+                    .member_id();
+
+                self.dao().remove_union_member(member_id).run(ctx)
+            }
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("ChgUnaffiliated::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("ChgUnaffiliated::run_tx called");
+                        self.record_membership(&mut ctx)?;
+
+                        let mut emp = self.dao().fetch(self.get_emp_id()).run(&mut ctx)?;
+                        debug!(
+                            "changing emp member: {:?} -> NoAffiliation",
+                            emp.affiliation()
+                        );
+                        emp.set_affiliation(Rc::new(RefCell::new(NoAffiliation)));
+                        debug!("changed emp member={:?}", emp.affiliation());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::ChgUnaffiliatedFailed)
+            }
+        }
+    }
+    pub use chg_unaffiliated::*;
+
+    mod add_service_charge {
+        use chrono::NaiveDate;
+        use log::trace;
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::MemberId;
+        use payroll_impl::UnionAffiliation;
+
+        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        pub trait AddServiceCharge: HaveEmpDao {
+            fn get_member_id(&self) -> MemberId;
+            fn get_date(&self) -> NaiveDate;
+            fn get_amount(&self) -> f32;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("AddServiceCharge::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("AddServiceCharge::run_tx called");
+                        let emp_id = self
+                            .dao()
+                            .find_union_member(self.get_member_id())
+                            .run(&mut ctx)?;
+                        let emp = self.dao().fetch(emp_id).run(&mut ctx)?;
+                        emp.affiliation()
+                            .borrow_mut()
+                            .as_any_mut()
+                            .downcast_mut::<UnionAffiliation>()
+                            .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
+                            .add_service_charge(self.get_date(), self.get_amount());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::AddServiceChargeFailed)
+            }
+        }
+    }
+    pub use add_service_charge::*;
+
+    mod payday {
+        use chrono::NaiveDate;
+        use log::trace;
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::Paycheck;
+
+        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        pub trait Payday: HaveEmpDao {
+            fn get_pay_date(&self) -> NaiveDate;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("Payday::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("Payday::run_tx called");
+                        let mut emps = self.dao().fetch_all().run(&mut ctx)?;
+                        for (emp_id, emp) in emps.iter_mut() {
+                            if emp.is_pay_date(self.get_pay_date()) {
+                                let period = emp.get_pay_period(self.get_pay_date());
+                                let mut pc = Paycheck::new(period);
+                                emp.payday(&mut pc);
+                                self.dao().record_paycheck(*emp_id, pc).run(&mut ctx)?;
+                            }
+                        }
+                        Ok(())
+                    })
+                    .map_err(UsecaseError::PaydayFailed)
+            }
+        }
+    }
+    pub use payday::*;
 }
 pub use interface::*;
 
@@ -597,6 +872,158 @@ mod tx_impl {
         }
     }
     pub use del_emp_tx::*;
+
+    mod add_timecard {
+        use anyhow;
+        use chrono::NaiveDate;
+        use log::trace;
+
+        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+        use super::super::AddTimeCard;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct AddTimeCardTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            date: NaiveDate,
+            hours: f32,
+
+            db: T,
+        }
+        impl<T> AddTimeCardTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, date: NaiveDate, hours: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    date,
+                    hours,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for AddTimeCardTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> AddTimeCard for AddTimeCardTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            fn get_hours(&self) -> f32 {
+                self.hours
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for AddTimeCardTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("AddTimeCardTx::execute called");
+                AddTimeCard::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use add_timecard::*;
+
+    mod add_sales_receipt {
+        use anyhow;
+        use chrono::NaiveDate;
+        use log::trace;
+
+        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
+        use super::super::AddSalesReceipt;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgSalesReceipt トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct AddSalesReceiptTx<T>
+        where
+            T: EmpDao,
+        {
+            id: EmpId,
+            date: NaiveDate,
+            amount: f32,
+
+            db: T,
+        }
+        impl<T> AddSalesReceiptTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(id: EmpId, date: NaiveDate, amount: f32, dao: T) -> Self {
+                Self {
+                    id,
+                    date,
+                    amount,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for AddSalesReceiptTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> AddSalesReceipt for AddSalesReceiptTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_id(&self) -> EmpId {
+                self.id
+            }
+            fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            fn get_amount(&self) -> f32 {
+                self.amount
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for AddSalesReceiptTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("AddSalesReceiptTx::execute called");
+                AddSalesReceipt::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use add_sales_receipt::*;
 
     mod chg_name_tx {
         use anyhow;
@@ -1174,5 +1601,284 @@ mod tx_impl {
         }
     }
     pub use chg_mail_tx::*;
+
+    mod chg_member_tx {
+        use anyhow;
+        use log::trace;
+        use std::{cell::RefCell, rc::Rc};
+
+        use super::super::ChgMember;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::{EmpId, MemberId};
+        use payroll_impl::UnionAffiliation;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgMemberTx<T>
+        where
+            T: EmpDao,
+        {
+            member_id: MemberId,
+            emp_id: EmpId,
+            dues: f32,
+
+            db: T,
+        }
+        impl<T> ChgMemberTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(member_id: MemberId, emp_id: EmpId, dues: f32, dao: T) -> Self {
+                Self {
+                    member_id,
+                    emp_id,
+                    dues,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgMemberTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgMember for ChgMemberTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_member_id(&self) -> MemberId {
+                self.member_id
+            }
+            fn get_emp_id(&self) -> EmpId {
+                self.emp_id
+            }
+            fn get_dues(&self) -> f32 {
+                self.dues
+            }
+            fn get_affiliation(&self) -> Rc<RefCell<dyn payroll_domain::Affiliation>> {
+                Rc::new(RefCell::new(UnionAffiliation::new(
+                    self.get_member_id(),
+                    self.get_dues(),
+                )))
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgMemberTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgMemberTx::execute called");
+                ChgMember::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_member_tx::*;
+
+    mod chg_unaffiliated_tx {
+        use anyhow;
+        use log::trace;
+
+        use super::super::ChgUnaffiliated;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::EmpId;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct ChgUnaffiliatedTx<T>
+        where
+            T: EmpDao,
+        {
+            emp_id: EmpId,
+
+            db: T,
+        }
+        impl<T> ChgUnaffiliatedTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(emp_id: EmpId, dao: T) -> Self {
+                Self { emp_id, db: dao }
+            }
+        }
+
+        impl<T> HaveEmpDao for ChgUnaffiliatedTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> ChgUnaffiliated for ChgUnaffiliatedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_emp_id(&self) -> EmpId {
+                self.emp_id
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for ChgUnaffiliatedTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("ChgUnaffiliatedTx::execute called");
+                ChgUnaffiliated::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use chg_unaffiliated_tx::*;
+
+    mod add_service_charge_tx {
+        use anyhow;
+        use chrono::NaiveDate;
+        use log::trace;
+
+        use super::super::AddServiceCharge;
+        use dao::{EmpDao, HaveEmpDao};
+        use payroll_domain::MemberId;
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct AddServiceChargeTx<T>
+        where
+            T: EmpDao,
+        {
+            member_id: MemberId,
+            date: NaiveDate,
+            amount: f32,
+
+            db: T,
+        }
+        impl<T> AddServiceChargeTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(member_id: MemberId, date: NaiveDate, amount: f32, dao: T) -> Self {
+                Self {
+                    member_id,
+                    date,
+                    amount,
+                    db: dao,
+                }
+            }
+        }
+
+        impl<T> HaveEmpDao for AddServiceChargeTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> AddServiceCharge for AddServiceChargeTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_member_id(&self) -> MemberId {
+                self.member_id
+            }
+            fn get_date(&self) -> NaiveDate {
+                self.date
+            }
+            fn get_amount(&self) -> f32 {
+                self.amount
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for AddServiceChargeTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("AddServiceChargeTx::execute called");
+                AddServiceCharge::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use add_service_charge_tx::*;
+
+    mod payday_tx {
+        use anyhow;
+        use chrono::NaiveDate;
+        use log::trace;
+
+        use super::super::Payday;
+        use dao::{EmpDao, HaveEmpDao};
+        use tx_app::{Response, Transaction};
+
+        // ユースケース: ChgEmpName トランザクションの実装 (struct)
+        #[derive(Debug)]
+        pub struct PaydayTx<T>
+        where
+            T: EmpDao,
+        {
+            pay_date: NaiveDate,
+
+            db: T,
+        }
+        impl<T> PaydayTx<T>
+        where
+            T: EmpDao,
+        {
+            pub fn new(pay_date: NaiveDate, dao: T) -> Self {
+                Self { pay_date, db: dao }
+            }
+        }
+
+        impl<T> HaveEmpDao for PaydayTx<T>
+        where
+            T: EmpDao,
+        {
+            type Ctx<'a> = T::Ctx<'a>;
+
+            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+                &self.db
+            }
+        }
+        impl<T> Payday for PaydayTx<T>
+        where
+            T: EmpDao,
+        {
+            fn get_pay_date(&self) -> NaiveDate {
+                self.pay_date
+            }
+        }
+        // 共通インターフェースの実装
+        impl<T> Transaction for PaydayTx<T>
+        where
+            T: EmpDao,
+        {
+            fn execute(&self) -> Result<Response, anyhow::Error> {
+                trace!("PaydayTx::execute called");
+                Payday::execute(self)
+                    .map(|_| Response::Void)
+                    .map_err(Into::into)
+            }
+        }
+    }
+    pub use payday_tx::*;
 }
 pub use tx_impl::*;

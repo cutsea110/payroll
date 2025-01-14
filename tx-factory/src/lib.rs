@@ -1,8 +1,9 @@
 // TxFacotry の具体的な実装
+use chrono::NaiveDate;
 use log::trace;
 
 // tx_app にのみ依存 (domain は当然 ok)
-use payroll_domain::EmpId;
+use payroll_domain::{EmpId, MemberId};
 use tx_app::{Transaction, TxFactory};
 
 pub struct TxFactoryImpl<'a> {
@@ -10,6 +11,8 @@ pub struct TxFactoryImpl<'a> {
     pub add_hourly_emp: &'a dyn Fn(EmpId, &str, &str, f32) -> Box<dyn Transaction>,
     pub add_commissioned_emp: &'a dyn Fn(EmpId, &str, &str, f32, f32) -> Box<dyn Transaction>,
     pub del_emp: &'a dyn Fn(EmpId) -> Box<dyn Transaction>,
+    pub timecard: &'a dyn Fn(EmpId, NaiveDate, f32) -> Box<dyn Transaction>,
+    pub sales_receipt: &'a dyn Fn(EmpId, NaiveDate, f32) -> Box<dyn Transaction>,
     pub chg_emp_name: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
     pub chg_emp_address: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
     pub chg_salaried: &'a dyn Fn(EmpId, f32) -> Box<dyn Transaction>,
@@ -18,6 +21,10 @@ pub struct TxFactoryImpl<'a> {
     pub chg_hold_method: &'a dyn Fn(EmpId) -> Box<dyn Transaction>,
     pub chg_direct_method: &'a dyn Fn(EmpId, &str, &str) -> Box<dyn Transaction>,
     pub chg_mail_method: &'a dyn Fn(EmpId, &str) -> Box<dyn Transaction>,
+    pub add_union_member: &'a dyn Fn(EmpId, MemberId, f32) -> Box<dyn Transaction>,
+    pub del_union_member: &'a dyn Fn(EmpId) -> Box<dyn Transaction>,
+    pub service_charge: &'a dyn Fn(MemberId, NaiveDate, f32) -> Box<dyn Transaction>,
+    pub payday: &'a dyn Fn(NaiveDate) -> Box<dyn Transaction>,
 }
 impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_add_salaried_emp_tx(
@@ -54,6 +61,14 @@ impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_del_emp_tx(&self, id: EmpId) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_del_emp_tx called");
         (self.del_emp)(id)
+    }
+    fn mk_timecard_tx(&self, id: EmpId, date: NaiveDate, hours: f32) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_timecard_tx called");
+        (self.timecard)(id, date, hours)
+    }
+    fn mk_sales_receipt_tx(&self, id: EmpId, date: NaiveDate, amount: f32) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_sales_receipt_tx called");
+        (self.sales_receipt)(id, date, amount)
     }
     fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_chg_emp_name_tx called");
@@ -96,5 +111,31 @@ impl<'a> TxFactory for TxFactoryImpl<'a> {
     fn mk_chg_mail_method_tx(&self, id: EmpId, address: &str) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_chg_mail_method_tx called");
         (self.chg_mail_method)(id, address)
+    }
+    fn mk_chg_union_member_tx(
+        &self,
+        id: EmpId,
+        member_id: MemberId,
+        dues: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_union_member_tx called");
+        (self.add_union_member)(id, member_id, dues)
+    }
+    fn mk_chg_unaffiliated_tx(&self, id: EmpId) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_chg_unaffiliated_tx called");
+        (self.del_union_member)(id)
+    }
+    fn mk_service_charge_tx(
+        &self,
+        member_id: MemberId,
+        date: NaiveDate,
+        amount: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_service_charge_tx called");
+        (self.service_charge)(member_id, date, amount)
+    }
+    fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_payday_tx called");
+        (self.payday)(date)
     }
 }

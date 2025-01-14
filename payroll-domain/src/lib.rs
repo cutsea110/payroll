@@ -56,6 +56,9 @@ impl Emp {
     pub fn method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
         self.method.clone()
     }
+    pub fn affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+        self.affiliation.clone()
+    }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }
@@ -73,6 +76,21 @@ impl Emp {
     }
     pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
         self.affiliation = affiliation;
+    }
+    pub fn is_pay_date(&self, date: NaiveDate) -> bool {
+        self.schedule.borrow().is_pay_date(date)
+    }
+    pub fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
+        self.schedule.borrow().get_pay_period(pay_date)
+    }
+    pub fn payday(&self, pc: &mut Paycheck) {
+        let gross_pay = self.classification.borrow().calculate_pay(pc);
+        let deductions = self.affiliation.borrow().calculate_deductions(pc);
+        let net_pay = gross_pay - deductions;
+        pc.set_gross_pay(gross_pay);
+        pc.set_deductions(deductions);
+        pc.set_net_pay(net_pay);
+        self.method.borrow().pay(pc);
     }
 }
 

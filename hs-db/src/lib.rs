@@ -80,6 +80,15 @@ impl EmpDao for HashDB {
             tx.employees.get(&id).cloned().ok_or(DaoError::NotFound(id))
         })
     }
+    fn fetch_all<'a>(
+        &self,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmpId, Emp)>, Err = DaoError> {
+        trace!("HashDB::fetch_all called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!("HashDB::fetch_all::with_tx called");
+            Ok(tx.employees.iter().map(|(k, v)| (*k, v.clone())).collect())
+        })
+    }
     fn update<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::save called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
@@ -94,6 +103,73 @@ impl EmpDao for HashDB {
                 return Ok(());
             }
             Err(DaoError::NotFound(emp_id))
+        })
+    }
+    fn add_union_member<'a>(
+        &self,
+        member_id: MemberId,
+        emp_id: EmpId,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+        trace!("HashDB::add_union_member called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!(
+                "HashDB::add_union_member::with_tx called: member_id={},emp_id={}",
+                member_id,
+                emp_id
+            );
+            if tx.union_members.contains_key(&member_id) {
+                return Err(DaoError::UnionMemberAlreadyExists(member_id, emp_id));
+            }
+            tx.union_members.insert(member_id, emp_id);
+            Ok(())
+        })
+    }
+    fn remove_union_member<'a>(
+        &self,
+        member_id: MemberId,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+        trace!("HashDB::remove_union_member called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!(
+                "HashDB::remove_union_member::with_tx called: member_id={}",
+                member_id
+            );
+            if tx.union_members.remove(&member_id).is_none() {
+                return Err(DaoError::UnionMemberNotFound(member_id));
+            }
+            Ok(())
+        })
+    }
+    fn find_union_member<'a>(
+        &self,
+        member_id: MemberId,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmpId, Err = DaoError> {
+        trace!("HashDB::find_union_members called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!(
+                "HashDB::find_union_members::with_tx called: member_id={}",
+                member_id
+            );
+            tx.union_members
+                .get(&member_id)
+                .cloned()
+                .ok_or(DaoError::UnionMemberNotFound(member_id))
+        })
+    }
+    fn record_paycheck<'a>(
+        &self,
+        emp_id: EmpId,
+        pc: Paycheck,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+        trace!("HashDB::record_paycheck called");
+        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
+            trace!(
+                "HashDB::record_paycheck::with_tx called: emp_id={},paycheck={:?}",
+                emp_id,
+                pc
+            );
+            tx.paychecks.entry(emp_id).or_insert_with(Vec::new).push(pc);
+            Ok(())
         })
     }
 }

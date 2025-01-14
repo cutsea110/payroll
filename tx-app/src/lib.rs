@@ -61,7 +61,6 @@ mod tx_source {
         DelEmp(EmpId),
         TimeCard(EmpId, NaiveDate, f32),
         SalesReceipt(EmpId, NaiveDate, f32),
-        ServiceCharge(EmpId, NaiveDate, f32),
         ChgEmpName(EmpId, String),
         ChgEmpAddress(EmpId, String),
         ChgSalaried(EmpId, f32),
@@ -72,6 +71,7 @@ mod tx_source {
         ChgMail(EmpId, String),
         ChgMember(EmpId, MemberId, f32),
         ChgNoMember(EmpId),
+        ServiceCharge(MemberId, NaiveDate, f32),
         Payday(NaiveDate),
     }
     pub trait TxSource {
@@ -81,11 +81,12 @@ mod tx_source {
 pub use tx_source::*;
 
 mod tx_factory {
+    use chrono::NaiveDate;
     use log::trace;
 
     // なににも依存しない (domain は当然 ok)
     use super::{Transaction, Tx};
-    use payroll_domain::EmpId;
+    use payroll_domain::{EmpId, MemberId};
 
     pub trait TxFactory {
         fn convert(&self, src: Tx) -> Box<dyn Transaction> {
@@ -110,6 +111,14 @@ mod tx_factory {
                 Tx::DelEmp(id) => {
                     trace!("convert Tx::DelEmp by mk_del_emp_tx called");
                     self.mk_del_emp_tx(id)
+                }
+                Tx::TimeCard(id, date, hours) => {
+                    trace!("convert Tx::TimeCard by mk_time_card_tx called");
+                    self.mk_timecard_tx(id, date, hours)
+                }
+                Tx::SalesReceipt(id, date, amount) => {
+                    trace!("convert Tx::SalesReceipt by mk_sales_receipt_tx called");
+                    self.mk_sales_receipt_tx(id, date, amount)
                 }
                 Tx::ChgEmpAddress(id, new_address) => {
                     trace!("convert Tx::ChgEmpAddress by mk_chg_emp_address_tx called");
@@ -139,7 +148,22 @@ mod tx_factory {
                     trace!("convert Tx::ChgMailMethod by mk_chg_mail_method_tx called");
                     self.mk_chg_mail_method_tx(id, &address)
                 }
-                _ => unimplemented!(),
+                Tx::ChgMember(id, member_id, dues) => {
+                    trace!("convert Tx::ChgMember by mk_chg_member_tx called");
+                    self.mk_chg_union_member_tx(id, member_id, dues)
+                }
+                Tx::ChgNoMember(id) => {
+                    trace!("convert Tx::ChgNoMember by mk_chg_no_member_tx called");
+                    self.mk_chg_unaffiliated_tx(id)
+                }
+                Tx::ServiceCharge(member_id, date, amount) => {
+                    trace!("convert Tx::ServiceCharge by mk_service_charge_tx called");
+                    self.mk_service_charge_tx(member_id, date, amount)
+                }
+                Tx::Payday(date) => {
+                    trace!("convert Tx::Payday by mk_payday_tx called");
+                    self.mk_payday_tx(date)
+                }
             }
         }
 
@@ -166,6 +190,13 @@ mod tx_factory {
             commission_rate: f32,
         ) -> Box<dyn Transaction>;
         fn mk_del_emp_tx(&self, id: EmpId) -> Box<dyn Transaction>;
+        fn mk_timecard_tx(&self, id: EmpId, date: NaiveDate, hours: f32) -> Box<dyn Transaction>;
+        fn mk_sales_receipt_tx(
+            &self,
+            id: EmpId,
+            date: NaiveDate,
+            amount: f32,
+        ) -> Box<dyn Transaction>;
         fn mk_chg_emp_name_tx(&self, id: EmpId, new_name: &str) -> Box<dyn Transaction>;
         fn mk_chg_emp_address_tx(&self, id: EmpId, new_address: &str) -> Box<dyn Transaction>;
         fn mk_chg_salaried_tx(&self, id: EmpId, salary: f32) -> Box<dyn Transaction>;
@@ -184,6 +215,20 @@ mod tx_factory {
             account: &str,
         ) -> Box<dyn Transaction>;
         fn mk_chg_mail_method_tx(&self, id: EmpId, address: &str) -> Box<dyn Transaction>;
+        fn mk_chg_union_member_tx(
+            &self,
+            id: EmpId,
+            member_id: MemberId,
+            dues: f32,
+        ) -> Box<dyn Transaction>;
+        fn mk_chg_unaffiliated_tx(&self, id: EmpId) -> Box<dyn Transaction>;
+        fn mk_service_charge_tx(
+            &self,
+            member_id: MemberId,
+            date: NaiveDate,
+            amount: f32,
+        ) -> Box<dyn Transaction>;
+        fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction>;
     }
 }
 pub use tx_factory::*;

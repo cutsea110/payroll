@@ -48,7 +48,7 @@ mod classification {
                 timecards: vec![],
             }
         }
-        pub fn add_time_card(&mut self, date: NaiveDate, hours: f32) {
+        pub fn add_timecard(&mut self, date: NaiveDate, hours: f32) {
             self.timecards.push(TimeCard::new(date, hours));
         }
         fn calculate_pay_for_timecard(&self, tc: &TimeCard) -> f32 {
@@ -243,7 +243,7 @@ mod affiliation {
     }
 
     #[derive(Debug, Clone)]
-    struct UnionAffiliation {
+    pub struct UnionAffiliation {
         member_id: MemberId,
         dues: f32,
         service_charges: Vec<ServiceCharge>,
@@ -256,7 +256,7 @@ mod affiliation {
                 service_charges: vec![],
             }
         }
-        pub fn get_member_id(&self) -> MemberId {
+        pub fn member_id(&self) -> MemberId {
             self.member_id
         }
         pub fn add_service_charge(&mut self, date: NaiveDate, amount: f32) {

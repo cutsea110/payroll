@@ -7,8 +7,10 @@ fn main() -> Result<(), anyhow::Error> {
     use tx_app::TxApp;
     use tx_factory::TxFactoryImpl;
     use tx_impl::{
-        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, ChgCommissionedTx, ChgDirectTx,
-        ChgEmpAddressTx, ChgEmpNameTx, ChgHoldTx, ChgHourlyTx, ChgMailTx, ChgSalariedTx, DelEmpTx,
+        AddCommissionedEmpTx, AddHourlyEmpTx, AddSalariedEmpTx, AddSalesReceiptTx,
+        AddServiceChargeTx, AddTimeCardTx, ChgCommissionedTx, ChgDirectTx, ChgEmpAddressTx,
+        ChgEmpNameTx, ChgHoldTx, ChgHourlyTx, ChgMailTx, ChgMemberTx, ChgSalariedTx,
+        ChgUnaffiliatedTx, DelEmpTx, PaydayTx,
     };
 
     info!("TxApp starting");
@@ -44,6 +46,10 @@ fn main() -> Result<(), anyhow::Error> {
             ))
         },
         del_emp: &|id| Box::new(DelEmpTx::new(id, db.clone())),
+        timecard: &|id, date, hours| Box::new(AddTimeCardTx::new(id, date, hours, db.clone())),
+        sales_receipt: &|id, date, amount| {
+            Box::new(AddSalesReceiptTx::new(id, date, amount, db.clone()))
+        },
         chg_emp_name: &|id, new_name| Box::new(ChgEmpNameTx::new(id, new_name, db.clone())),
         chg_emp_address: &|id, new_address| {
             Box::new(ChgEmpAddressTx::new(id, new_address, db.clone()))
@@ -63,6 +69,14 @@ fn main() -> Result<(), anyhow::Error> {
             Box::new(ChgDirectTx::new(id, bank, account, db.clone()))
         },
         chg_mail_method: &|id, address| Box::new(ChgMailTx::new(id, address, db.clone())),
+        add_union_member: &|emp_id, member_id, dues| {
+            Box::new(ChgMemberTx::new(member_id, emp_id, dues, db.clone()))
+        },
+        del_union_member: &|id| Box::new(ChgUnaffiliatedTx::new(id, db.clone())),
+        service_charge: &|member_id, date, charge| {
+            Box::new(AddServiceChargeTx::new(member_id, date, charge, db.clone()))
+        },
+        payday: &|date| Box::new(PaydayTx::new(date, db.clone())),
     };
     let tx_app = TxApp::new(tx_source, tx_factory);
 
