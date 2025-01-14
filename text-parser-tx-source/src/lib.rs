@@ -26,7 +26,7 @@ impl TxSource for TextParserTxSource {
 }
 
 mod parser {
-    use log::debug;
+    use log::{debug, trace};
     use std::collections::VecDeque;
 
     use chrono::NaiveDate;
@@ -35,6 +35,7 @@ mod parser {
     use tx_app::Tx;
 
     pub fn read_txs(script: &str) -> VecDeque<Tx> {
+        trace!("read_txs called");
         let txs: VecDeque<Tx> = transactions()
             .parse(script)
             .map(|p| p.0.into())
@@ -48,8 +49,8 @@ mod parser {
     }
     pub fn transaction() -> impl Parser<Item = Tx> {
         go_through().skip(
-            add_salary_emp()
-                .or(add_hourly_emp())
+            add_hourly_emp()
+                .or(add_salary_emp())
                 .or(add_commissioned_emp())
                 .or(del_emp())
                 .or(time_card())
@@ -101,18 +102,6 @@ mod parser {
         }
 
         #[test]
-        fn test_add_salary_emp() {
-            let input = r#"AddEmp 42 "Bob" "Home" S 1000.0"#;
-            let result = transaction().parse(input);
-            assert_eq!(
-                result,
-                Ok((
-                    Tx::AddSalariedEmployee(42, "Bob".to_string(), "Home".to_string(), 1000.0),
-                    ""
-                ))
-            );
-        }
-        #[test]
         fn test_add_hourly_emp() {
             let input = r#"AddEmp 42 "Bob" "Home" H 1000.0"#;
             let result = transaction().parse(input);
@@ -120,6 +109,18 @@ mod parser {
                 result,
                 Ok((
                     Tx::AddHourlyEmployee(42, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    ""
+                ))
+            );
+        }
+        #[test]
+        fn test_add_salary_emp() {
+            let input = r#"AddEmp 42 "Bob" "Home" S 1000.0"#;
+            let result = transaction().parse(input);
+            assert_eq!(
+                result,
+                Ok((
+                    Tx::AddSalariedEmployee(42, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
@@ -230,7 +231,7 @@ mod parser {
         fn test_chg_hold() {
             let input = r#"ChgEmp 42 Hold"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::ChangeMethodHold(42), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeHold(42), "")));
         }
         #[test]
         fn test_chg_direct() {
@@ -239,7 +240,7 @@ mod parser {
             assert_eq!(
                 result,
                 Ok((
-                    Tx::ChangeMethodDirect(42, "mufg".to_string(), "1234567".to_string()),
+                    Tx::ChangeEmployeeDirect(42, "mufg".to_string(), "1234567".to_string()),
                     ""
                 ))
             );
@@ -250,20 +251,29 @@ mod parser {
             let result = transaction().parse(input);
             assert_eq!(
                 result,
-                Ok((Tx::ChangeMethodMail(42, "bob@gmail.com".to_string()), ""))
+                Ok((Tx::ChangeEmployeeMail(42, "bob@gmail.com".to_string()), ""))
             );
         }
         #[test]
         fn test_chg_member() {
             let input = r#"ChgEmp 42 Member 7234 Dues 9.45"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::AddUnionMember(42, 7234, 9.45,), "",)));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeMember(42, 7234, 9.45,), "",)));
         }
         #[test]
         fn test_no_member() {
             let input = r#"ChgEmp 42 NoMember"#;
             let result = transaction().parse(input);
-            assert_eq!(result, Ok((Tx::DeleteUnionMember(42), "")));
+            assert_eq!(result, Ok((Tx::ChangeEmployeeNoMember(42), "")));
+        }
+        #[test]
+        fn test_payday() {
+            let input = r#"Payday 2021-01-01"#;
+            let result = transaction().parse(input);
+            assert_eq!(
+                result,
+                Ok((Tx::Payday(NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()), ""))
+            );
         }
     }
 
@@ -273,41 +283,6 @@ mod parser {
         let ignore = space_comment.many1().map(|_| ()).or(spaces().map(|_| ()));
 
         spaces().skip(ignore).skip(spaces()).map(|_| ())
-    }
-
-    fn add_salary_emp() -> impl Parser<Item = Tx> {
-        let prefix = keyword("AddEmp").skip(spaces());
-        let emp_id = uint32().with(spaces());
-        let name = string().with(spaces());
-        let address = string().with(spaces());
-        let monthly_rate = char('S').skip(spaces()).skip(float32());
-
-        prefix
-            .skip(emp_id)
-            .join(name)
-            .join(address)
-            .join(monthly_rate)
-            .map(|(((emp_id, name), address), salary)| {
-                Tx::AddSalariedEmployee(emp_id, name, address, salary)
-            })
-    }
-    #[cfg(test)]
-    mod test_add_salary_emp {
-        use super::*;
-        use parsec_rs::Parser;
-
-        #[test]
-        fn test() {
-            let input = r#"AddEmp 1 "Bob" "Home" S 1000.0"#;
-            let result = add_salary_emp().parse(input);
-            assert_eq!(
-                result,
-                Ok((
-                    Tx::AddSalariedEmployee(1, "Bob".to_string(), "Home".to_string(), 1000.0),
-                    ""
-                ))
-            );
-        }
     }
 
     fn add_hourly_emp() -> impl Parser<Item = Tx> {
@@ -339,6 +314,41 @@ mod parser {
                 result,
                 Ok((
                     Tx::AddHourlyEmployee(1, "Bob".to_string(), "Home".to_string(), 1000.0),
+                    ""
+                ))
+            );
+        }
+    }
+
+    fn add_salary_emp() -> impl Parser<Item = Tx> {
+        let prefix = keyword("AddEmp").skip(spaces());
+        let emp_id = uint32().with(spaces());
+        let name = string().with(spaces());
+        let address = string().with(spaces());
+        let monthly_rate = char('S').skip(spaces()).skip(float32());
+
+        prefix
+            .skip(emp_id)
+            .join(name)
+            .join(address)
+            .join(monthly_rate)
+            .map(|(((emp_id, name), address), salary)| {
+                Tx::AddSalariedEmployee(emp_id, name, address, salary)
+            })
+    }
+    #[cfg(test)]
+    mod test_add_salary_emp {
+        use super::*;
+        use parsec_rs::Parser;
+
+        #[test]
+        fn test() {
+            let input = r#"AddEmp 1 "Bob" "Home" S 1000.0"#;
+            let result = add_salary_emp().parse(input);
+            assert_eq!(
+                result,
+                Ok((
+                    Tx::AddSalariedEmployee(1, "Bob".to_string(), "Home".to_string(), 1000.0),
                     ""
                 ))
             );
