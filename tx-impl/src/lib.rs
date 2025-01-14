@@ -44,14 +44,14 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
             Affiliation, Employee, EmployeeId, PaymentClassification, PaymentMethod,
             PaymentSchedule,
         };
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
-        pub trait AddEmp: HaveEmpDao {
+        pub trait AddEmp: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_name(&self) -> &str;
             fn get_address(&self) -> &str;
@@ -90,11 +90,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
-        pub trait DelEmp: HaveEmpDao {
+        pub trait DelEmp: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
 
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -121,11 +121,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
 
         // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
-        pub trait AddTimeCard: HaveEmpDao {
+        pub trait AddTimeCard: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_date(&self) -> NaiveDate;
             fn get_hours(&self) -> f32;
@@ -160,11 +160,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
 
         // ユースケース: AddSalesReceipt トランザクション(抽象レベルのビジネスロジック)
-        pub trait AddSalesReceipt: HaveEmpDao {
+        pub trait AddSalesReceipt: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_date(&self) -> NaiveDate;
             fn get_amount(&self) -> f32;
@@ -198,12 +198,12 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::MemberId;
         use payroll_impl::UnionAffiliation;
 
         // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
-        pub trait AddServiceCharge: HaveEmpDao {
+        pub trait AddServiceCharge: HaveEmployeeDao {
             fn get_member_id(&self) -> MemberId;
             fn get_date(&self) -> NaiveDate;
             fn get_amount(&self) -> f32;
@@ -238,11 +238,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
 
         // ユースケース: ChgEmpName トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgEmpName: HaveEmpDao {
+        pub trait ChgEmpName: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_new_name(&self) -> &str;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -272,11 +272,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
 
         // ユースケース: ChgEmpAddress トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgEmpAddress: HaveEmpDao {
+        pub trait ChgEmpAddress: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_new_address(&self) -> &str;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -307,11 +307,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule};
 
         // ユースケース: ChgClassification トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgClassification: HaveEmpDao {
+        pub trait ChgClassification: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
             fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
@@ -350,11 +350,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentMethod};
 
         // ユースケース: ChgMethod トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgMethod: HaveEmpDao {
+        pub trait ChgMethod: HaveEmployeeDao {
             fn get_id(&self) -> EmployeeId;
             fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -385,11 +385,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{Affiliation, EmployeeId, MemberId};
 
         // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgMember: HaveEmpDao {
+        pub trait ChgMember: HaveEmployeeDao {
             fn get_member_id(&self) -> MemberId;
             fn get_emp_id(&self) -> EmployeeId;
             fn get_dues(&self) -> f32;
@@ -432,12 +432,12 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, NoAffiliation};
         use payroll_impl::UnionAffiliation;
 
         // ユースケース: ChgMember トランザクション(抽象レベルのビジネスロジック)
-        pub trait ChgUnaffiliated: HaveEmpDao {
+        pub trait ChgUnaffiliated: HaveEmployeeDao {
             fn get_emp_id(&self) -> EmployeeId;
 
             fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
@@ -483,11 +483,11 @@ mod interface {
 
         // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::Paycheck;
 
         // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
-        pub trait Payday: HaveEmpDao {
+        pub trait Payday: HaveEmployeeDao {
             fn get_pay_date(&self) -> NaiveDate;
 
             fn execute<'a>(&self) -> Result<(), UsecaseError> {
@@ -523,7 +523,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmp;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
             Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
@@ -535,7 +535,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddSalariedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             name: String,
@@ -546,7 +546,7 @@ mod tx_impl {
         }
         impl<T> AddSalariedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, name: &str, address: &str, salary: f32, dao: T) -> Self {
                 Self {
@@ -560,19 +560,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddSalariedEmpTx<T>
+        impl<T> HaveEmployeeDao for AddSalariedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddEmp for AddSalariedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -599,7 +599,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddSalariedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddSalariedEmpTx::execute called");
@@ -618,7 +618,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmp;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
             Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
@@ -630,7 +630,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddHourlyEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             name: String,
@@ -641,7 +641,7 @@ mod tx_impl {
         }
         impl<T> AddHourlyEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(
                 id: EmployeeId,
@@ -661,19 +661,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddHourlyEmpTx<T>
+        impl<T> HaveEmployeeDao for AddHourlyEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddEmp for AddHourlyEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -700,7 +700,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddHourlyEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddHourlyEmpTx::execute called");
@@ -719,7 +719,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmp;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
             Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod,
             PaymentSchedule,
@@ -731,7 +731,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddCommissionedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             name: String,
@@ -743,7 +743,7 @@ mod tx_impl {
         }
         impl<T> AddCommissionedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(
                 id: EmployeeId,
@@ -765,19 +765,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddCommissionedEmpTx<T>
+        impl<T> HaveEmployeeDao for AddCommissionedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddEmp for AddCommissionedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -807,7 +807,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddCommissionedEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddCommissionedEmpTx::execute called");
@@ -825,7 +825,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::DelEmp;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -833,33 +833,33 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct DelEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             db: T,
         }
         impl<T> DelEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, dao: T) -> Self {
                 Self { id, db: dao }
             }
         }
 
-        impl<T> HaveEmpDao for DelEmpTx<T>
+        impl<T> HaveEmployeeDao for DelEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> DelEmp for DelEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -868,7 +868,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for DelEmpTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("DelEmpTx::execute called");
@@ -887,7 +887,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddTimeCard;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -895,7 +895,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddTimeCardTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             date: NaiveDate,
@@ -905,7 +905,7 @@ mod tx_impl {
         }
         impl<T> AddTimeCardTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, date: NaiveDate, hours: f32, dao: T) -> Self {
                 Self {
@@ -917,19 +917,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddTimeCardTx<T>
+        impl<T> HaveEmployeeDao for AddTimeCardTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddTimeCard for AddTimeCardTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -944,7 +944,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddTimeCardTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddTimeCardTx::execute called");
@@ -963,7 +963,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddSalesReceipt;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -971,7 +971,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddSalesReceiptTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             date: NaiveDate,
@@ -981,7 +981,7 @@ mod tx_impl {
         }
         impl<T> AddSalesReceiptTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, date: NaiveDate, amount: f32, dao: T) -> Self {
                 Self {
@@ -993,19 +993,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddSalesReceiptTx<T>
+        impl<T> HaveEmployeeDao for AddSalesReceiptTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddSalesReceipt for AddSalesReceiptTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1020,7 +1020,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddSalesReceiptTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddSalesReceiptTx::execute called");
@@ -1038,7 +1038,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChgEmpName;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -1046,7 +1046,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgEmpNameTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             new_name: String,
@@ -1054,7 +1054,7 @@ mod tx_impl {
         }
         impl<T> ChgEmpNameTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, new_name: &str, dao: T) -> Self {
                 Self {
@@ -1065,19 +1065,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgEmpNameTx<T>
+        impl<T> HaveEmployeeDao for ChgEmpNameTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgEmpName for ChgEmpNameTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1089,7 +1089,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgEmpNameTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgEmpNameTx::execute called");
@@ -1107,7 +1107,7 @@ mod tx_impl {
 
         // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChgEmpAddress;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -1115,7 +1115,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgEmpAddressTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             new_address: String,
@@ -1123,7 +1123,7 @@ mod tx_impl {
         }
         impl<T> ChgEmpAddressTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, new_address: &str, dao: T) -> Self {
                 Self {
@@ -1134,19 +1134,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgEmpAddressTx<T>
+        impl<T> HaveEmployeeDao for ChgEmpAddressTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgEmpAddress for ChgEmpAddressTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1158,7 +1158,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgEmpAddressTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgEmpAddressTx::execute called");
@@ -1176,7 +1176,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgClassification;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{MonthlySchedule, SalariedClassification};
         use tx_app::{Response, Transaction};
@@ -1185,7 +1185,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgSalariedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             salary: f32,
@@ -1194,7 +1194,7 @@ mod tx_impl {
         }
         impl<T> ChgSalariedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, salary: f32, dao: T) -> Self {
                 Self {
@@ -1205,19 +1205,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgSalariedTx<T>
+        impl<T> HaveEmployeeDao for ChgSalariedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgClassification for ChgSalariedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1232,7 +1232,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgSalariedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgSalariedTx::execute called");
@@ -1250,7 +1250,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgClassification;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{HourlyClassification, WeeklySchedule};
         use tx_app::{Response, Transaction};
@@ -1259,7 +1259,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgHourlyTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             hourly_rate: f32,
@@ -1268,7 +1268,7 @@ mod tx_impl {
         }
         impl<T> ChgHourlyTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, hourly_rate: f32, dao: T) -> Self {
                 Self {
@@ -1279,19 +1279,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgHourlyTx<T>
+        impl<T> HaveEmployeeDao for ChgHourlyTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgClassification for ChgHourlyTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1306,7 +1306,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgHourlyTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgHourlyTx::execute called");
@@ -1324,7 +1324,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgClassification;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentClassification};
         use payroll_impl::{BiweeklySchedule, CommissionedClassification};
         use tx_app::{Response, Transaction};
@@ -1333,7 +1333,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgCommissionedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             salary: f32,
@@ -1343,7 +1343,7 @@ mod tx_impl {
         }
         impl<T> ChgCommissionedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, salary: f32, commission_rate: f32, dao: T) -> Self {
                 Self {
@@ -1356,19 +1356,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgCommissionedTx<T>
+        impl<T> HaveEmployeeDao for ChgCommissionedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgClassification for ChgCommissionedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1386,7 +1386,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgCommissionedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgCommissionedTx::execute called");
@@ -1404,7 +1404,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgMethod;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::HoldMethod;
         use tx_app::{Response, Transaction};
@@ -1413,7 +1413,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgHoldTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
 
@@ -1421,26 +1421,26 @@ mod tx_impl {
         }
         impl<T> ChgHoldTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, dao: T) -> Self {
                 Self { id, db: dao }
             }
         }
 
-        impl<T> HaveEmpDao for ChgHoldTx<T>
+        impl<T> HaveEmployeeDao for ChgHoldTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgMethod for ChgHoldTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1452,7 +1452,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgHoldTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgHoldTx::execute called");
@@ -1470,7 +1470,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgMethod;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::DirectMethod;
         use tx_app::{Response, Transaction};
@@ -1479,7 +1479,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgDirectTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             bank: String,
@@ -1489,7 +1489,7 @@ mod tx_impl {
         }
         impl<T> ChgDirectTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, bank: &str, account: &str, dao: T) -> Self {
                 Self {
@@ -1501,19 +1501,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgDirectTx<T>
+        impl<T> HaveEmployeeDao for ChgDirectTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgMethod for ChgDirectTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1525,7 +1525,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgDirectTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgDirectTx::execute called");
@@ -1543,7 +1543,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgMethod;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentMethod};
         use payroll_impl::MailMethod;
         use tx_app::{Response, Transaction};
@@ -1552,7 +1552,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgMailTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             id: EmployeeId,
             address: String,
@@ -1561,7 +1561,7 @@ mod tx_impl {
         }
         impl<T> ChgMailTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(id: EmployeeId, address: &str, dao: T) -> Self {
                 Self {
@@ -1573,19 +1573,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgMailTx<T>
+        impl<T> HaveEmployeeDao for ChgMailTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgMethod for ChgMailTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_id(&self) -> EmployeeId {
                 self.id
@@ -1597,7 +1597,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgMailTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgMailTx::execute called");
@@ -1615,7 +1615,7 @@ mod tx_impl {
         use std::{cell::RefCell, rc::Rc};
 
         use super::super::ChgMember;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, MemberId};
         use payroll_impl::UnionAffiliation;
         use tx_app::{Response, Transaction};
@@ -1624,7 +1624,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgMemberTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             member_id: MemberId,
             emp_id: EmployeeId,
@@ -1634,7 +1634,7 @@ mod tx_impl {
         }
         impl<T> ChgMemberTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(member_id: MemberId, emp_id: EmployeeId, dues: f32, dao: T) -> Self {
                 Self {
@@ -1646,19 +1646,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for ChgMemberTx<T>
+        impl<T> HaveEmployeeDao for ChgMemberTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgMember for ChgMemberTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_member_id(&self) -> MemberId {
                 self.member_id
@@ -1679,7 +1679,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgMemberTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgMemberTx::execute called");
@@ -1696,7 +1696,7 @@ mod tx_impl {
         use log::trace;
 
         use super::super::ChgUnaffiliated;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
         use tx_app::{Response, Transaction};
 
@@ -1704,7 +1704,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct ChgUnaffiliatedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             emp_id: EmployeeId,
 
@@ -1712,26 +1712,26 @@ mod tx_impl {
         }
         impl<T> ChgUnaffiliatedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(emp_id: EmployeeId, dao: T) -> Self {
                 Self { emp_id, db: dao }
             }
         }
 
-        impl<T> HaveEmpDao for ChgUnaffiliatedTx<T>
+        impl<T> HaveEmployeeDao for ChgUnaffiliatedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> ChgUnaffiliated for ChgUnaffiliatedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_emp_id(&self) -> EmployeeId {
                 self.emp_id
@@ -1740,7 +1740,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for ChgUnaffiliatedTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("ChgUnaffiliatedTx::execute called");
@@ -1758,7 +1758,7 @@ mod tx_impl {
         use log::trace;
 
         use super::super::AddServiceCharge;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::MemberId;
         use tx_app::{Response, Transaction};
 
@@ -1766,7 +1766,7 @@ mod tx_impl {
         #[derive(Debug)]
         pub struct AddServiceChargeTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             member_id: MemberId,
             date: NaiveDate,
@@ -1776,7 +1776,7 @@ mod tx_impl {
         }
         impl<T> AddServiceChargeTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(member_id: MemberId, date: NaiveDate, amount: f32, dao: T) -> Self {
                 Self {
@@ -1788,19 +1788,19 @@ mod tx_impl {
             }
         }
 
-        impl<T> HaveEmpDao for AddServiceChargeTx<T>
+        impl<T> HaveEmployeeDao for AddServiceChargeTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> AddServiceCharge for AddServiceChargeTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_member_id(&self) -> MemberId {
                 self.member_id
@@ -1815,7 +1815,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for AddServiceChargeTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("AddServiceChargeTx::execute called");
@@ -1833,14 +1833,14 @@ mod tx_impl {
         use log::trace;
 
         use super::super::Payday;
-        use dao::{EmpDao, HaveEmpDao};
+        use dao::{EmployeeDao, HaveEmployeeDao};
         use tx_app::{Response, Transaction};
 
         // ユースケース: ChgEmpName トランザクションの実装 (struct)
         #[derive(Debug)]
         pub struct PaydayTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pay_date: NaiveDate,
 
@@ -1848,26 +1848,26 @@ mod tx_impl {
         }
         impl<T> PaydayTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             pub fn new(pay_date: NaiveDate, dao: T) -> Self {
                 Self { pay_date, db: dao }
             }
         }
 
-        impl<T> HaveEmpDao for PaydayTx<T>
+        impl<T> HaveEmployeeDao for PaydayTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             type Ctx<'a> = T::Ctx<'a>;
 
-            fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>> {
+            fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>> {
                 &self.db
             }
         }
         impl<T> Payday for PaydayTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn get_pay_date(&self) -> NaiveDate {
                 self.pay_date
@@ -1876,7 +1876,7 @@ mod tx_impl {
         // 共通インターフェースの実装
         impl<T> Transaction for PaydayTx<T>
         where
-            T: EmpDao,
+            T: EmployeeDao,
         {
             fn execute(&self) -> Result<Response, anyhow::Error> {
                 trace!("PaydayTx::execute called");

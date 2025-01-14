@@ -7,10 +7,10 @@ use std::{
 };
 
 // dao にのみ依存 (domain は当然 ok)
-use dao::{DaoError, EmpDao};
+use dao::{DaoError, EmployeeDao};
 use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
-// DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
+// DB の実装 HashDB は EmployeeDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
 #[derive(Debug, Clone)]
 pub struct HashDB {
     // HashDB を DBMS として EmpDb がデータベースを表現
@@ -34,8 +34,8 @@ pub struct EmpDb {
     union_members: HashMap<MemberId, EmployeeId>,
     paychecks: HashMap<EmployeeId, Vec<Paycheck>>,
 }
-// DB の実装ごとに EmpDao トレイトを実装する
-impl EmpDao for HashDB {
+// DB の実装ごとに EmployeeDao トレイトを実装する
+impl EmployeeDao for HashDB {
     type Ctx<'a> = RefMut<'a, EmpDb>;
 
     fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>

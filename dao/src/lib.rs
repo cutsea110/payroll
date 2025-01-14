@@ -17,7 +17,7 @@ pub enum DaoError {
 }
 
 // Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
-pub trait EmpDao {
+pub trait EmployeeDao {
     type Ctx<'a>;
 
     fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>
@@ -61,8 +61,8 @@ pub trait EmpDao {
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
 }
 
-pub trait HaveEmpDao {
+pub trait HaveEmployeeDao {
     type Ctx<'a>;
 
-    fn dao<'a>(&self) -> &impl EmpDao<Ctx<'a> = Self::Ctx<'a>>;
+    fn dao<'a>(&self) -> &impl EmployeeDao<Ctx<'a> = Self::Ctx<'a>>;
 }
