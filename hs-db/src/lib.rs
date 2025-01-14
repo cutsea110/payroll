@@ -8,7 +8,7 @@ use std::{
 
 // dao にのみ依存 (domain は当然 ok)
 use dao::{DaoError, EmpDao};
-use payroll_domain::{Emp, EmployeeId, MemberId, Paycheck};
+use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
 // DB の実装 HashDB は EmpDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
 #[derive(Debug, Clone)]
@@ -30,7 +30,7 @@ impl HashDB {
 }
 #[derive(Debug, Clone)]
 pub struct EmpDb {
-    employees: HashMap<EmployeeId, Emp>,
+    employees: HashMap<EmployeeId, Employee>,
     union_members: HashMap<MemberId, EmployeeId>,
     paychecks: HashMap<EmployeeId, Vec<Paycheck>>,
 }
@@ -49,7 +49,7 @@ impl EmpDao for HashDB {
 
     fn insert<'a>(
         &self,
-        emp: Emp,
+        emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
         trace!("HashDB::insert called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
@@ -82,7 +82,7 @@ impl EmpDao for HashDB {
     fn fetch<'a>(
         &self,
         id: EmployeeId,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError> {
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Employee, Err = DaoError> {
         trace!("HashDB::fetch called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::fetch::with_tx called: id={}", id);
@@ -91,14 +91,17 @@ impl EmpDao for HashDB {
     }
     fn fetch_all<'a>(
         &self,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Emp)>, Err = DaoError> {
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Employee)>, Err = DaoError> {
         trace!("HashDB::fetch_all called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!("HashDB::fetch_all::with_tx called");
             Ok(tx.employees.iter().map(|(k, v)| (*k, v.clone())).collect())
         })
     }
-    fn update<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+    fn update<'a>(
+        &self,
+        emp: Employee,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
         trace!("HashDB::save called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();

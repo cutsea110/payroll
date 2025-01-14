@@ -46,7 +46,8 @@ mod interface {
         use super::UsecaseError;
         use dao::{EmpDao, HaveEmpDao};
         use payroll_domain::{
-            Affiliation, Emp, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
+            Affiliation, Employee, EmployeeId, PaymentClassification, PaymentMethod,
+            PaymentSchedule,
         };
 
         // ユースケース: AddEmp トランザクション(抽象レベルのビジネスロジック)
@@ -64,7 +65,7 @@ mod interface {
                 self.dao()
                     .run_tx(|mut ctx| {
                         trace!("AddEmp::run_tx called");
-                        let emp = Emp::new(
+                        let emp = Employee::new(
                             self.get_id(),
                             self.get_name(),
                             self.get_address(),
@@ -189,6 +190,47 @@ mod interface {
         }
     }
     pub use add_sales_receipt::*;
+
+    mod add_service_charge {
+        use chrono::NaiveDate;
+        use log::trace;
+        use tx_rs::Tx;
+
+        // dao にのみ依存 (domain は当然 ok)
+        use super::UsecaseError;
+        use dao::{DaoError, EmpDao, HaveEmpDao};
+        use payroll_domain::MemberId;
+        use payroll_impl::UnionAffiliation;
+
+        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
+        pub trait AddServiceCharge: HaveEmpDao {
+            fn get_member_id(&self) -> MemberId;
+            fn get_date(&self) -> NaiveDate;
+            fn get_amount(&self) -> f32;
+
+            fn execute<'a>(&self) -> Result<(), UsecaseError> {
+                trace!("AddServiceCharge::execute called");
+                self.dao()
+                    .run_tx(|mut ctx| {
+                        trace!("AddServiceCharge::run_tx called");
+                        let emp_id = self
+                            .dao()
+                            .find_union_member(self.get_member_id())
+                            .run(&mut ctx)?;
+                        let emp = self.dao().fetch(emp_id).run(&mut ctx)?;
+                        emp.affiliation()
+                            .borrow_mut()
+                            .as_any_mut()
+                            .downcast_mut::<UnionAffiliation>()
+                            .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
+                            .add_service_charge(self.get_date(), self.get_amount());
+                        self.dao().update(emp).run(&mut ctx)
+                    })
+                    .map_err(UsecaseError::AddServiceChargeFailed)
+            }
+        }
+    }
+    pub use add_service_charge::*;
 
     mod chg_name {
         use log::{debug, trace};
@@ -433,47 +475,6 @@ mod interface {
         }
     }
     pub use chg_unaffiliated::*;
-
-    mod add_service_charge {
-        use chrono::NaiveDate;
-        use log::trace;
-        use tx_rs::Tx;
-
-        // dao にのみ依存 (domain は当然 ok)
-        use super::UsecaseError;
-        use dao::{DaoError, EmpDao, HaveEmpDao};
-        use payroll_domain::MemberId;
-        use payroll_impl::UnionAffiliation;
-
-        // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
-        pub trait AddServiceCharge: HaveEmpDao {
-            fn get_member_id(&self) -> MemberId;
-            fn get_date(&self) -> NaiveDate;
-            fn get_amount(&self) -> f32;
-
-            fn execute<'a>(&self) -> Result<(), UsecaseError> {
-                trace!("AddServiceCharge::execute called");
-                self.dao()
-                    .run_tx(|mut ctx| {
-                        trace!("AddServiceCharge::run_tx called");
-                        let emp_id = self
-                            .dao()
-                            .find_union_member(self.get_member_id())
-                            .run(&mut ctx)?;
-                        let emp = self.dao().fetch(emp_id).run(&mut ctx)?;
-                        emp.affiliation()
-                            .borrow_mut()
-                            .as_any_mut()
-                            .downcast_mut::<UnionAffiliation>()
-                            .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
-                            .add_service_charge(self.get_date(), self.get_amount());
-                        self.dao().update(emp).run(&mut ctx)
-                    })
-                    .map_err(UsecaseError::AddServiceChargeFailed)
-            }
-        }
-    }
-    pub use add_service_charge::*;
 
     mod payday {
         use chrono::NaiveDate;

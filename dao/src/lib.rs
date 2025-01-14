@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use payroll_domain::{Emp, EmployeeId, MemberId};
+use payroll_domain::{Employee, EmployeeId, MemberId};
 
 #[derive(Debug, Clone, Error)]
 pub enum DaoError {
@@ -26,7 +26,7 @@ pub trait EmpDao {
 
     fn insert<'a>(
         &self,
-        emp: Emp,
+        emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError>;
     fn remove<'a>(
         &self,
@@ -35,11 +35,12 @@ pub trait EmpDao {
     fn fetch<'a>(
         &self,
         id: EmployeeId,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Emp, Err = DaoError>;
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Employee, Err = DaoError>;
     fn fetch_all<'a>(
         &self,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Emp)>, Err = DaoError>;
-    fn update<'a>(&self, emp: Emp) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Employee)>, Err = DaoError>;
+    fn update<'a>(&self, emp: Employee)
+        -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
     fn add_union_member<'a>(
         &self,
         member_id: MemberId,

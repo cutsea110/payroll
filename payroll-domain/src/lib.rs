@@ -6,7 +6,7 @@ pub type EmployeeId = u32;
 pub type MemberId = u32;
 
 #[derive(Debug, Clone)]
-pub struct Emp {
+pub struct Employee {
     id: EmployeeId,
     name: String,
     address: String,
@@ -17,7 +17,7 @@ pub struct Emp {
     affiliation: Rc<RefCell<dyn Affiliation>>,
 }
 
-impl Emp {
+impl Employee {
     pub fn new(
         id: EmployeeId,
         name: &str,
