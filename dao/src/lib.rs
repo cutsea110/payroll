@@ -16,7 +16,6 @@ pub enum DaoError {
     UnexpectedError(String),
 }
 
-// Dao のインターフェース (AddEmpTx にはこちらにだけ依存させる)
 pub trait EmployeeDao {
     type Ctx<'a>;
 

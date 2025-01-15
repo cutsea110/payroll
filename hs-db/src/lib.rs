@@ -6,11 +6,9 @@ use std::{
     rc::Rc,
 };
 
-// dao にのみ依存 (domain は当然 ok)
 use dao::{DaoError, EmployeeDao};
 use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
-// DB の実装 HashDB は EmployeeDao にのみ依存する かつ HashDB に依存するものはなにもない!! (main 以外には!)
 #[derive(Debug, Clone)]
 pub struct HashDB {
     // HashDB を DBMS として EmpDb がデータベースを表現

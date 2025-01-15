@@ -1,6 +1,5 @@
 use chrono::NaiveDate;
 
-// なににも依存しない (domain は当然 ok)
 use payroll_domain::{EmployeeId, MemberId};
 use tx_app::Transaction;
 

@@ -24,7 +24,7 @@ where
 
 mod tx {
     use anyhow;
-    // なににも依存しない (domain は当然 ok)
+
     use payroll_domain::EmployeeId;
 
     // トランザクションのインターフェース
@@ -40,7 +40,6 @@ mod tx {
 pub use tx::*;
 
 mod tx_source {
-    // なににも依存しない (domain は当然 ok)
     use super::Transaction;
 
     pub trait TxSource {

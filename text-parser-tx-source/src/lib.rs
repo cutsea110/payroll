@@ -1,9 +1,7 @@
-// TxSource の具体的な実装
 use chrono::NaiveDate;
 use log::{debug, trace};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
-// tx_app にのみ依存
 use payroll_domain::{EmployeeId, MemberId};
 use tx_app::{Transaction, TxSource};
 use tx_factory::TxFactory;

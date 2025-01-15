@@ -1,8 +1,6 @@
-// ユースケースのトランザクションのインターフェース
 mod interface {
     use thiserror::Error;
 
-    // dao にのみ依存
     use dao::DaoError;
 
     #[derive(Debug, Clone, Error)]
@@ -42,7 +40,6 @@ mod interface {
         use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
@@ -88,7 +85,6 @@ mod interface {
         use log::{debug, trace};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -119,7 +115,6 @@ mod interface {
         use payroll_impl::HourlyClassification;
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -158,7 +153,6 @@ mod interface {
         use payroll_impl::CommissionedClassification;
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -196,7 +190,6 @@ mod interface {
         use log::trace;
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::MemberId;
@@ -236,7 +229,6 @@ mod interface {
         use log::{debug, trace};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -270,7 +262,6 @@ mod interface {
         use log::{debug, trace};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -305,7 +296,6 @@ mod interface {
         use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentClassification, PaymentSchedule};
@@ -348,7 +338,6 @@ mod interface {
         use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, PaymentMethod};
@@ -383,7 +372,6 @@ mod interface {
         use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{Affiliation, EmployeeId, MemberId};
@@ -430,7 +418,6 @@ mod interface {
         use std::{cell::RefCell, rc::Rc};
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{EmployeeId, NoAffiliation};
@@ -481,7 +468,6 @@ mod interface {
         use log::trace;
         use tx_rs::Tx;
 
-        // dao にのみ依存 (domain は当然 ok)
         use super::UsecaseError;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::Paycheck;
@@ -514,14 +500,12 @@ mod interface {
 }
 pub use interface::*;
 
-// ユースケースのトランザクションの実装
 mod tx_impl {
     mod add_hourly_emp_tx {
         use anyhow;
         use log::trace;
         use std::{cell::RefCell, rc::Rc};
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmployee;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
@@ -621,7 +605,6 @@ mod tx_impl {
         use log::trace;
         use std::{cell::RefCell, rc::Rc};
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmployee;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
@@ -715,7 +698,6 @@ mod tx_impl {
         use log::trace;
         use std::{cell::RefCell, rc::Rc};
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddEmployee;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::{
@@ -820,7 +802,6 @@ mod tx_impl {
         use anyhow;
         use log::trace;
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::DeleteEmployee;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -882,7 +863,6 @@ mod tx_impl {
         use chrono::NaiveDate;
         use log::trace;
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddTimeCard;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -958,7 +938,6 @@ mod tx_impl {
         use chrono::NaiveDate;
         use log::trace;
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::AddSalesReceipt;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -1108,7 +1087,6 @@ mod tx_impl {
         use anyhow;
         use log::trace;
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChangeEmployeeName;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -1177,7 +1155,6 @@ mod tx_impl {
         use anyhow;
         use log::trace;
 
-        // dao と tx_app のインターフェースにのみ依存 (domain は当然 ok)
         use super::super::ChangeEmployeeAddress;
         use dao::{EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
@@ -1882,11 +1859,9 @@ mod tx_impl {
 pub use tx_impl::*;
 
 mod tx_factory_impl {
-    // TxFacotry の具体的な実装
     use chrono::NaiveDate;
     use log::trace;
 
-    // dao と tx_app に依存 (domain は当然 ok)
     use dao::EmployeeDao;
     use payroll_domain::{EmployeeId, MemberId};
     use tx_app::Transaction;
