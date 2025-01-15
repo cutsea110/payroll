@@ -112,12 +112,12 @@ mod interface {
     mod add_timecard {
         use chrono::NaiveDate;
         use log::trace;
-        use payroll_impl::HourlyClassification;
         use tx_rs::Tx;
 
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
+        use payroll_impl::HourlyClassification;
 
         // ユースケース: AddTimeCard トランザクション(抽象レベルのビジネスロジック)
         pub trait AddTimeCard: HaveEmployeeDao {
@@ -150,12 +150,12 @@ mod interface {
     mod add_sales_receipt {
         use chrono::NaiveDate;
         use log::trace;
-        use payroll_impl::CommissionedClassification;
         use tx_rs::Tx;
 
         use super::UsecaseError;
         use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
         use payroll_domain::EmployeeId;
+        use payroll_impl::CommissionedClassification;
 
         // ユースケース: AddSalesReceipt トランザクション(抽象レベルのビジネスロジック)
         pub trait AddSalesReceipt: HaveEmployeeDao {
