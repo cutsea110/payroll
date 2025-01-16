@@ -1,12 +1,12 @@
+use log::info;
+use std::fs;
+
+use hs_db::HashDB;
+use text_parser_tx_source::TextParserTxSource;
+use tx_app::TxApp;
+use tx_impl::TxFactoryImpl;
+
 fn main() -> Result<(), anyhow::Error> {
-    use log::info;
-    use std::fs;
-
-    use hs_db::HashDB;
-    use text_parser_tx_source::TextParserTxSource;
-    use tx_app::TxApp;
-    use tx_impl::TxFactoryImpl;
-
     info!("TxApp starting");
     env_logger::init();
 
