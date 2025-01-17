@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 
 use crate::tx_source::TxSource;
 
@@ -18,7 +18,8 @@ where
     pub fn run(&self) -> Result<(), anyhow::Error> {
         trace!("TxApp::run called");
         while let Some(tx) = self.tx_source.get_tx_source() {
-            tx.execute()?;
+            let val = tx.execute()?;
+            debug!("TxApp::run: tx.execute() returned {:?}", val);
         }
         Ok(())
     }
