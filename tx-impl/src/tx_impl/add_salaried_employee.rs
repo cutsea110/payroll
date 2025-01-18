@@ -5,16 +5,17 @@ use std::{cell::RefCell, rc::Rc};
 use crate::AddEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{
-    Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
+    Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
-use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
+use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddSalariedEmployee トランザクションの実装 (struct)
 #[derive(Debug)]
-pub struct AddSalariedEmployeeTx<T>
+pub struct AddSalariedEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     id: EmployeeId,
     name: String,
@@ -22,25 +23,36 @@ where
     salary: f32,
 
     dao: T,
+    payroll_factory: F,
 }
-impl<T> AddSalariedEmployeeTx<T>
+impl<T, F> AddSalariedEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
-    pub fn new(id: EmployeeId, name: &str, address: &str, salary: f32, dao: T) -> Self {
+    pub fn new(
+        id: EmployeeId,
+        name: &str,
+        address: &str,
+        salary: f32,
+        dao: T,
+        payroll_factory: F,
+    ) -> Self {
         Self {
             id,
             name: name.to_string(),
             address: address.to_string(),
             salary,
             dao,
+            payroll_factory,
         }
     }
 }
 
-impl<T> HaveEmployeeDao for AddSalariedEmployeeTx<T>
+impl<T, F> HaveEmployeeDao for AddSalariedEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
@@ -48,9 +60,10 @@ where
         &self.dao
     }
 }
-impl<T> AddEmployee for AddSalariedEmployeeTx<T>
+impl<T, F> AddEmployee for AddSalariedEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
@@ -62,22 +75,23 @@ where
         &self.address
     }
     fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(SalariedClassification::new(self.salary)))
+        self.payroll_factory.mk_salaried_classification(self.salary)
     }
     fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(MonthlySchedule))
+        self.payroll_factory.mk_monthly_schedule()
     }
     fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(HoldMethod))
+        self.payroll_factory.mk_hold_method()
     }
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-        Rc::new(RefCell::new(NoAffiliation))
+        self.payroll_factory.mk_no_affiliation()
     }
 }
 // 共通インターフェースの実装
-impl<T> Transaction for AddSalariedEmployeeTx<T>
+impl<T, F> Transaction for AddSalariedEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("AddSalariedEmployeeTx::execute called");

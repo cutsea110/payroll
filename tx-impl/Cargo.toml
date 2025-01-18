@@ -15,6 +15,7 @@ tx-rs.workspace = true
 
 dao = { path = "../dao" }
 payroll-domain = { path = "../payroll-domain" }
+payroll-factory = { path = "../payroll-factory" }
 payroll-impl = { path = "../payroll-impl" }
 tx-app = { path = "../tx-app" }
 tx-factory = { path = "../tx-factory" }

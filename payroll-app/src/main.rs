@@ -2,6 +2,7 @@ use log::info;
 use std::fs;
 
 use hs_db::HashDB;
+use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
 use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
@@ -12,7 +13,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     let db = HashDB::new();
     info!("DB initialized: {:?}", db);
-    let tx_factory = TxFactoryImpl::new(db.clone());
+    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
     let script_path = "script/test.scr";
     info!("Reading script: {}", script_path);

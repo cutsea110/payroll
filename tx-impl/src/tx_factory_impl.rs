@@ -3,6 +3,7 @@ use log::trace;
 
 use dao::EmployeeDao;
 use payroll_domain::{EmployeeId, MemberId};
+use payroll_factory::PayrollFactory;
 use tx_app::Transaction;
 use tx_factory::TxFactory;
 
@@ -13,23 +14,30 @@ use crate::{
     ChangeMemberTx, ChangeNoMemberTx, ChangeSalariedTx, DeleteEmployeeTx, PaydayTx,
 };
 
-pub struct TxFactoryImpl<T>
+pub struct TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone,
+    F: PayrollFactory + Clone,
 {
     dao: T,
+    payroll_factory: F,
 }
-impl<T> TxFactoryImpl<T>
+impl<T, F> TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone,
+    F: PayrollFactory + Clone,
 {
-    pub fn new(dao: T) -> Self {
-        Self { dao }
+    pub fn new(dao: T, payroll_factory: F) -> Self {
+        Self {
+            dao,
+            payroll_factory,
+        }
     }
 }
-impl<T> TxFactory for TxFactoryImpl<T>
+impl<T, F> TxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
 {
     fn mk_add_hourly_employee_tx(
         &self,
@@ -45,6 +53,7 @@ where
             address,
             hourly_rate,
             self.dao.clone(),
+            self.payroll_factory.clone(),
         ))
     }
     fn mk_add_salaried_employee_tx(
@@ -61,6 +70,7 @@ where
             address,
             salary,
             self.dao.clone(),
+            self.payroll_factory.clone(),
         ))
     }
     fn mk_add_commissioned_employee_tx(
@@ -79,6 +89,7 @@ where
             salary,
             commission_rate,
             self.dao.clone(),
+            self.payroll_factory.clone(),
         ))
     }
     fn mk_delete_employee_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
@@ -134,11 +145,21 @@ where
         hourly_rate: f32,
     ) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_hourly_tx called");
-        Box::new(ChangeHourlyTx::new(id, hourly_rate, self.dao.clone()))
+        Box::new(ChangeHourlyTx::new(
+            id,
+            hourly_rate,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_change_employee_salaried_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_salaried_tx called");
-        Box::new(ChangeSalariedTx::new(id, salary, self.dao.clone()))
+        Box::new(ChangeSalariedTx::new(
+            id,
+            salary,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_change_employee_commissioned_tx(
         &self,
@@ -152,11 +173,16 @@ where
             salary,
             commission_rate,
             self.dao.clone(),
+            self.payroll_factory.clone(),
         ))
     }
     fn mk_change_employee_hold_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_hold_tx called");
-        Box::new(ChangeHoldTx::new(id, self.dao.clone()))
+        Box::new(ChangeHoldTx::new(
+            id,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_change_employee_direct_tx(
         &self,
@@ -165,11 +191,22 @@ where
         account: &str,
     ) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_direct_tx called");
-        Box::new(ChangeDirectTx::new(id, bank, account, self.dao.clone()))
+        Box::new(ChangeDirectTx::new(
+            id,
+            bank,
+            account,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_change_employee_mail_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_mail_tx called");
-        Box::new(ChangeMailTx::new(id, address, self.dao.clone()))
+        Box::new(ChangeMailTx::new(
+            id,
+            address,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_change_employee_member_tx(
         &self,
@@ -183,6 +220,7 @@ where
             emp_id,
             dues,
             self.dao.clone(),
+            self.payroll_factory.clone(),
         ))
     }
     fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {

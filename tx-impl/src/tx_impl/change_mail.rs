@@ -5,36 +5,41 @@ use std::{cell::RefCell, rc::Rc};
 use crate::ChgMethod;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, PaymentMethod};
-use payroll_impl::MailMethod;
+use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeMail トランザクションの実装 (struct)
 #[derive(Debug)]
-pub struct ChangeMailTx<T>
+pub struct ChangeMailTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     id: EmployeeId,
     address: String,
 
     dao: T,
+    payroll_factory: F,
 }
-impl<T> ChangeMailTx<T>
+impl<T, F> ChangeMailTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
-    pub fn new(id: EmployeeId, address: &str, dao: T) -> Self {
+    pub fn new(id: EmployeeId, address: &str, dao: T, payroll_factory: F) -> Self {
         Self {
             id,
             address: address.to_string(),
             dao,
+            payroll_factory,
         }
     }
 }
 
-impl<T> HaveEmployeeDao for ChangeMailTx<T>
+impl<T, F> HaveEmployeeDao for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
@@ -42,21 +47,23 @@ where
         &self.dao
     }
 }
-impl<T> ChgMethod for ChangeMailTx<T>
+impl<T, F> ChgMethod for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(MailMethod::new(&self.address)))
+        self.payroll_factory.mk_mail_method(&self.address)
     }
 }
 // 共通インターフェースの実装
-impl<T> Transaction for ChangeMailTx<T>
+impl<T, F> Transaction for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeMailTx::execute called");
