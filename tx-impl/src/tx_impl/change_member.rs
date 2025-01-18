@@ -5,38 +5,49 @@ use std::{cell::RefCell, rc::Rc};
 use crate::ChangeMember;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, MemberId};
-use payroll_impl::UnionAffiliation;
+use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeMember トランザクションの実装 (struct)
 #[derive(Debug)]
-pub struct ChangeMemberTx<T>
+pub struct ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     member_id: MemberId,
     emp_id: EmployeeId,
     dues: f32,
 
     dao: T,
+    payroll_factory: F,
 }
-impl<T> ChangeMemberTx<T>
+impl<T, F> ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
-    pub fn new(member_id: MemberId, emp_id: EmployeeId, dues: f32, dao: T) -> Self {
+    pub fn new(
+        member_id: MemberId,
+        emp_id: EmployeeId,
+        dues: f32,
+        dao: T,
+        payroll_factory: F,
+    ) -> Self {
         Self {
             member_id,
             emp_id,
             dues,
             dao,
+            payroll_factory,
         }
     }
 }
 
-impl<T> HaveEmployeeDao for ChangeMemberTx<T>
+impl<T, F> HaveEmployeeDao for ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
@@ -44,9 +55,10 @@ where
         &self.dao
     }
 }
-impl<T> ChangeMember for ChangeMemberTx<T>
+impl<T, F> ChangeMember for ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn get_member_id(&self) -> MemberId {
         self.member_id
@@ -58,16 +70,15 @@ where
         self.dues
     }
     fn get_affiliation(&self) -> Rc<RefCell<dyn payroll_domain::Affiliation>> {
-        Rc::new(RefCell::new(UnionAffiliation::new(
-            self.get_member_id(),
-            self.get_dues(),
-        )))
+        self.payroll_factory
+            .mk_union_affiliation(self.get_member_id(), self.get_dues())
     }
 }
 // 共通インターフェースの実装
-impl<T> Transaction for ChangeMemberTx<T>
+impl<T, F> Transaction for ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeMemberTx::execute called");

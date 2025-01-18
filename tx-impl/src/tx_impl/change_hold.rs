@@ -5,31 +5,39 @@ use std::{cell::RefCell, rc::Rc};
 use crate::ChgMethod;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, PaymentMethod};
-use payroll_impl::HoldMethod;
+use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeHold トランザクションの実装 (struct)
 #[derive(Debug)]
-pub struct ChangeHoldTx<T>
+pub struct ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     id: EmployeeId,
 
     dao: T,
+    payroll_factory: F,
 }
-impl<T> ChangeHoldTx<T>
+impl<T, F> ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
-    pub fn new(id: EmployeeId, dao: T) -> Self {
-        Self { id, dao }
+    pub fn new(id: EmployeeId, dao: T, payroll_factory: F) -> Self {
+        Self {
+            id,
+            dao,
+            payroll_factory,
+        }
     }
 }
 
-impl<T> HaveEmployeeDao for ChangeHoldTx<T>
+impl<T, F> HaveEmployeeDao for ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
@@ -37,21 +45,23 @@ where
         &self.dao
     }
 }
-impl<T> ChgMethod for ChangeHoldTx<T>
+impl<T, F> ChgMethod for ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(HoldMethod))
+        self.payroll_factory.mk_hold_method()
     }
 }
 // 共通インターフェースの実装
-impl<T> Transaction for ChangeHoldTx<T>
+impl<T, F> Transaction for ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeHoldTx::execute called");

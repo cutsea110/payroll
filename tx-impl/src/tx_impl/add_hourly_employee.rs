@@ -5,16 +5,17 @@ use std::{cell::RefCell, rc::Rc};
 use crate::AddEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{
-    Affiliation, EmployeeId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
+    Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
-use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
+use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddHourlyEmployee トランザクションの実装 (struct)
 #[derive(Debug)]
-pub struct AddHourlyEmployeeTx<T>
+pub struct AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     id: EmployeeId,
     name: String,
@@ -22,25 +23,36 @@ where
     hourly_rate: f32,
 
     dao: T,
+    payroll_factory: F,
 }
-impl<T> AddHourlyEmployeeTx<T>
+impl<T, F> AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
-    pub fn new(id: EmployeeId, name: &str, address: &str, hourly_rate: f32, dao: T) -> Self {
+    pub fn new(
+        id: EmployeeId,
+        name: &str,
+        address: &str,
+        hourly_rate: f32,
+        dao: T,
+        payroll_factory: F,
+    ) -> Self {
         Self {
             id,
             name: name.to_string(),
             address: address.to_string(),
             hourly_rate,
             dao,
+            payroll_factory,
         }
     }
 }
 
-impl<T> HaveEmployeeDao for AddHourlyEmployeeTx<T>
+impl<T, F> HaveEmployeeDao for AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
@@ -48,9 +60,10 @@ where
         &self.dao
     }
 }
-impl<T> AddEmployee for AddHourlyEmployeeTx<T>
+impl<T, F> AddEmployee for AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
@@ -62,22 +75,24 @@ where
         &self.address
     }
     fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(HourlyClassification::new(self.hourly_rate)))
+        self.payroll_factory
+            .mk_hourly_classification(self.hourly_rate)
     }
     fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(WeeklySchedule))
+        self.payroll_factory.mk_weekly_schedule()
     }
     fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(HoldMethod))
+        self.payroll_factory.mk_hold_method()
     }
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-        Rc::new(RefCell::new(NoAffiliation))
+        self.payroll_factory.mk_no_affiliation()
     }
 }
 // 共通インターフェースの実装
-impl<T> Transaction for AddHourlyEmployeeTx<T>
+impl<T, F> Transaction for AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
+    F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("AddHourlyEmployeeTx::execute called");
