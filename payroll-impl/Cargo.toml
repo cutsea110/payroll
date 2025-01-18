@@ -10,3 +10,4 @@ edition.workspace = true
 chrono.workspace = true
 
 payroll-domain = { path = "../payroll-domain" }
+payroll-factory = { path = "../payroll-factory" }
