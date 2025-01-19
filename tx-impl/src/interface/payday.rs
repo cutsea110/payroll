@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use log::trace;
+use log::{debug, trace};
 use tx_rs::Tx;
 
 use crate::UsecaseError;
@@ -18,6 +18,7 @@ pub trait Payday: HaveEmployeeDao {
                 let mut emps = self.dao().fetch_all().run(&mut ctx)?;
                 for (emp_id, emp) in emps.iter_mut() {
                     if emp.is_pay_date(self.get_pay_date()) {
+                        debug!("Payday::execute: payday for emp_id={}", emp_id);
                         let period = emp.get_pay_period(self.get_pay_date());
                         let mut pc = Paycheck::new(period);
                         emp.payday(&mut pc);
