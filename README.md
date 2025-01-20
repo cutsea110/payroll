@@ -13,8 +13,12 @@ graph TD
 
   dao --> payroll-domain
 
+  abstract-tx --> dao
+  abstract-tx --> payroll-domain
+
   tx-impl --> payroll-impl
   tx-impl --> dao
+  tx-impl --> abstract-tx
   tx-impl --> payroll-factory
   tx-impl --> payroll-domain
   tx-impl --> tx-app
