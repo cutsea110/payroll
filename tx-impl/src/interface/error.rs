@@ -6,6 +6,8 @@ use dao::DaoError;
 pub enum UsecaseError {
     #[error("add employee failed: {0}")]
     AddEmployeeFailed(DaoError),
+    #[error("change employee failed: {0}")]
+    ChangeEmployeeFailed(DaoError),
     #[error("employee retrieval failed: {0}")]
     EmployeeRetrievalFailed(DaoError),
     #[error("delete employee failed: {0}")]

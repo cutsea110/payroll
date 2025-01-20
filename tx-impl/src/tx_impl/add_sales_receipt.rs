@@ -1,10 +1,11 @@
 use anyhow;
 use chrono::NaiveDate;
 use log::trace;
+use payroll_impl::CommissionedClassification;
 
-use crate::AddSalesReceipt;
-use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::EmployeeId;
+use crate::ChangeEmployee;
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
+use payroll_domain::{Employee, EmployeeId};
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddSalesReceipt トランザクションの実装 (struct)
@@ -43,18 +44,23 @@ where
         &self.dao
     }
 }
-impl<T> AddSalesReceipt for AddSalesReceiptTx<T>
+impl<T> ChangeEmployee for AddSalesReceiptTx<T>
 where
     T: EmployeeDao,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn get_date(&self) -> NaiveDate {
-        self.date
-    }
-    fn get_amount(&self) -> f32 {
-        self.amount
+    fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        emp.classification()
+            .borrow_mut()
+            .as_any_mut()
+            .downcast_mut::<CommissionedClassification>()
+            .ok_or(DaoError::UnexpectedError(
+                "classification is not CommissionedClassification".into(),
+            ))?
+            .add_sales_receipt(self.date, self.amount);
+        Ok(())
     }
 }
 // 共通インターフェースの実装
@@ -64,7 +70,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("AddSalesReceiptTx::execute called");
-        AddSalesReceipt::execute(self)
+        ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }
