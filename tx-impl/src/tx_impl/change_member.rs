@@ -1,9 +1,10 @@
 use anyhow;
 use log::trace;
 use std::{cell::RefCell, rc::Rc};
+use tx_rs::Tx;
 
 use crate::ChangeMember;
-use dao::{EmployeeDao, HaveEmployeeDao};
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, MemberId};
 use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
@@ -60,18 +61,18 @@ where
     T: EmployeeDao,
     F: PayrollFactory,
 {
-    fn get_member_id(&self) -> MemberId {
-        self.member_id
-    }
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
-    fn get_dues(&self) -> f32 {
-        self.dues
-    }
     fn get_affiliation(&self) -> Rc<RefCell<dyn payroll_domain::Affiliation>> {
         self.payroll_factory
-            .mk_union_affiliation(self.get_member_id(), self.get_dues())
+            .mk_union_affiliation(self.member_id, self.dues)
+    }
+    fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
+        trace!("record_membership called");
+        self.dao()
+            .add_union_member(self.member_id, self.emp_id)
+            .run(ctx)
     }
 }
 // 共通インターフェースの実装

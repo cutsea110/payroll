@@ -4,21 +4,14 @@ use tx_rs::Tx;
 
 use crate::UsecaseError;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
-use payroll_domain::{Affiliation, EmployeeId, MemberId};
+use payroll_domain::{Affiliation, EmployeeId};
 
 // ユースケース: ChangeMember トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeMember: HaveEmployeeDao {
-    fn get_member_id(&self) -> MemberId;
     fn get_emp_id(&self) -> EmployeeId;
-    fn get_dues(&self) -> f32;
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
-    fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
-        trace!("record_membership called");
-        self.dao()
-            .add_union_member(self.get_member_id(), self.get_emp_id())
-            .run(ctx)
-    }
+    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
+    fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("ChangeMember::execute called");
