@@ -1,9 +1,9 @@
 use anyhow;
 use log::trace;
 
-use crate::ChangeEmployeeAddress;
+use crate::ChangeEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::EmployeeId;
+use payroll_domain::{Employee, EmployeeId};
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeEmployeeAddress トランザクションの実装 (struct)
@@ -39,15 +39,15 @@ where
         &self.dao
     }
 }
-impl<T> ChangeEmployeeAddress for ChangeEmployeeAddressTx<T>
+impl<T> ChangeEmployee for ChangeEmployeeAddressTx<T>
 where
     T: EmployeeDao,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn get_new_address(&self) -> &str {
-        &self.new_address
+    fn change(&self, emp: &mut Employee) {
+        emp.set_address(&self.new_address);
     }
 }
 // 共通インターフェースの実装
@@ -57,7 +57,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeEmployeeAddressTx::execute called");
-        ChangeEmployeeAddress::execute(self)
+        ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }
