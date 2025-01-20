@@ -8,7 +8,7 @@ use payroll_domain::{Employee, EmployeeId};
 // ユースケース: ChangeEmployee トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeEmployee: HaveEmployeeDao {
     fn get_id(&self) -> EmployeeId;
-    fn change(emp: &mut Employee);
+    fn change(&self, emp: &mut Employee);
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("ChangeEmployeeName::execute called");
         self.dao()
@@ -16,7 +16,7 @@ pub trait ChangeEmployee: HaveEmployeeDao {
                 trace!("ChangeEmployee::run_tx called");
                 let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                 debug!(r#"changing emp="{:?}""#, emp);
-                Self::change(&mut emp);
+                self.change(&mut emp);
                 debug!(r#"changed emp="{:?}""#, emp);
                 self.dao().update(emp).run(&mut ctx)
             })
