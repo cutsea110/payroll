@@ -1,10 +1,9 @@
 use anyhow;
 use log::trace;
-use std::{cell::RefCell, rc::Rc};
 
-use crate::ChgMethod;
+use crate::ChangeEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::{EmployeeId, PaymentMethod};
+use payroll_domain::{Employee, EmployeeId};
 use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
@@ -47,7 +46,7 @@ where
         &self.dao
     }
 }
-impl<T, F> ChgMethod for ChangeMailTx<T, F>
+impl<T, F> ChangeEmployee for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
     F: PayrollFactory,
@@ -55,8 +54,8 @@ where
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        self.payroll_factory.mk_mail_method(&self.address)
+    fn change(&self, emp: &mut Employee) {
+        emp.set_method(self.payroll_factory.mk_mail_method(&self.address));
     }
 }
 // 共通インターフェースの実装
@@ -67,7 +66,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeMailTx::execute called");
-        ChgMethod::execute(self)
+        ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }
