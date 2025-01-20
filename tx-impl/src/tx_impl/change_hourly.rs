@@ -1,10 +1,9 @@
 use anyhow;
 use log::trace;
-use std::{cell::RefCell, rc::Rc};
 
-use crate::ChangeClassification;
+use crate::ChangeEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::{EmployeeId, PaymentClassification};
+use payroll_domain::{Employee, EmployeeId};
 use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
@@ -47,7 +46,7 @@ where
         &self.dao
     }
 }
-impl<T, F> ChangeClassification for ChangeHourlyTx<T, F>
+impl<T, F> ChangeEmployee for ChangeHourlyTx<T, F>
 where
     T: EmployeeDao,
     F: PayrollFactory,
@@ -55,12 +54,12 @@ where
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        self.payroll_factory
-            .mk_hourly_classification(self.hourly_rate)
-    }
-    fn get_schedule(&self) -> Rc<RefCell<dyn payroll_domain::PaymentSchedule>> {
-        self.payroll_factory.mk_weekly_schedule()
+    fn change(&self, emp: &mut Employee) {
+        emp.set_classification(
+            self.payroll_factory
+                .mk_hourly_classification(self.hourly_rate),
+        );
+        emp.set_schedule(self.payroll_factory.mk_weekly_schedule());
     }
 }
 // 共通インターフェースの実装
@@ -71,7 +70,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("ChangeHourlyTx::execute called");
-        ChangeClassification::execute(self)
+        ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }
