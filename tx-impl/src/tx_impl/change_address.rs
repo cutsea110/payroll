@@ -1,7 +1,7 @@
 use anyhow;
 use log::trace;
 
-use crate::ChangeEmployee;
+use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
 use tx_app::{Response, Transaction};

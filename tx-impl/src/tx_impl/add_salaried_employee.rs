@@ -2,7 +2,7 @@ use anyhow;
 use log::trace;
 use std::{cell::RefCell, rc::Rc};
 
-use crate::AddEmployee;
+use abstract_tx::AddEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{
     Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,

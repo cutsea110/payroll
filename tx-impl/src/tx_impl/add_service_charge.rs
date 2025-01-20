@@ -3,7 +3,7 @@ use chrono::NaiveDate;
 use log::trace;
 use std::{cell::RefCell, rc::Rc};
 
-use crate::ChangeAffiliation;
+use abstract_tx::ChangeAffiliation;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Affiliation, MemberId};
 use payroll_impl::UnionAffiliation;

@@ -2,7 +2,7 @@ use anyhow;
 use log::trace;
 use tx_rs::Tx;
 
-use crate::ChangeMember;
+use abstract_tx::ChangeMember;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::EmployeeId;
 use payroll_factory::PayrollFactory;

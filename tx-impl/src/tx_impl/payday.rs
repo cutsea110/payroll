@@ -2,7 +2,7 @@ use anyhow;
 use chrono::NaiveDate;
 use log::trace;
 
-use crate::Payday;
+use abstract_tx::Payday;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use tx_app::{Response, Transaction};
 

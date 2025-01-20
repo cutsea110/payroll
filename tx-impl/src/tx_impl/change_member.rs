@@ -3,7 +3,7 @@ use log::trace;
 use std::{cell::RefCell, rc::Rc};
 use tx_rs::Tx;
 
-use crate::ChangeMember;
+use abstract_tx::ChangeMember;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, MemberId};
 use payroll_factory::PayrollFactory;

@@ -1,7 +1,7 @@
 use anyhow;
 use log::trace;
 
-use crate::DeleteEmployee;
+use abstract_tx::DeleteEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::EmployeeId;
 use tx_app::{Response, Transaction};
