@@ -2,7 +2,7 @@ use anyhow;
 use log::trace;
 
 use crate::ChangeEmployee;
-use dao::{EmployeeDao, HaveEmployeeDao};
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
 use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
@@ -54,8 +54,9 @@ where
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn change(&self, emp: &mut Employee) {
+    fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         emp.set_method(self.payroll_factory.mk_mail_method(&self.address));
+        Ok(())
     }
 }
 // 共通インターフェースの実装

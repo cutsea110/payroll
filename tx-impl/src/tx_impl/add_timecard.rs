@@ -2,9 +2,10 @@ use anyhow;
 use chrono::NaiveDate;
 use log::trace;
 
-use crate::AddTimeCard;
-use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::EmployeeId;
+use crate::ChangeEmployee;
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
+use payroll_domain::{Employee, EmployeeId};
+use payroll_impl::HourlyClassification;
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddTimeCard トランザクションの実装 (struct)
@@ -43,18 +44,23 @@ where
         &self.dao
     }
 }
-impl<T> AddTimeCard for AddTimeCardTx<T>
+impl<T> ChangeEmployee for AddTimeCardTx<T>
 where
     T: EmployeeDao,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
-    fn get_date(&self) -> NaiveDate {
-        self.date
-    }
-    fn get_hours(&self) -> f32 {
-        self.hours
+    fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        emp.classification()
+            .borrow_mut()
+            .as_any_mut()
+            .downcast_mut::<HourlyClassification>()
+            .ok_or(DaoError::UnexpectedError(
+                "classification is not HourlyClassification".into(),
+            ))?
+            .add_timecard(self.date, self.hours);
+        Ok(())
     }
 }
 // 共通インターフェースの実装
@@ -64,7 +70,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("AddTimeCardTx::execute called");
-        AddTimeCard::execute(self)
+        ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }
