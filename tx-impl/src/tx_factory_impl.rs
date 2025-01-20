@@ -225,7 +225,11 @@ where
     }
     fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_change_employee_no_member_tx called");
-        Box::new(ChangeNoMemberTx::new(id, self.dao.clone()))
+        Box::new(ChangeNoMemberTx::new(
+            id,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
     }
     fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_payday_tx called");
