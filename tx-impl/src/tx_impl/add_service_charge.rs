@@ -1,10 +1,12 @@
 use anyhow;
 use chrono::NaiveDate;
 use log::trace;
+use std::{cell::RefCell, rc::Rc};
 
-use crate::AddServiceCharge;
-use dao::{EmployeeDao, HaveEmployeeDao};
-use payroll_domain::MemberId;
+use crate::ChangeAffiliation;
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
+use payroll_domain::{Affiliation, MemberId};
+use payroll_impl::UnionAffiliation;
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddServiceCharge トランザクションの実装 (struct)
@@ -43,18 +45,20 @@ where
         &self.dao
     }
 }
-impl<T> AddServiceCharge for AddServiceChargeTx<T>
+impl<T> ChangeAffiliation for AddServiceChargeTx<T>
 where
     T: EmployeeDao,
 {
     fn get_member_id(&self) -> MemberId {
         self.member_id
     }
-    fn get_date(&self) -> NaiveDate {
-        self.date
-    }
-    fn get_amount(&self) -> f32 {
-        self.amount
+    fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError> {
+        aff.borrow_mut()
+            .as_any_mut()
+            .downcast_mut::<UnionAffiliation>()
+            .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
+            .add_service_charge(self.date, self.amount);
+        Ok(())
     }
 }
 // 共通インターフェースの実装
@@ -64,7 +68,7 @@ where
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("AddServiceChargeTx::execute called");
-        AddServiceCharge::execute(self)
+        ChangeAffiliation::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)
     }

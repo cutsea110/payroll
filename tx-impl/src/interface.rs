@@ -1,5 +1,5 @@
 mod add_employee;
-mod add_service_charge;
+mod change_affiliation;
 mod change_employee;
 mod change_member;
 mod change_no_member;
@@ -8,7 +8,7 @@ mod error;
 mod payday;
 
 pub use add_employee::*;
-pub use add_service_charge::*;
+pub use change_affiliation::*;
 pub use change_employee::*;
 pub use change_member::*;
 pub use change_no_member::*;
