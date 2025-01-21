@@ -16,10 +16,12 @@ pub trait Payday: HaveEmployeeDao {
             .run_tx(|mut ctx| {
                 trace!("Payday::run_tx called");
                 let mut emps = self.dao().fetch_all().run(&mut ctx)?;
+                let paydate = self.get_pay_date();
+
                 for (emp_id, emp) in emps.iter_mut() {
-                    if emp.is_pay_date(self.get_pay_date()) {
+                    if emp.is_pay_date(paydate) {
                         debug!("Payday::execute: payday for emp_id={}", emp_id);
-                        let period = emp.get_pay_period(self.get_pay_date());
+                        let period = emp.get_pay_period(paydate);
                         let mut pc = Paycheck::new(period);
                         emp.payday(&mut pc);
                         self.dao().record_paycheck(*emp_id, pc).run(&mut ctx)?;
