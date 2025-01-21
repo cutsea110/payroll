@@ -1,10 +1,9 @@
 use log::{debug, trace};
 use std::collections::VecDeque;
 
+use crate::Tx;
 use chrono::NaiveDate;
 use parsec_rs::{char, float32, int32, keyword, pred, spaces, string, uint32, Parser};
-
-use super::Tx;
 
 pub fn read_txs(script: &str) -> VecDeque<Tx> {
     trace!("read_txs called");
