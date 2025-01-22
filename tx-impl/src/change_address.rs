@@ -14,6 +14,7 @@ where
 {
     id: EmployeeId,
     new_address: String,
+
     dao: T,
 }
 impl<T> ChangeEmployeeAddressTx<T>
