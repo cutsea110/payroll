@@ -149,6 +149,7 @@ pub trait Affiliation: Debug + DynClone {
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn calculate_deductions(&self, pc: &Paycheck) -> f32;
 }
+dyn_clone::clone_trait_object!(Affiliation);
 
 #[derive(Debug, Clone)]
 pub struct NoAffiliation;
