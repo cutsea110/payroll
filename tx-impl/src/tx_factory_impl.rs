@@ -16,16 +16,16 @@ use crate::{
 
 pub struct TxFactoryImpl<T, F>
 where
-    T: EmployeeDao + Clone,
-    F: PayrollFactory + Clone,
+    T: EmployeeDao,
+    F: PayrollFactory,
 {
     dao: T,
     payroll_factory: F,
 }
 impl<T, F> TxFactoryImpl<T, F>
 where
-    T: EmployeeDao + Clone,
-    F: PayrollFactory + Clone,
+    T: EmployeeDao,
+    F: PayrollFactory,
 {
     pub fn new(dao: T, payroll_factory: F) -> Self {
         Self {
