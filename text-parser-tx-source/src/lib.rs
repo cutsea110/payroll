@@ -200,7 +200,7 @@ impl<F> TxSource for TextParserTxSource<F>
 where
     F: TxFactory,
 {
-    fn get_tx_source(&self) -> Option<Box<dyn Transaction + 'static>> {
+    fn get_tx_source(&self) -> Option<Box<dyn Transaction>> {
         trace!("TextParserTxSource::get_tx_source called");
         self.txs.borrow_mut().pop_front().map(|tx| {
             debug!("tx_src={:?}", tx);
