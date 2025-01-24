@@ -24,6 +24,6 @@ pub trait ChangeAffiliation: HaveEmployeeDao {
                 self.change(emp.affiliation())?;
                 self.dao().update(emp).run(&mut ctx)
             })
-            .map_err(UsecaseError::AddServiceChargeFailed)
+            .map_err(UsecaseError::ChangeAffiliationFailed)
     }
 }
