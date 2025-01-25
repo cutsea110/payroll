@@ -1,5 +1,4 @@
 use log::info;
-use std::fs;
 
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
@@ -15,11 +14,17 @@ fn main() -> Result<(), anyhow::Error> {
     info!("DB initialized: {:?}", db);
     let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
+    let tx_source = TextParserTxSource::new(tx_factory);
     let script_path = "script/test.scr";
-    info!("Reading script: {}", script_path);
-    let input = fs::read_to_string(script_path)?;
-    info!("Parsing script");
-    let tx_source = TextParserTxSource::new(&input, tx_factory);
+    info!("Parsing script and Load");
+    tx_source.load_from_script(script_path);
+    info!("Save script as JSON");
+    let json_path = "script/test.json";
+    tx_source.store_to_json(json_path);
+    info!("Clear txs");
+    tx_source.clear_txs();
+    info!("Load from JSON");
+    tx_source.load_from_json(json_path);
     let tx_app = TxApp::new(tx_source);
 
     info!("TxApp running");

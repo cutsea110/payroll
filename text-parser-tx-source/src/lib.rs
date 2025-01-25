@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use log::{debug, trace};
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use serde::{Deserialize, Serialize};
+use std::{cell::RefCell, collections::VecDeque, fs, path::Path, rc::Rc};
 
 use payroll_domain::{EmployeeId, MemberId};
 use tx_app::{Transaction, TxSource};
@@ -8,7 +9,7 @@ use tx_factory::TxFactory;
 
 mod parser;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum Tx {
     AddHourlyEmployee {
         id: EmployeeId,
@@ -92,6 +93,28 @@ enum Tx {
         date: NaiveDate,
     },
 }
+impl Tx {
+    pub fn read_from_script_file<P>(file_path: P) -> VecDeque<Self>
+    where
+        P: AsRef<Path>,
+    {
+        trace!("Reading script file: {:?}", file_path.as_ref());
+        let script = fs::read_to_string(file_path).expect("Failed to read file");
+        let txs = parser::read_txs(&script);
+
+        txs
+    }
+    pub fn read_from_json_file<P>(file_path: P) -> VecDeque<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let json = fs::read_to_string(file_path).expect("Failed to read file");
+        let deserialized: VecDeque<Self> =
+            serde_json::from_str(&json).expect("Failed to deserialize");
+
+        deserialized
+    }
+}
 
 pub struct TextParserTxSource<F>
 where
@@ -104,11 +127,36 @@ impl<F> TextParserTxSource<F>
 where
     F: TxFactory,
 {
-    pub fn new(input: &str, tx_factory: F) -> Self {
+    pub fn new(tx_factory: F) -> Self {
         Self {
-            txs: Rc::new(RefCell::new(parser::read_txs(input))),
+            txs: Rc::new(RefCell::new(VecDeque::new())),
             tx_factory,
         }
+    }
+    pub fn clear_txs(&self) {
+        self.txs.borrow_mut().clear();
+    }
+    pub fn load_from_script<P>(&self, file_path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let txs = Tx::read_from_script_file(file_path);
+        self.txs.borrow_mut().extend(txs);
+    }
+    pub fn load_from_json<P>(&self, file_path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let txs = Tx::read_from_json_file(file_path);
+        self.txs.borrow_mut().extend(txs);
+    }
+    pub fn store_to_json<P>(&self, file_path: P)
+    where
+        P: AsRef<Path>,
+    {
+        let txs = self.txs.borrow().clone();
+        let json = serde_json::to_string(&txs).expect("Failed to serialize");
+        fs::write(file_path, json).expect("Failed to write file");
     }
     fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
         match tx {
