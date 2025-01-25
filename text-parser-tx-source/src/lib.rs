@@ -101,18 +101,18 @@ impl Tx {
         trace!("Reading script file: {:?}", file_path.as_ref());
         let script = fs::read_to_string(file_path).expect("Failed to read file");
         let txs = parser::read_txs(&script);
-
+        debug!("Read txs: {:?}", txs);
         txs
     }
     pub fn read_from_json_file<P>(file_path: P) -> VecDeque<Self>
     where
         P: AsRef<Path>,
     {
+        trace!("Reading JSON file: {:?}", file_path.as_ref());
         let json = fs::read_to_string(file_path).expect("Failed to read file");
-        let deserialized: VecDeque<Self> =
-            serde_json::from_str(&json).expect("Failed to deserialize");
-
-        deserialized
+        let txs: VecDeque<Self> = serde_json::from_str(&json).expect("Failed to deserialize");
+        debug!("Read txs: {:?}", txs);
+        txs
     }
 }
 
@@ -134,12 +134,14 @@ where
         }
     }
     pub fn clear_txs(&self) {
+        trace!("TextParserTxSource::clear_txs called");
         self.txs.borrow_mut().clear();
     }
     pub fn load_from_script<P>(&self, file_path: P)
     where
         P: AsRef<Path>,
     {
+        trace!("TextParserTxSource::load_from_script called");
         let txs = Tx::read_from_script_file(file_path);
         self.txs.borrow_mut().extend(txs);
     }
@@ -147,6 +149,7 @@ where
     where
         P: AsRef<Path>,
     {
+        trace!("TextParserTxSource::load_from_json called");
         let txs = Tx::read_from_json_file(file_path);
         self.txs.borrow_mut().extend(txs);
     }
@@ -154,6 +157,7 @@ where
     where
         P: AsRef<Path>,
     {
+        trace!("TextParserTxSource::store_to_json called");
         let txs = self.txs.borrow().clone();
         let json = serde_json::to_string(&txs).expect("Failed to serialize");
         fs::write(file_path, json).expect("Failed to write file");
