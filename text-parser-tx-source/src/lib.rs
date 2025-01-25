@@ -1,120 +1,11 @@
-use chrono::NaiveDate;
 use log::{debug, trace};
-use serde::{Deserialize, Serialize};
+use serde_json;
 use std::{cell::RefCell, collections::VecDeque, fs, path::Path, rc::Rc};
 
-use payroll_domain::{EmployeeId, MemberId};
-use tx_app::{Transaction, TxSource};
+use tx_app::{Transaction, Tx, TxSource};
 use tx_factory::TxFactory;
 
 mod parser;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-enum Tx {
-    AddHourlyEmployee {
-        id: EmployeeId,
-        name: String,
-        address: String,
-        hourly_rate: f32,
-    },
-    AddSalariedEmployee {
-        id: EmployeeId,
-        name: String,
-        address: String,
-        salary: f32,
-    },
-    AddCommissionedEmployee {
-        id: EmployeeId,
-        name: String,
-        address: String,
-        salary: f32,
-        commission_rate: f32,
-    },
-    DeleteEmployee {
-        id: EmployeeId,
-    },
-    AddTimeCard {
-        id: EmployeeId,
-        date: NaiveDate,
-        hours: f32,
-    },
-    AddSalesReceipt {
-        id: EmployeeId,
-        date: NaiveDate,
-        amount: f32,
-    },
-    AddServiceCharge {
-        member_id: MemberId,
-        date: NaiveDate,
-        amount: f32,
-    },
-    ChangeEmployeeName {
-        id: EmployeeId,
-        new_name: String,
-    },
-    ChangeEmployeeAddress {
-        id: EmployeeId,
-        new_address: String,
-    },
-    ChangeEmployeeHourly {
-        id: EmployeeId,
-        hourly_rate: f32,
-    },
-    ChangeEmployeeSalaried {
-        id: EmployeeId,
-        salary: f32,
-    },
-    ChangeEmployeeCommissioned {
-        id: EmployeeId,
-        salary: f32,
-        commission_rate: f32,
-    },
-    ChangeEmployeeHold {
-        id: EmployeeId,
-    },
-    ChangeEmployeeDirect {
-        id: EmployeeId,
-        bank: String,
-        account: String,
-    },
-    ChangeEmployeeMail {
-        id: EmployeeId,
-        address: String,
-    },
-    ChangeEmployeeMember {
-        emp_id: EmployeeId,
-        member_id: MemberId,
-        dues: f32,
-    },
-    ChangeEmployeeNoMember {
-        emp_id: EmployeeId,
-    },
-    Payday {
-        date: NaiveDate,
-    },
-}
-impl Tx {
-    pub fn read_from_script_file<P>(file_path: P) -> VecDeque<Self>
-    where
-        P: AsRef<Path>,
-    {
-        trace!("Reading script file: {:?}", file_path.as_ref());
-        let script = fs::read_to_string(file_path).expect("Failed to read file");
-        let txs = parser::read_txs(&script);
-        debug!("Read txs: {:?}", txs);
-        txs
-    }
-    pub fn read_from_json_file<P>(file_path: P) -> VecDeque<Self>
-    where
-        P: AsRef<Path>,
-    {
-        trace!("Reading JSON file: {:?}", file_path.as_ref());
-        let json = fs::read_to_string(file_path).expect("Failed to read file");
-        let txs: VecDeque<Self> = serde_json::from_str(&json).expect("Failed to deserialize");
-        debug!("Read txs: {:?}", txs);
-        txs
-    }
-}
 
 pub struct TextParserTxSource<F>
 where
@@ -142,7 +33,8 @@ where
         P: AsRef<Path>,
     {
         trace!("TextParserTxSource::load_from_script called");
-        let txs = Tx::read_from_script_file(file_path);
+        let script = fs::read_to_string(file_path).expect("Failed to read file");
+        let txs = parser::read_txs(&script);
         self.txs.borrow_mut().extend(txs);
     }
     pub fn load_from_json<P>(&self, file_path: P)
@@ -150,7 +42,8 @@ where
         P: AsRef<Path>,
     {
         trace!("TextParserTxSource::load_from_json called");
-        let txs = Tx::read_from_json_file(file_path);
+        let json = fs::read_to_string(file_path).expect("Failed to read file");
+        let txs: VecDeque<Tx> = serde_json::from_str(&json).expect("Failed to deserialize");
         self.txs.borrow_mut().extend(txs);
     }
     pub fn store_to_json<P>(&self, file_path: P)
