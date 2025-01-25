@@ -51,7 +51,7 @@ where
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("PaydayTx::execute called");
         Payday::execute(self)
-            .map(|_| Response::Void)
+            .map(Response::Paychecks)
             .map_err(Into::into)
     }
 }
