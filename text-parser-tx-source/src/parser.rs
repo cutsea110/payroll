@@ -39,7 +39,8 @@ fn transaction() -> impl Parser<Item = Tx> {
             .or(chg_no_member())
             .or(payday())
             .or(verify_gross_pay())
-            .or(verify_deductions()),
+            .or(verify_deductions())
+            .or(verify_net_pay()),
     )
 }
 #[cfg(test)]
@@ -356,6 +357,22 @@ mod test_transaction {
                     emp_id: 42,
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     deductions: 118.55,
+                },
+                ""
+            ))
+        );
+    }
+    #[test]
+    fn test_verify_net_pay() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 42 NetPay 1989.90"#;
+        let result = transaction().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyNetPay {
+                    emp_id: 42,
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    net_pay: 1989.90,
                 },
                 ""
             ))
@@ -1180,6 +1197,55 @@ mod test_verify_deductions {
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     emp_id: 1234,
                     deductions: 180.55
+                },
+                ""
+            ))
+        );
+    }
+}
+
+fn verify_net_pay() -> impl Parser<Item = Tx> {
+    let verify = keyword("Verify").skip(spaces());
+    let paycheck = keyword("Paycheck").skip(spaces());
+    let pay_date = date().with(spaces());
+    let emp_id = keyword("EmpId")
+        .skip(spaces())
+        .skip(uint32().with(spaces()));
+    let net_pay = keyword("NetPay").skip(spaces()).skip(float32());
+
+    verify
+        .skip(paycheck)
+        .skip(pay_date)
+        .join(emp_id)
+        .join(net_pay)
+        .map(|((pay_date, emp_id), net_pay)| {
+            debug!(
+                "parsed VerifyNetPay: pay_date={}, emp_id={}, net_pay{}",
+                pay_date, emp_id, net_pay
+            );
+            Tx::VerifyNetPay {
+                pay_date,
+                emp_id,
+                net_pay,
+            }
+        })
+}
+#[cfg(test)]
+mod test_verify_net_pay {
+    use super::*;
+    use parsec_rs::Parser;
+
+    #[test]
+    fn test() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 1234 NetPay 2099.80"#;
+        let result = verify_net_pay().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyNetPay {
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    emp_id: 1234,
+                    net_pay: 2099.80
                 },
                 ""
             ))
