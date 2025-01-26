@@ -37,7 +37,8 @@ fn transaction() -> impl Parser<Item = Tx> {
             .or(chg_mail())
             .or(chg_member())
             .or(chg_no_member())
-            .or(payday()),
+            .or(payday())
+            .or(verify_gross_pay()),
     )
 }
 #[cfg(test)]
@@ -322,6 +323,22 @@ mod test_transaction {
             Ok((
                 Tx::Payday {
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()
+                },
+                ""
+            ))
+        );
+    }
+    #[test]
+    fn test_verify_gross_pay() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 42 GrossPay 2130.55"#;
+        let result = transaction().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyGrossPay {
+                    emp_id: 42,
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    gross_pay: 2130.55,
                 },
                 ""
             ))
@@ -1048,6 +1065,55 @@ mod test_payday {
             Ok((
                 Tx::Payday {
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()
+                },
+                ""
+            ))
+        );
+    }
+}
+
+fn verify_gross_pay() -> impl Parser<Item = Tx> {
+    let verify = keyword("Verify").skip(spaces());
+    let paycheck = keyword("Paycheck").skip(spaces());
+    let pay_date = date().with(spaces());
+    let emp_id = keyword("EmpId")
+        .skip(spaces())
+        .skip(uint32().with(spaces()));
+    let gross_pay = keyword("GrossPay").skip(spaces()).skip(float32());
+
+    verify
+        .skip(paycheck)
+        .skip(pay_date)
+        .join(emp_id)
+        .join(gross_pay)
+        .map(|((pay_date, emp_id), gross_pay)| {
+            debug!(
+                "parsed VerifyGrossPay: pay_date={}, emp_id={}, gross_pay={}",
+                pay_date, emp_id, gross_pay
+            );
+            Tx::VerifyGrossPay {
+                pay_date,
+                emp_id,
+                gross_pay,
+            }
+        })
+}
+#[cfg(test)]
+mod test_verify_gross_pay {
+    use super::*;
+    use parsec_rs::Parser;
+
+    #[test]
+    fn test() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 1234 GrossPay 2280.35"#;
+        let result = verify_gross_pay().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyGrossPay {
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    emp_id: 1234,
+                    gross_pay: 2280.35
                 },
                 ""
             ))

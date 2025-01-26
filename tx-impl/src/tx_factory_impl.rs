@@ -12,6 +12,7 @@ use crate::{
     AddServiceChargeTx, AddTimeCardTx, ChangeCommissionedTx, ChangeDirectTx,
     ChangeEmployeeAddressTx, ChangeEmployeeNameTx, ChangeHoldTx, ChangeHourlyTx, ChangeMailTx,
     ChangeMemberTx, ChangeNoMemberTx, ChangeSalariedTx, DeleteEmployeeTx, PaydayTx,
+    VerifyDeductionsTx, VerifyGrossPayTx, VerifyNetPayTx,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -234,5 +235,32 @@ where
     fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
         trace!("TxFactoryImpl::mk_payday_tx called");
         Box::new(PaydayTx::new(date, self.dao.clone()))
+    }
+    fn mk_verify_gross_pay_tx(
+        &self,
+        id: EmployeeId,
+        date: NaiveDate,
+        amount: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_verify_gross_pay_tx called");
+        Box::new(VerifyGrossPayTx::new(id, date, amount, self.dao.clone()))
+    }
+    fn mk_verify_deductions_tx(
+        &self,
+        id: EmployeeId,
+        date: NaiveDate,
+        amount: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_verify_deductions_tx called");
+        Box::new(VerifyDeductionsTx::new(id, date, amount, self.dao.clone()))
+    }
+    fn mk_verify_net_pay_tx(
+        &self,
+        id: EmployeeId,
+        date: NaiveDate,
+        amount: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("TxFactoryImpl::mk_verify_net_pay_tx called");
+        Box::new(VerifyNetPayTx::new(id, date, amount, self.dao.clone()))
     }
 }

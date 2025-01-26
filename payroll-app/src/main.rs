@@ -1,4 +1,5 @@
-use log::info;
+use log::{debug, info};
+use std::env;
 
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
@@ -15,12 +16,14 @@ fn main() -> Result<(), anyhow::Error> {
     let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
     let tx_source = TextParserTxSource::new(tx_factory);
-    let script_path = "script/test.scr";
+    let script_path = env::args().nth(1).expect("script path is required");
+    debug!("script_path={}", script_path);
+
     info!("Parsing script and Load");
-    tx_source.load_from_script(script_path);
+    tx_source.load_from_script(script_path.clone());
     info!("Save script as JSON");
-    let json_path = "script/test.json";
-    tx_source.store_to_json(json_path);
+    let json_path = script_path.replace(".scr", ".json");
+    tx_source.store_to_json(json_path.clone());
     info!("Clear txs");
     tx_source.clear_txs();
     info!("Load from JSON");

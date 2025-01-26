@@ -5,6 +5,7 @@ mod change_member;
 mod delete_employee;
 mod error;
 mod payday;
+mod verify_paycheck;
 
 pub use add_employee::*;
 pub use change_affiliation::*;
@@ -13,3 +14,4 @@ pub use change_member::*;
 pub use delete_employee::*;
 pub use error::*;
 pub use payday::*;
+pub use verify_paycheck::*;

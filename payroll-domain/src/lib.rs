@@ -114,6 +114,15 @@ impl Paycheck {
     pub fn get_pay_period(&self) -> RangeInclusive<NaiveDate> {
         self.period.clone()
     }
+    pub fn gross_pay(&self) -> f32 {
+        self.gross_pay
+    }
+    pub fn deductions(&self) -> f32 {
+        self.deductions
+    }
+    pub fn net_pay(&self) -> f32 {
+        self.net_pay
+    }
     pub fn set_gross_pay(&mut self, gross_pay: f32) {
         self.gross_pay = gross_pay;
     }
@@ -122,6 +131,9 @@ impl Paycheck {
     }
     pub fn set_net_pay(&mut self, net_pay: f32) {
         self.net_pay = net_pay;
+    }
+    pub fn is_pay_date(&self, pay_date: NaiveDate) -> bool {
+        self.period.contains(&pay_date)
     }
 }
 

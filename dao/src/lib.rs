@@ -1,6 +1,7 @@
+use chrono::NaiveDate;
 use thiserror::Error;
 
-use payroll_domain::{Employee, EmployeeId, MemberId};
+use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
 #[derive(Debug, Clone, Error)]
 pub enum DaoError {
@@ -14,6 +15,8 @@ pub enum DaoError {
     MemberNotFound(MemberId),
     #[error("unexpected error: {0}")]
     UnexpectedError(String),
+    #[error("paycheck not found: emp_id={0}, pay_date={1}")]
+    PaycheckNotFound(EmployeeId, NaiveDate),
 }
 
 pub trait EmployeeDao {
@@ -58,6 +61,11 @@ pub trait EmployeeDao {
         emp_id: EmployeeId,
         paycheck: payroll_domain::Paycheck,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
+    fn find_paycheck<'a>(
+        &self,
+        emp_id: EmployeeId,
+        pay_date: NaiveDate,
+    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError>;
 }
 
 pub trait HaveEmployeeDao {

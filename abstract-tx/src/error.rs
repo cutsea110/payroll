@@ -16,4 +16,6 @@ pub enum UsecaseError {
     ChangeMemberFailed(DaoError),
     #[error("payday failed: {0}")]
     PaydayFailed(DaoError),
+    #[error("fetch paycheck failed: {0}")]
+    FetchPaycheckFailed(DaoError),
 }
