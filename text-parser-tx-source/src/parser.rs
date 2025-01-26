@@ -7,16 +7,24 @@ use tx_app::Tx;
 
 pub fn read_txs(script: &str) -> VecDeque<Tx> {
     trace!("read_txs called");
-    let txs: VecDeque<Tx> = transactions()
-        .parse(script)
-        .map(|p| p.0.into())
-        .unwrap_or_default();
+    let txs: VecDeque<Tx> = match transactions().parse(script) {
+        Ok((txs, rest)) => {
+            if !rest.is_empty() {
+                panic!("parse error: rest={:?}", rest);
+            }
+            txs.into()
+        }
+        Err(e) => {
+            panic!("parse error: {:?}", e);
+        }
+    };
     debug!("txs={:?}", txs);
     txs
 }
 
 fn transactions() -> impl Parser<Item = Vec<Tx>> {
-    transaction().many0()
+    // 末尾の with は rest を捨てるため
+    transaction().many0().with(spaces())
 }
 fn transaction() -> impl Parser<Item = Tx> {
     go_through().skip(
