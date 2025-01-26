@@ -6,20 +6,18 @@ use tx_factory::TxFactory;
 
 mod parser;
 
-pub struct TextParserTxSource<F, R>
+pub struct TextParserTxSource<F>
 where
     F: TxFactory,
-    R: BufRead,
 {
-    reader: R,
+    reader: Box<dyn BufRead>,
     tx_factory: F,
 }
-impl<F, R> TextParserTxSource<F, R>
+impl<F> TextParserTxSource<F>
 where
     F: TxFactory,
-    R: BufRead,
 {
-    pub fn new(tx_factory: F, reader: R) -> Self {
+    pub fn new(tx_factory: F, reader: Box<dyn BufRead>) -> Self {
         Self { tx_factory, reader }
     }
     fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
@@ -129,10 +127,9 @@ where
     }
 }
 
-impl<F, R> TxSource for TextParserTxSource<F, R>
+impl<F> TxSource for TextParserTxSource<F>
 where
     F: TxFactory,
-    R: BufRead,
 {
     fn get_tx_source(&mut self) -> Option<Box<dyn Transaction>> {
         trace!("TextParserTxSource::get_tx_source called");
