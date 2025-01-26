@@ -7,16 +7,16 @@ where
     S: TxSource,
 {
     tx_source: S,
-    interact: bool,
+    show_result: bool,
 }
 impl<S> TxApp<S>
 where
     S: TxSource,
 {
-    pub fn new(tx_source: S, interact: bool) -> Self {
+    pub fn new(tx_source: S, show_result: bool) -> Self {
         Self {
             tx_source,
-            interact,
+            show_result,
         }
     }
     pub fn run(&mut self) -> Result<(), anyhow::Error> {
@@ -24,7 +24,7 @@ where
         while let Some(tx) = self.tx_source.get_tx_source() {
             let val = tx.execute()?;
             debug!("TxApp::run: tx.execute() returned {:?}", val);
-            if self.interact {
+            if self.show_result {
                 println!("=> {:?}", val);
             }
         }

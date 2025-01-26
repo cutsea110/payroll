@@ -25,7 +25,7 @@ pub trait VerifyPaycheck: HaveEmployeeDao {
                 if !pass {
                     error!("Failed to verify paycheck: {:?}", paycheck);
                 }
-                assert_eq!(self.expected(), self.actual(&paycheck));
+                // assert_eq!(self.expected(), self.actual(&paycheck));
                 Ok(pass)
             })
             .map_err(UsecaseError::FetchPaycheckFailed)

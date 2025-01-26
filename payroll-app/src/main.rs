@@ -19,20 +19,20 @@ fn main() -> Result<(), anyhow::Error> {
     trace!("DB initialized: {:?}", db);
     let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
-    let (interact, buf_reader): (bool, Box<dyn BufRead>) = {
+    let (buf_reader, interact_mode): (Box<dyn BufRead>, bool) = {
         if let Some(script_path) = env::args().nth(1) {
             trace!("script_path={}", script_path);
             let script = File::open(script_path.clone())?;
-            (false, Box::new(BufReader::new(script)))
+            (Box::new(BufReader::new(script)), false)
         } else {
             let stdin = stdin();
-            (true, Box::new(stdin.lock()))
+            (Box::new(stdin.lock()), true)
         }
     };
-    debug!("interact={}", interact);
+    debug!("interact={}", interact_mode);
 
-    let tx_source = TextParserTxSource::new(tx_factory, buf_reader, interact);
-    let mut tx_app = TxApp::new(tx_source, interact);
+    let tx_source = TextParserTxSource::new(tx_factory, buf_reader, interact_mode);
+    let mut tx_app = TxApp::new(tx_source, interact_mode);
 
     trace!("TxApp running");
     tx_app.run()?;
