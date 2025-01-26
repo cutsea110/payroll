@@ -7,7 +7,7 @@ use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, Paycheck};
 use tx_app::{Response, Transaction};
 
-// ユースケース: VerifyDeductions トランザクションの実装 (struct)
+// テストフレームワーク: VerifyDeductions トランザクションの実装 (struct)
 #[derive(Debug)]
 pub struct VerifyDeductionsTx<T>
 where

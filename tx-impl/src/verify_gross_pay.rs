@@ -7,7 +7,7 @@ use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{EmployeeId, Paycheck};
 use tx_app::{Response, Transaction};
 
-// ユースケース: VerifyGrossPay トランザクションの実装 (struct)
+// テストフレームワーク: VerifyGrossPay トランザクションの実装 (struct)
 #[derive(Debug)]
 pub struct VerifyGrossPayTx<T>
 where
