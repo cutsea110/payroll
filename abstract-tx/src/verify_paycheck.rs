@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use log::{debug, trace};
+use log::{debug, error, trace};
 use tx_rs::Tx;
 
 use crate::UsecaseError;
@@ -21,8 +21,11 @@ pub trait VerifyPaycheck: HaveEmployeeDao {
                 let pay_date = self.get_pay_date();
                 let paycheck = self.dao().find_paycheck(emp_id, pay_date).run(&mut ctx)?;
                 debug!("found paycheck={:?}", paycheck);
-                assert_eq!(self.expected(), self.actual(&paycheck));
                 let pass = self.expected() == self.actual(&paycheck);
+                if !pass {
+                    error!("Failed to verify paycheck: {:?}", paycheck);
+                }
+                assert_eq!(self.expected(), self.actual(&paycheck));
                 Ok(pass)
             })
             .map_err(UsecaseError::FetchPaycheckFailed)
