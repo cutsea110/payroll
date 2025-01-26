@@ -38,7 +38,8 @@ fn transaction() -> impl Parser<Item = Tx> {
             .or(chg_member())
             .or(chg_no_member())
             .or(payday())
-            .or(verify_gross_pay()),
+            .or(verify_gross_pay())
+            .or(verify_deductions()),
     )
 }
 #[cfg(test)]
@@ -339,6 +340,22 @@ mod test_transaction {
                     emp_id: 42,
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     gross_pay: 2130.55,
+                },
+                ""
+            ))
+        );
+    }
+    #[test]
+    fn test_verify_deductions() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 42 Deductions 118.55"#;
+        let result = transaction().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyDeductions {
+                    emp_id: 42,
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    deductions: 118.55,
                 },
                 ""
             ))
@@ -1114,6 +1131,55 @@ mod test_verify_gross_pay {
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     emp_id: 1234,
                     gross_pay: 2280.35
+                },
+                ""
+            ))
+        );
+    }
+}
+
+fn verify_deductions() -> impl Parser<Item = Tx> {
+    let verify = keyword("Verify").skip(spaces());
+    let paycheck = keyword("Paycheck").skip(spaces());
+    let pay_date = date().with(spaces());
+    let emp_id = keyword("EmpId")
+        .skip(spaces())
+        .skip(uint32().with(spaces()));
+    let deductions = keyword("Deductions").skip(spaces()).skip(float32());
+
+    verify
+        .skip(paycheck)
+        .skip(pay_date)
+        .join(emp_id)
+        .join(deductions)
+        .map(|((pay_date, emp_id), deductions)| {
+            debug!(
+                "parsed VerifyDeductions: pay_date={}, emp_id={}, deductions={}",
+                pay_date, emp_id, deductions
+            );
+            Tx::VerifyDeductions {
+                pay_date,
+                emp_id,
+                deductions,
+            }
+        })
+}
+#[cfg(test)]
+mod test_verify_deductions {
+    use super::*;
+    use parsec_rs::Parser;
+
+    #[test]
+    fn test() {
+        let input = r#"Verify Paycheck 2025-01-31 EmpId 1234 Deductions 180.55"#;
+        let result = verify_deductions().parse(input);
+        assert_eq!(
+            result,
+            Ok((
+                Tx::VerifyDeductions {
+                    pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                    emp_id: 1234,
+                    deductions: 180.55
                 },
                 ""
             ))
