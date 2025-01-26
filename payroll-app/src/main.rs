@@ -11,29 +11,31 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
     env_logger::init();
 
-    let db = HashDB::new();
-    info!("DB initialized: {:?}", db);
-    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
+    for script_path in env::args().skip(1) {
+        debug!("script_path={}", script_path);
 
-    let tx_source = TextParserTxSource::new(tx_factory);
-    let script_path = env::args().nth(1).expect("script path is required");
-    debug!("script_path={}", script_path);
+        let db = HashDB::new();
+        info!("DB initialized: {:?}", db);
+        let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
-    info!("Parsing script and Load");
-    tx_source.load_from_script(script_path.clone());
-    info!("Save script as JSON");
-    let json_path = script_path.replace(".scr", ".json");
-    tx_source.store_to_json(json_path.clone());
-    info!("Clear txs");
-    tx_source.clear_txs();
-    info!("Load from JSON");
-    tx_source.load_from_json(json_path);
-    let tx_app = TxApp::new(tx_source);
+        let tx_source = TextParserTxSource::new(tx_factory);
 
-    info!("TxApp running");
-    tx_app.run()?;
+        info!("Parsing script and Load");
+        tx_source.load_from_script(script_path.clone());
+        info!("Save script as JSON");
+        let json_path = script_path.replace(".scr", ".json");
+        tx_source.store_to_json(json_path.clone());
+        info!("Clear txs");
+        tx_source.clear_txs();
+        info!("Load from JSON");
+        tx_source.load_from_json(json_path);
+        let tx_app = TxApp::new(tx_source);
 
-    println!("{:#?}", db);
+        info!("TxApp running");
+        tx_app.run()?;
+
+        println!("{:#?}", db);
+    }
     info!("TxApp finished");
 
     Ok(())
