@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::{info, trace};
 use std::env;
 
 use hs_db::HashDB;
@@ -12,26 +12,26 @@ fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
     for script_path in env::args().skip(1) {
-        debug!("script_path={}", script_path);
+        info!("running script: script_path={}", script_path);
 
         let db = HashDB::new();
-        info!("DB initialized: {:?}", db);
+        trace!("DB initialized: {:?}", db);
         let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
         let tx_source = TextParserTxSource::new(tx_factory);
 
-        info!("Parsing script and Load");
+        trace!("Parsing script and Load");
         tx_source.load_from_script(script_path.clone());
-        info!("Save script as JSON");
+        trace!("Save script as JSON");
         let json_path = script_path.replace(".scr", ".json");
         tx_source.store_to_json(json_path.clone());
-        info!("Clear txs");
+        trace!("Clear txs");
         tx_source.clear_txs();
-        info!("Load from JSON");
+        trace!("Load from JSON");
         tx_source.load_from_json(json_path);
         let tx_app = TxApp::new(tx_source);
 
-        info!("TxApp running");
+        trace!("TxApp running");
         tx_app.run()?;
 
         println!("{:#?}", db);
