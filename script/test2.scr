@@ -1,0 +1,4 @@
+AddEmp 1429 "Robert Martin" "Home" S 1088.90
+ChgEmp 1429 Member 7234 Dues 9.45
+Payday 2025-01-31
+Verify Paycheck 2025-01-31 EmpId 1429 Deductions 47.25
