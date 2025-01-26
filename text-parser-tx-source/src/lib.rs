@@ -1,4 +1,4 @@
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use serde_json;
 use std::{cell::RefCell, collections::VecDeque, fs, path::Path, rc::Rc};
 
@@ -36,6 +36,9 @@ where
         let script = fs::read_to_string(file_path).expect("Failed to read file");
         let txs = parser::read_txs(&script);
         debug!("txs: {:?}", txs);
+        if txs.is_empty() {
+            warn!("parsed script is empty");
+        }
         self.txs.borrow_mut().extend(txs);
     }
     pub fn load_from_json<P>(&self, file_path: P)
@@ -46,6 +49,9 @@ where
         let json = fs::read_to_string(file_path).expect("Failed to read file");
         let txs: VecDeque<Tx> = serde_json::from_str(&json).expect("Failed to deserialize");
         debug!("txs: {:?}", txs);
+        if txs.is_empty() {
+            warn!("parsed json is empty");
+        }
         self.txs.borrow_mut().extend(txs);
     }
     pub fn store_to_json<P>(&self, file_path: P)
