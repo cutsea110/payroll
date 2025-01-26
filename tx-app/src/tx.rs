@@ -7,6 +7,7 @@ use payroll_domain::EmployeeId;
 pub enum Response {
     Void,
     EmployeeId(EmployeeId),
+    Verified(bool),
 }
 pub trait Transaction {
     fn execute(&self) -> Result<Response, anyhow::Error>;

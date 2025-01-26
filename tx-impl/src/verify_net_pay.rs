@@ -68,7 +68,7 @@ where
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("VerifyNetPayTx::execute called");
         VerifyPaycheck::execute(self)
-            .map(|_| Response::Void)
+            .map(Response::Verified)
             .map_err(Into::into)
     }
 }
