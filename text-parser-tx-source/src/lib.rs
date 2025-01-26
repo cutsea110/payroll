@@ -1,68 +1,26 @@
 use log::{debug, trace, warn};
-use serde_json;
-use std::{cell::RefCell, collections::VecDeque, fs, path::Path, rc::Rc};
+use std::io::BufRead;
 
 use tx_app::{Transaction, Tx, TxSource};
 use tx_factory::TxFactory;
 
 mod parser;
 
-pub struct TextParserTxSource<F>
+pub struct TextParserTxSource<F, R>
 where
     F: TxFactory,
+    R: BufRead,
 {
-    txs: Rc<RefCell<VecDeque<Tx>>>,
+    reader: R,
     tx_factory: F,
 }
-impl<F> TextParserTxSource<F>
+impl<F, R> TextParserTxSource<F, R>
 where
     F: TxFactory,
+    R: BufRead,
 {
-    pub fn new(tx_factory: F) -> Self {
-        Self {
-            txs: Rc::new(RefCell::new(VecDeque::new())),
-            tx_factory,
-        }
-    }
-    pub fn clear_txs(&self) {
-        trace!("TextParserTxSource::clear_txs called");
-        self.txs.borrow_mut().clear();
-    }
-    pub fn load_from_script<P>(&self, file_path: P)
-    where
-        P: AsRef<Path>,
-    {
-        trace!("TextParserTxSource::load_from_script called");
-        let script = fs::read_to_string(file_path).expect("Failed to read file");
-        let txs = parser::read_txs(&script);
-        debug!("txs: {:?}", txs);
-        if txs.is_empty() {
-            warn!("parsed script is empty");
-        }
-        self.txs.borrow_mut().extend(txs);
-    }
-    pub fn load_from_json<P>(&self, file_path: P)
-    where
-        P: AsRef<Path>,
-    {
-        trace!("TextParserTxSource::load_from_json called");
-        let json = fs::read_to_string(file_path).expect("Failed to read file");
-        let txs: VecDeque<Tx> = serde_json::from_str(&json).expect("Failed to deserialize");
-        debug!("txs: {:?}", txs);
-        if txs.is_empty() {
-            warn!("parsed json is empty");
-        }
-        self.txs.borrow_mut().extend(txs);
-    }
-    pub fn store_to_json<P>(&self, file_path: P)
-    where
-        P: AsRef<Path>,
-    {
-        trace!("TextParserTxSource::store_to_json called");
-        let txs = self.txs.borrow().clone();
-        let json = serde_json::to_string(&txs).expect("Failed to serialize");
-        debug!("json: {:?}", json);
-        fs::write(file_path, json).expect("Failed to write file");
+    pub fn new(tx_factory: F, reader: R) -> Self {
+        Self { tx_factory, reader }
     }
     fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
         match tx {
@@ -171,15 +129,35 @@ where
     }
 }
 
-impl<F> TxSource for TextParserTxSource<F>
+impl<F, R> TxSource for TextParserTxSource<F, R>
 where
     F: TxFactory,
+    R: BufRead,
 {
-    fn get_tx_source(&self) -> Option<Box<dyn Transaction>> {
+    fn get_tx_source(&mut self) -> Option<Box<dyn Transaction>> {
         trace!("TextParserTxSource::get_tx_source called");
-        self.txs.borrow_mut().pop_front().map(|tx| {
-            debug!("tx_src={:?}", tx);
-            self.dispatch(tx)
-        })
+        loop {
+            let mut buf = String::new();
+            let line = self.reader.read_line(&mut buf);
+            debug!("Read line: {:?}", buf);
+            match line {
+                Ok(0) => break,
+                Ok(_) => {
+                    if let Some(tx) = parser::read_tx(&buf).map(|tx| {
+                        debug!("Parsed tx: {:?}", tx);
+                        self.dispatch(tx)
+                    }) {
+                        return Some(tx);
+                    }
+                    debug!("Skipping line: {:?}", line);
+                    continue;
+                }
+                Err(e) => {
+                    warn!("Error reading line: {}", e);
+                    break;
+                }
+            }
+        }
+        None
     }
 }

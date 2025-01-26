@@ -15,7 +15,7 @@ where
     pub fn new(tx_source: S) -> Self {
         Self { tx_source }
     }
-    pub fn run(&self) -> Result<(), anyhow::Error> {
+    pub fn run(&mut self) -> Result<(), anyhow::Error> {
         trace!("TxApp::run called");
         while let Some(tx) = self.tx_source.get_tx_source() {
             let val = tx.execute()?;

@@ -1,5 +1,5 @@
 use log::{info, trace};
-use std::env;
+use std::{env, fs::File, io::BufReader};
 
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
@@ -11,31 +11,22 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
     env_logger::init();
 
-    for script_path in env::args().skip(1) {
-        info!("running script: script_path={}", script_path);
+    let db = HashDB::new();
+    trace!("DB initialized: {:?}", db);
+    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
 
-        let db = HashDB::new();
-        trace!("DB initialized: {:?}", db);
-        let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
+    let script_path = env::args().nth(1).expect("script path not provided");
+    trace!("script_path={}", script_path);
+    let script = File::open(script_path.clone())?;
+    let buf_reader = BufReader::new(script);
 
-        let tx_source = TextParserTxSource::new(tx_factory);
+    let tx_source = TextParserTxSource::new(tx_factory, buf_reader);
+    let mut tx_app = TxApp::new(tx_source);
 
-        trace!("Parsing script and Load");
-        tx_source.load_from_script(script_path.clone());
-        trace!("Save script as JSON");
-        let json_path = script_path.replace(".scr", ".json");
-        tx_source.store_to_json(json_path.clone());
-        trace!("Clear txs");
-        tx_source.clear_txs();
-        trace!("Load from JSON");
-        tx_source.load_from_json(json_path);
-        let tx_app = TxApp::new(tx_source);
+    trace!("TxApp running");
+    tx_app.run()?;
 
-        trace!("TxApp running");
-        tx_app.run()?;
-
-        println!("{:#?}", db);
-    }
+    println!("{:#?}", db);
     info!("TxApp finished");
 
     Ok(())

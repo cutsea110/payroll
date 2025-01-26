@@ -1,31 +1,14 @@
-use log::{debug, trace};
-use std::collections::VecDeque;
-
 use chrono::NaiveDate;
+use log::{debug, trace};
+
 use parsec_rs::{char, float32, int32, keyword, pred, spaces, string, uint32, Parser};
 use tx_app::Tx;
 
-pub fn read_txs(script: &str) -> VecDeque<Tx> {
-    trace!("read_txs called");
-    let txs: VecDeque<Tx> = match transactions().parse(script) {
-        Ok((txs, rest)) => {
-            if !rest.is_empty() {
-                panic!("parse error: rest={:?}", rest);
-            }
-            txs.into()
-        }
-        Err(e) => {
-            panic!("parse error: {:?}", e);
-        }
-    };
-    debug!("txs={:?}", txs);
-    txs
+pub fn read_tx(line: &str) -> Option<Tx> {
+    trace!("read_tx called");
+    transaction().parse(line).ok().map(|(tx, _)| tx)
 }
 
-fn transactions() -> impl Parser<Item = Vec<Tx>> {
-    // 末尾の with は rest を捨てるため
-    transaction().many0().with(spaces())
-}
 fn transaction() -> impl Parser<Item = Tx> {
     go_through().skip(
         add_hourly_emp()

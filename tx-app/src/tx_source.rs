@@ -105,5 +105,5 @@ pub enum Tx {
 }
 
 pub trait TxSource {
-    fn get_tx_source(&self) -> Option<Box<dyn Transaction>>;
+    fn get_tx_source(&mut self) -> Option<Box<dyn Transaction>>;
 }
