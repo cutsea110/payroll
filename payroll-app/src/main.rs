@@ -21,10 +21,11 @@ fn main() -> Result<(), anyhow::Error> {
 
     let (buf_reader, interact_mode): (Box<dyn BufRead>, bool) = {
         if let Some(script_path) = env::args().nth(1) {
-            trace!("script_path={}", script_path);
+            trace!("script mode (read from {:?})", script_path);
             let script = File::open(script_path.clone())?;
             (Box::new(BufReader::new(script)), false)
         } else {
+            trace!("interact mode (read from stdin)");
             let stdin = stdin();
             (Box::new(stdin.lock()), true)
         }
@@ -32,7 +33,7 @@ fn main() -> Result<(), anyhow::Error> {
     debug!("interact={}", interact_mode);
 
     let tx_source = TextParserTxSource::new(tx_factory, buf_reader, interact_mode);
-    let mut tx_app = TxApp::new(tx_source, interact_mode);
+    let mut tx_app = TxApp::new(tx_source);
 
     trace!("TxApp running");
     tx_app.run()?;

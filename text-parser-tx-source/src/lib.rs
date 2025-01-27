@@ -146,6 +146,9 @@ where
             }
             let line = self.reader.read_line(&mut buf);
             debug!("Read line: {:?}", buf);
+            if !self.interact {
+                print!("<= {}", buf);
+            }
             match line {
                 Ok(0) => break,
                 Ok(_) => {
