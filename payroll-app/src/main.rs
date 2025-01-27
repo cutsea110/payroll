@@ -1,8 +1,7 @@
 use log::{debug, info, trace};
 use std::{
     env,
-    fs::File,
-    io::{stdin, BufRead, BufReader},
+    io::{stdin, BufReader},
 };
 
 use hs_db::HashDB;
@@ -12,33 +11,27 @@ use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
 
 fn main() -> Result<(), anyhow::Error> {
+    let make_tx_source = |file_path| {
+        trace!("make_tx_source called");
+        let tx_factory = TxFactoryImpl::new(HashDB::new(), PayrollFactoryImpl);
+        if let Some(file) = file_path {
+            debug!("make_tx_source: file_path is {}", file);
+            let buf = std::fs::File::open(file).expect("open file");
+            TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)), false)
+        } else {
+            debug!("make_tx_source: file_path is None, using stdin");
+            TextParserTxSource::new(tx_factory, Box::new(stdin().lock()), true)
+        }
+    };
+
     info!("TxApp starting");
     env_logger::init();
 
-    let db = HashDB::new();
-    trace!("DB initialized: {:?}", db);
-    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
-
-    let (buf_reader, interact_mode): (Box<dyn BufRead>, bool) = {
-        if let Some(script_path) = env::args().nth(1) {
-            trace!("script mode (read from {:?})", script_path);
-            let script = File::open(script_path.clone())?;
-            (Box::new(BufReader::new(script)), false)
-        } else {
-            trace!("interact mode (read from stdin)");
-            let stdin = stdin();
-            (Box::new(stdin.lock()), true)
-        }
-    };
-    debug!("interact={}", interact_mode);
-
-    let tx_source = TextParserTxSource::new(tx_factory, buf_reader, interact_mode);
+    let tx_source = make_tx_source(env::args().nth(1));
     let mut tx_app = TxApp::new(tx_source);
 
     trace!("TxApp running");
     tx_app.run()?;
-
-    println!("{:#?}", db);
     info!("TxApp finished");
 
     Ok(())
