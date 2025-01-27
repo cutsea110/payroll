@@ -1,10 +1,9 @@
 use chrono::NaiveDate;
-use serde::{Deserialize, Serialize};
 
 use crate::tx::Transaction;
 use payroll_domain::{EmployeeId, MemberId};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tx {
     AddHourlyEmployee {
         id: EmployeeId,

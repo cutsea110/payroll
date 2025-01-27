@@ -10,7 +10,6 @@ edition.workspace = true
 chrono.workspace = true
 log.workspace = true
 parsec-rs.workspace = true
-serde_json.workspace = true
 
 payroll-domain = { path = "../payroll-domain" }
 tx-app = { path = "../tx-app" }
