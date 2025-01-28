@@ -11,7 +11,7 @@ edition = "2021"
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-chrono = { version = "0.4.38", features = [ "serde" ] }
+chrono = "0.4.38"
 dyn-clone = "1.0.17"
 env_logger = "0.11.6"
 log = "0.4.22"
