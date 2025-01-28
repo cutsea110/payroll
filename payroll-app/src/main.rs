@@ -17,11 +17,11 @@ fn main() -> Result<(), anyhow::Error> {
         if let Some(file) = file_path {
             debug!("make_tx_source: file_path is {}", file);
             let buf = std::fs::File::open(file).expect("open file");
-            TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)), false)
-        } else {
-            debug!("make_tx_source: file_path is None, using stdin");
-            TextParserTxSource::new(tx_factory, Box::new(stdin().lock()), true)
+            return TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)), false);
         }
+
+        debug!("make_tx_source: file_path is None, using stdin");
+        TextParserTxSource::new(tx_factory, Box::new(stdin().lock()), true)
     };
 
     info!("TxApp starting");
