@@ -5,6 +5,7 @@ mod change_member;
 mod delete_employee;
 mod error;
 mod payday;
+// for testing
 mod verify_paycheck;
 
 pub use add_employee::*;
@@ -14,4 +15,5 @@ pub use change_member::*;
 pub use delete_employee::*;
 pub use error::*;
 pub use payday::*;
+// for testing
 pub use verify_paycheck::*;

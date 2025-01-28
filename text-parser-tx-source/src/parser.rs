@@ -29,6 +29,7 @@ fn transaction() -> impl Parser<Item = Tx> {
             .or(chg_member())
             .or(chg_no_member())
             .or(payday())
+            // for testing
             .or(verify_gross_pay())
             .or(verify_deductions())
             .or(verify_net_pay()),

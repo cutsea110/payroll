@@ -86,6 +86,8 @@ pub enum Tx {
     Payday {
         date: NaiveDate,
     },
+
+    // for testing
     VerifyGrossPay {
         emp_id: EmployeeId,
         pay_date: NaiveDate,

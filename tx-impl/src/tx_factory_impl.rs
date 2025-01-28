@@ -236,6 +236,8 @@ where
         trace!("TxFactoryImpl::mk_payday_tx called");
         Box::new(PaydayTx::new(date, self.dao.clone()))
     }
+
+    // for testing
     fn mk_verify_gross_pay_tx(
         &self,
         id: EmployeeId,
