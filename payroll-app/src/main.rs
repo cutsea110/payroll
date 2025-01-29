@@ -11,9 +11,9 @@ use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
 
 fn main() -> Result<(), anyhow::Error> {
-    let make_tx_source = |file_path| {
+    let make_tx_source = |db, file_path| {
         trace!("make_tx_source called");
-        let tx_factory = TxFactoryImpl::new(HashDB::new(), PayrollFactoryImpl);
+        let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
         if let Some(file) = file_path {
             debug!("make_tx_source: file_path is {}", file);
             let buf = std::fs::File::open(file).expect("open file");
@@ -27,12 +27,15 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
     env_logger::init();
 
-    let tx_source = make_tx_source(env::args().nth(1));
+    let db = HashDB::new();
+    let tx_source = make_tx_source(db.clone(), env::args().nth(1));
     let mut tx_app = TxApp::new(tx_source);
 
     trace!("TxApp running");
     tx_app.run()?;
     info!("TxApp finished");
+
+    println!("{:#?}", db);
 
     Ok(())
 }
