@@ -24,13 +24,13 @@ fn main() -> Result<(), anyhow::Error> {
         TextParserTxSource::new(tx_factory, Box::new(stdin().lock()), true)
     };
 
-    info!("TxApp starting");
     env_logger::init();
 
+    info!("TxApp starting");
     let db = HashDB::new();
+
     let tx_source = make_tx_source(db.clone(), env::args().nth(1));
     let mut tx_app = TxApp::new(tx_source);
-
     trace!("TxApp running");
     tx_app.run()?;
     info!("TxApp finished");
