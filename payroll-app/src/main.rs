@@ -1,14 +1,14 @@
 use log::{debug, info, trace};
-use std::{
-    env,
-    io::{stdin, BufReader},
-};
+use std::{env, io::BufReader};
 
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
 use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
+
+mod reader;
+use reader::StdinReader;
 
 fn main() -> Result<(), anyhow::Error> {
     let make_tx_source = |db, file_path| {
@@ -17,11 +17,11 @@ fn main() -> Result<(), anyhow::Error> {
         if let Some(file) = file_path {
             debug!("make_tx_source: file_path is {}", file);
             let buf = std::fs::File::open(file).expect("open file");
-            return TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)), false);
+            return TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)));
         }
 
         debug!("make_tx_source: file_path is None, using stdin");
-        TextParserTxSource::new(tx_factory, Box::new(stdin().lock()), true)
+        TextParserTxSource::new(tx_factory, Box::new(StdinReader::new()))
     };
 
     env_logger::init();

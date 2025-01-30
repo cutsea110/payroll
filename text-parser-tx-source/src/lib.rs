@@ -1,5 +1,5 @@
 use log::{debug, trace, warn};
-use std::io::{stdout, BufRead, Write};
+use std::io::BufRead;
 
 use tx_app::{Transaction, Tx, TxSource};
 use tx_factory::TxFactory;
@@ -12,18 +12,13 @@ where
 {
     tx_factory: F,
     reader: Box<dyn BufRead>,
-    interact: bool,
 }
 impl<F> TextParserTxSource<F>
 where
     F: TxFactory,
 {
-    pub fn new(tx_factory: F, reader: Box<dyn BufRead>, interact: bool) -> Self {
-        Self {
-            tx_factory,
-            reader,
-            interact,
-        }
+    pub fn new(tx_factory: F, reader: Box<dyn BufRead>) -> Self {
+        Self { tx_factory, reader }
     }
     fn dispatch(&self, tx: Tx) -> Box<dyn Transaction> {
         match tx {
@@ -140,15 +135,8 @@ where
         trace!("TextParserTxSource::get_tx_source called");
         loop {
             let mut buf = String::new();
-            if self.interact {
-                print!("> ");
-                stdout().flush().unwrap();
-            }
             let line = self.reader.read_line(&mut buf);
             debug!("Read line: {:?}", buf);
-            if !self.interact {
-                print!("<= {}", buf);
-            }
             match line {
                 Ok(0) => break,
                 Ok(_) => {
