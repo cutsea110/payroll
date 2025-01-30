@@ -14,6 +14,7 @@ anyhow = "1.0.95"
 chrono = "0.4.38"
 dyn-clone = "1.0.17"
 env_logger = "0.11.6"
+getopts = "0.2.21"
 log = "0.4.22"
 parsec-rs = { git = "https://github.com/cutsea110/fragments.git", branch = "main" }
 thiserror = "1.0.63"

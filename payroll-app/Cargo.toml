@@ -9,6 +9,7 @@ edition.workspace = true
 [dependencies]
 anyhow.workspace = true
 env_logger.workspace = true
+getopts.workspace = true
 log.workspace = true
 
 hs-db = { path = "../hs-db" }
