@@ -136,7 +136,7 @@ where
         loop {
             let mut buf = String::new();
             let line = self.reader.read_line(&mut buf);
-            debug!("Read line: {:?}", buf);
+            debug!("Read line: {}", buf);
             match line {
                 Ok(0) => break,
                 Ok(_) => {

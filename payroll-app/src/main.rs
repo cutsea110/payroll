@@ -8,20 +8,22 @@ use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
 
 mod reader;
-use reader::StdinReader;
+use reader::{EchoReader, StdinReader};
 
 fn main() -> Result<(), anyhow::Error> {
-    let make_tx_source = |db, file_path| {
+    let make_tx_source = |db| {
         trace!("make_tx_source called");
         let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        if let Some(file) = file_path {
+        if let Some(file) = env::args().nth(1) {
             debug!("make_tx_source: file_path is {}", file);
             let buf = std::fs::File::open(file).expect("open file");
-            return TextParserTxSource::new(tx_factory, Box::new(BufReader::new(buf)));
+            let reader = Box::new(BufReader::new(buf));
+            return TextParserTxSource::new(tx_factory, Box::new(EchoReader::new(reader)));
         }
 
         debug!("make_tx_source: file_path is None, using stdin");
-        TextParserTxSource::new(tx_factory, Box::new(StdinReader::new()))
+        let reader = Box::new(StdinReader::new());
+        TextParserTxSource::new(tx_factory, Box::new(EchoReader::new(reader)))
     };
 
     env_logger::init();
@@ -29,7 +31,7 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
     let db = HashDB::new();
 
-    let tx_source = make_tx_source(db.clone(), env::args().nth(1));
+    let tx_source = make_tx_source(db.clone());
     let mut tx_app = TxApp::new(tx_source);
     trace!("TxApp running");
     tx_app.run()?;
