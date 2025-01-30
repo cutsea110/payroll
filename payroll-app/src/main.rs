@@ -14,7 +14,7 @@ use reader::{EchoReader, InteractReader};
 struct Args {
     help: bool,
     program: String,
-    scripte_file: Option<String>,
+    script_file: Option<String>,
     opts: Options,
 }
 
@@ -40,7 +40,7 @@ fn parse_args() -> Result<Args, anyhow::Error> {
     Ok(Args {
         help: matches.opt_present("h"),
         program: program.to_string(),
-        scripte_file: matches.free.get(0).cloned(),
+        script_file: matches.free.get(0).cloned(),
         opts,
     })
 }
@@ -60,14 +60,14 @@ fn main() -> Result<(), anyhow::Error> {
     let make_tx_source = |db| {
         trace!("make_tx_source called");
         let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        if let Some(file) = args.scripte_file {
-            debug!("make_tx_source: file_path is {}", file);
+        if let Some(file) = args.script_file {
+            debug!("make_tx_source: file={}", file);
             let buf = std::fs::File::open(file).expect("open file");
             let reader = Box::new(BufReader::new(buf));
             return TextParserTxSource::new(tx_factory, Box::new(EchoReader::new(reader)));
         }
 
-        debug!("make_tx_source: file_path is None, using stdin");
+        debug!("make_tx_source: file is None, using stdin");
         TextParserTxSource::new(tx_factory, Box::new(InteractReader::new()))
     };
 
