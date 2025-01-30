@@ -11,14 +11,19 @@ use tx_impl::TxFactoryImpl;
 mod reader;
 use reader::{EchoReader, InteractReader};
 
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options] FILE", program);
-    print!("{}", opts.usage(&brief));
+struct Args {
+    help: bool,
+    program: String,
+    scripte_file: Option<String>,
+    opts: Options,
 }
 
-fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
+fn print_usage(args: Args) {
+    let brief = format!("Usage: {} [options] FILE", args.program);
+    print!("{}", args.opts.usage(&brief));
+}
 
+fn parse_args() -> Result<Args, anyhow::Error> {
     let args: Vec<String> = env::args().collect();
     let program = args.get(0).expect("program name");
     let mut opts = Options::new();
@@ -27,27 +32,35 @@ fn main() -> Result<(), anyhow::Error> {
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
-            error!("main: error parsing options: {}", f);
-            eprintln!("{}", f.to_string());
-            print_usage(&program, opts);
-            std::process::exit(1);
+            error!("parse_args: error parsing options: {}", f);
+            return Err(anyhow::Error::msg(f.to_string()));
         }
     };
 
-    if matches.opt_present("h") {
-        debug!("main: help flag detected");
-        print_usage(&program, opts);
+    Ok(Args {
+        help: matches.opt_present("h"),
+        program: program.to_string(),
+        scripte_file: matches.free.get(0).cloned(),
+        opts,
+    })
+}
+
+fn main() -> Result<(), anyhow::Error> {
+    env_logger::init();
+
+    info!("TxApp starting");
+
+    let args = parse_args()?;
+    if args.help {
+        debug!("main: help flag is set");
+        print_usage(args);
         return Ok(());
     }
-    trace!("main: matches.free: {:?}", matches.free);
-
-    let scripte_file = matches.free.get(0);
-    debug!("main: scripte_file: {:?}", scripte_file);
 
     let make_tx_source = |db| {
         trace!("make_tx_source called");
         let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        if let Some(file) = scripte_file {
+        if let Some(file) = args.scripte_file {
             debug!("make_tx_source: file_path is {}", file);
             let buf = std::fs::File::open(file).expect("open file");
             let reader = Box::new(BufReader::new(buf));
@@ -58,7 +71,6 @@ fn main() -> Result<(), anyhow::Error> {
         TextParserTxSource::new(tx_factory, Box::new(InteractReader::new()))
     };
 
-    info!("TxApp starting");
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db.clone());
