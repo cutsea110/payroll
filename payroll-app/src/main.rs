@@ -8,7 +8,7 @@ use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
 
 mod reader;
-use reader::{EchoReader, StdinReader};
+use reader::{EchoReader, InteractReader};
 
 fn main() -> Result<(), anyhow::Error> {
     let make_tx_source = |db| {
@@ -22,8 +22,7 @@ fn main() -> Result<(), anyhow::Error> {
         }
 
         debug!("make_tx_source: file_path is None, using stdin");
-        let reader = Box::new(StdinReader::new());
-        TextParserTxSource::new(tx_factory, Box::new(EchoReader::new(reader)))
+        TextParserTxSource::new(tx_factory, Box::new(InteractReader::new()))
     };
 
     env_logger::init();

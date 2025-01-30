@@ -65,3 +65,33 @@ impl BufRead for StdinReader {
         self.stdin.read_line(buf)
     }
 }
+
+pub struct InteractReader {
+    reader: Box<dyn BufRead>,
+}
+impl InteractReader {
+    pub fn new() -> Self {
+        Self {
+            reader: Box::new(EchoReader::new(Box::new(StdinReader::new()))),
+        }
+    }
+}
+impl Read for InteractReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reader.read(buf)
+    }
+}
+impl BufRead for InteractReader {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.reader.fill_buf()
+    }
+    fn consume(&mut self, amt: usize) {
+        self.reader.consume(amt)
+    }
+    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.reader.read_until(byte, buf)
+    }
+    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        self.reader.read_line(buf)
+    }
+}
