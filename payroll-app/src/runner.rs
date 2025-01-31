@@ -1,6 +1,7 @@
 use log::{debug, trace};
 use tx_app::{Response, Runner, Transaction};
 
+// echo back the result of the transaction
 pub struct TxEchoBachRunner;
 impl Runner for TxEchoBachRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {

@@ -72,6 +72,7 @@ pub struct InteractReader {
 impl InteractReader {
     pub fn new() -> Self {
         Self {
+            // Interact means that the reader will echo the input from stdin
             reader: Box::new(EchoReader::new(Box::new(StdinReader::new()))),
         }
     }
