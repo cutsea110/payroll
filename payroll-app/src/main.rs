@@ -5,11 +5,14 @@ use std::{env, io::BufReader};
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::{Response, Runner, Transaction, TxApp};
+use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
 
 mod reader;
+mod runner;
+
 use reader::{EchoReader, InteractReader};
+use runner::TxEchoBachRunner;
 
 struct Opts {
     help: bool,
@@ -44,17 +47,6 @@ impl Opts {
 fn print_usage(opts: Opts) {
     let brief = format!("Usage: {} [options] FILE", opts.program);
     print!("{}", opts.opts.usage(&brief));
-}
-
-struct TxEchoBachRunner;
-impl Runner for TxEchoBachRunner {
-    fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
-        trace!("TxRunner::run called");
-        let res = tx.execute()?;
-        debug!("TxRunner: tx result={:?}", res);
-        println!("=> {:?}", res);
-        Ok(res)
-    }
 }
 
 fn main() -> Result<(), anyhow::Error> {
