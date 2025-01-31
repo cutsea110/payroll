@@ -1,26 +1,32 @@
-use log::{debug, trace};
+use log::trace;
 
+use crate::tx::Transaction;
 use crate::tx_source::TxSource;
 
-pub struct TxApp<S>
+pub trait Runner {
+    fn run(&self, tx: Box<dyn Transaction>) -> Result<(), anyhow::Error>;
+}
+
+pub struct TxApp<S, R>
 where
     S: TxSource,
+    R: Runner,
 {
     tx_source: S,
+    runner: R,
 }
-impl<S> TxApp<S>
+impl<S, R> TxApp<S, R>
 where
     S: TxSource,
+    R: Runner,
 {
-    pub fn new(tx_source: S) -> Self {
-        Self { tx_source }
+    pub fn new(tx_source: S, runner: R) -> Self {
+        Self { tx_source, runner }
     }
     pub fn run(&mut self) -> Result<(), anyhow::Error> {
         trace!("TxApp::run called");
         while let Some(tx) = self.tx_source.get_tx_source() {
-            let val = tx.execute()?;
-            debug!("TxApp::run: tx.execute() returned {:?}", val);
-            println!("=> {:?}", val);
+            self.runner.run(tx)?;
         }
         Ok(())
     }

@@ -5,7 +5,7 @@ use std::{env, io::BufReader};
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::TxApp;
+use tx_app::{Runner, Transaction, TxApp};
 use tx_impl::TxFactoryImpl;
 
 mod reader;
@@ -46,6 +46,17 @@ fn print_usage(opts: Opts) {
     print!("{}", opts.opts.usage(&brief));
 }
 
+struct TxRunner;
+impl Runner for TxRunner {
+    fn run(&self, tx: Box<dyn Transaction>) -> Result<(), anyhow::Error> {
+        trace!("TxRunner::run called");
+        let res = tx.execute()?;
+        debug!("TxRunner: tx result={:?}", res);
+        println!("=> {:?}", res);
+        return Ok(());
+    }
+}
+
 fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
@@ -75,7 +86,7 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db.clone());
-    let mut tx_app = TxApp::new(tx_source);
+    let mut tx_app = TxApp::new(tx_source, TxRunner);
     trace!("TxApp running");
     tx_app.run()?;
     info!("TxApp finished");
