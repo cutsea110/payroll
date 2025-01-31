@@ -11,14 +11,14 @@ use tx_impl::TxFactoryImpl;
 mod reader;
 use reader::{EchoReader, InteractReader};
 
-struct Args {
+struct Opts {
     help: bool,
     program: String,
     script_file: Option<String>,
     opts: Options,
 }
-impl Args {
-    fn parse_args() -> Result<Args, anyhow::Error> {
+impl Opts {
+    fn parse_args() -> Result<Opts, anyhow::Error> {
         let args: Vec<String> = env::args().collect();
         let program = args.get(0).expect("program name");
         let mut opts = Options::new();
@@ -32,7 +32,7 @@ impl Args {
             }
         };
 
-        Ok(Args {
+        Ok(Opts {
             help: matches.opt_present("h"),
             program: program.to_string(),
             script_file: matches.free.get(0).cloned(),
@@ -41,7 +41,7 @@ impl Args {
     }
 }
 
-fn print_usage(args: Args) {
+fn print_usage(args: Opts) {
     let brief = format!("Usage: {} [options] FILE", args.program);
     print!("{}", args.opts.usage(&brief));
 }
@@ -51,7 +51,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("TxApp starting");
 
-    let args = Args::parse_args()?;
+    let args = Opts::parse_args()?;
     if args.help {
         debug!("main: help flag is set");
         print_usage(args);
