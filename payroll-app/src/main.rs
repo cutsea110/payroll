@@ -46,8 +46,8 @@ fn print_usage(opts: Opts) {
     print!("{}", opts.opts.usage(&brief));
 }
 
-struct TxRunner;
-impl Runner for TxRunner {
+struct TxEchoBachRunner;
+impl Runner for TxEchoBachRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
         trace!("TxRunner::run called");
         let res = tx.execute()?;
@@ -86,7 +86,7 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db.clone());
-    let mut tx_app = TxApp::new(tx_source, TxRunner);
+    let mut tx_app = TxApp::new(tx_source, TxEchoBachRunner);
     trace!("TxApp running");
     tx_app.run()?;
     info!("TxApp finished");
