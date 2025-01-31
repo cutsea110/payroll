@@ -1,10 +1,10 @@
 use log::trace;
 
-use crate::tx::Transaction;
+use crate::tx::{Response, Transaction};
 use crate::tx_source::TxSource;
 
 pub trait Runner {
-    fn run(&self, tx: Box<dyn Transaction>) -> Result<(), anyhow::Error>;
+    fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error>;
 }
 
 pub struct TxApp<S, R>
