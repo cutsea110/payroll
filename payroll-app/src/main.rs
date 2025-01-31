@@ -41,9 +41,9 @@ impl Opts {
     }
 }
 
-fn print_usage(args: Opts) {
-    let brief = format!("Usage: {} [options] FILE", args.program);
-    print!("{}", args.opts.usage(&brief));
+fn print_usage(opts: Opts) {
+    let brief = format!("Usage: {} [options] FILE", opts.program);
+    print!("{}", opts.opts.usage(&brief));
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -51,17 +51,17 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("TxApp starting");
 
-    let args = Opts::parse_args()?;
-    if args.help {
+    let opts = Opts::parse_args()?;
+    if opts.help {
         debug!("main: help flag is set");
-        print_usage(args);
+        print_usage(opts);
         return Ok(());
     }
 
     let make_tx_source = |db| {
         trace!("make_tx_source called");
         let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        if let Some(file) = args.script_file {
+        if let Some(file) = opts.script_file {
             debug!("make_tx_source: file={}", file);
             let buf = std::fs::File::open(file).expect("open file");
             let reader = Box::new(BufReader::new(buf));
