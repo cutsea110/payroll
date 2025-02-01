@@ -19,18 +19,18 @@ use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
-fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
-    trace!("create_tx_app called");
+fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
+    trace!("build_tx_app called");
     let tx_source = make_tx_source(db, &app_conf);
-    let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
-        debug!("create_tx_app: using TxSilentRunner");
+    let mut tx_runner: Box<dyn Runner> = if app_conf.should_run_quietly() {
+        debug!("build_tx_app: using TxSilentRunner");
         Box::new(TxSilentRunner)
     } else {
-        debug!("create_tx_app: using TxEchoBachRunner");
+        debug!("build_tx_app: using TxEchoBachRunner");
         Box::new(TxEchoBachRunner)
     };
-    if app_conf.is_chronograph() {
-        debug!("create_tx_app: using TxRunnerChronograph");
+    if app_conf.should_enable_chronograph() {
+        debug!("build_tx_app: using TxRunnerChronograph");
         tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
     }
 
@@ -44,7 +44,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         debug!("make_tx_source: file={}", file);
         let buf = std::fs::File::open(file).expect("open file");
         let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
-        if !opts.is_quiet() {
+        if !opts.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = Box::new(EchoReader::new(reader));
         }
@@ -69,7 +69,7 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
 
     let app_conf = AppConfig::new()?;
-    if app_conf.is_help() {
+    if app_conf.should_show_help() {
         debug!("main: help flag is set");
         print_usage(&app_conf);
         return Ok(());
@@ -78,14 +78,14 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     trace!("TxApp running");
-    let mut tx_app: Box<dyn Application> = create_tx_app(&app_conf, db.clone());
-    if app_conf.is_chronograph() {
+    let mut tx_app: Box<dyn Application> = build_tx_app(&app_conf, db.clone());
+    if app_conf.should_enable_chronograph() {
         debug!("main: using AppChronograph");
         tx_app = Box::new(AppChronograph::new(tx_app));
     }
     tx_app.run()?;
 
-    if !app_conf.is_quiet() {
+    if !app_conf.should_run_quietly() {
         debug!("main: printing db at last");
         // this is just for developer
         println!("{:#?}", db);

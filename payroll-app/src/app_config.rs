@@ -40,13 +40,13 @@ impl AppConfig {
             opts,
         })
     }
-    pub fn is_help(&self) -> bool {
+    pub fn should_show_help(&self) -> bool {
         self.help
     }
-    pub fn is_quiet(&self) -> bool {
+    pub fn should_run_quietly(&self) -> bool {
         self.quiet
     }
-    pub fn is_chronograph(&self) -> bool {
+    pub fn should_enable_chronograph(&self) -> bool {
         self.chronograph
     }
     pub fn script_file(&self) -> Option<&str> {
