@@ -9,15 +9,17 @@ use tx_app::{Runner, TxApp, TxSource};
 use tx_impl::TxFactoryImpl;
 
 mod app_config;
+mod app_impl;
 mod reader;
 mod runner;
 
 use app_config::AppConfig;
+use app_impl::AppChronograph;
 use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
-fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> impl Application {
+fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("create_tx_app called");
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
@@ -32,7 +34,7 @@ fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> impl Application {
         tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
     }
 
-    TxApp::new(tx_source, tx_runner)
+    Box::new(TxApp::new(tx_source, tx_runner))
 }
 
 fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
@@ -76,7 +78,11 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     trace!("TxApp running");
-    let mut tx_app = create_tx_app(&app_conf, db.clone());
+    let mut tx_app: Box<dyn Application> = create_tx_app(&app_conf, db.clone());
+    if app_conf.is_chronograph() {
+        debug!("main: using AppChronograph");
+        tx_app = Box::new(AppChronograph::new(tx_app));
+    }
     tx_app.run()?;
 
     if !app_conf.is_quiet() {
