@@ -16,17 +16,22 @@ use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 fn create_tx_app(app_conf: AppConfig) -> TxApp {
+    trace!("create_tx_app called");
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
+        debug!("create_tx_app: using TxSilentRunner");
         Box::new(TxSilentRunner)
     } else {
+        debug!("create_tx_app: using TxEchoBachRunner");
         Box::new(TxEchoBachRunner)
     };
     if app_conf.is_chronograph() {
+        debug!("create_tx_app: using TxRunnerChronograph");
         tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
     }
+
     TxApp::new(tx_source, tx_runner)
 }
 
@@ -38,6 +43,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         let buf = std::fs::File::open(file).expect("open file");
         let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
         if !opts.is_quiet() {
+            debug!("make_tx_source: using EchoReader");
             reader = Box::new(EchoReader::new(reader));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
@@ -51,6 +57,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
 }
 
 fn print_usage(app_conf: &AppConfig) {
+    trace!("print_usage called");
     println!("{}", app_conf.usage_string());
 }
 
