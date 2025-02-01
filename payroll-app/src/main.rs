@@ -15,10 +15,9 @@ use app_config::AppConfig;
 use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
-fn create_tx_app(app_conf: AppConfig) -> TxApp {
+// TODO: remove db argument
+fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> TxApp {
     trace!("create_tx_app called");
-    let db = HashDB::new();
-
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
         debug!("create_tx_app: using TxSilentRunner");
@@ -73,9 +72,17 @@ fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
+    let db = HashDB::new();
+
     trace!("TxApp running");
-    let mut tx_app = create_tx_app(app_conf);
+    let mut tx_app = create_tx_app(&app_conf, db.clone());
     tx_app.run()?;
+
+    if !app_conf.is_quiet() {
+        debug!("main: printing db at last");
+        // this is just for developer
+        println!("{:#?}", db);
+    }
     info!("TxApp finished");
 
     Ok(())
