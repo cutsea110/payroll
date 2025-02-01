@@ -1,12 +1,58 @@
 use log::{debug, info, trace};
+use std::io::{BufRead, BufReader};
 
-use tx_app::TxApp;
+use hs_db::HashDB;
+use payroll_impl::PayrollFactoryImpl;
+use text_parser_tx_source::TextParserTxSource;
+use tx_app::{Runner, TxApp, TxSource};
+use tx_impl::TxFactoryImpl;
 
 mod app_config;
 mod reader;
 mod runner;
 
 use app_config::AppConfig;
+use reader::{EchoReader, InteractReader};
+use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
+
+fn create_tx_app(app_conf: AppConfig) -> TxApp {
+    let db = HashDB::new();
+
+    let tx_source = make_tx_source(db, &app_conf);
+    let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
+        Box::new(TxSilentRunner)
+    } else {
+        Box::new(TxEchoBachRunner)
+    };
+    if app_conf.is_chronograph() {
+        tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
+    }
+    TxApp::new(tx_source, tx_runner)
+}
+
+fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
+    trace!("make_tx_source called");
+    let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+    if let Some(file) = opts.script_file().clone() {
+        debug!("make_tx_source: file={}", file);
+        let buf = std::fs::File::open(file).expect("open file");
+        let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
+        if !opts.is_quiet() {
+            reader = Box::new(EchoReader::new(reader));
+        }
+        return Box::new(TextParserTxSource::new(tx_factory, reader));
+    }
+
+    debug!("make_tx_source: file is None, using stdin");
+    Box::new(TextParserTxSource::new(
+        tx_factory,
+        Box::new(InteractReader::new()),
+    ))
+}
+
+fn print_usage(app_conf: &AppConfig) {
+    println!("{}", app_conf.usage_string());
+}
 
 fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
@@ -14,14 +60,14 @@ fn main() -> Result<(), anyhow::Error> {
     info!("TxApp starting");
 
     let app_conf = AppConfig::new()?;
-    if app_conf.help() {
+    if app_conf.is_help() {
         debug!("main: help flag is set");
-        app_conf.print_usage();
+        print_usage(&app_conf);
         return Ok(());
     }
 
     trace!("TxApp running");
-    let mut tx_app: TxApp = app_conf.into();
+    let mut tx_app = create_tx_app(app_conf);
     tx_app.run()?;
     info!("TxApp finished");
 
