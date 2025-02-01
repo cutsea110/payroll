@@ -24,6 +24,7 @@ where
     pub fn run(&mut self) -> Result<(), anyhow::Error> {
         trace!("TxApp::run called");
         while let Some(tx) = self.tx_source.get_tx_source() {
+            trace!("TxApp: got next tx");
             self.runner.run(tx)?;
         }
         Ok(())

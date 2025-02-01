@@ -15,11 +15,12 @@ mod reader;
 mod runner;
 
 use reader::{EchoReader, InteractReader};
-use runner::{TxEchoBachRunner, TxSilentRunner};
+use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 struct Opts {
     help: bool,
     quiet: bool,
+    chronograph: bool,
     program: String,
     script_file: Option<String>,
     opts: Options,
@@ -31,6 +32,11 @@ impl Opts {
         let mut opts = Options::new();
         opts.optflag("h", "help", "Print this help menu");
         opts.optflag("q", "quiet", "Don't output unnecessary information");
+        opts.optflag(
+            "c",
+            "chronograph",
+            "Print the time taken to execute each transaction",
+        );
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
@@ -43,6 +49,7 @@ impl Opts {
         Ok(Opts {
             help: matches.opt_present("h"),
             quiet: matches.opt_present("q"),
+            chronograph: matches.opt_present("c"),
             program: program.to_string(),
             script_file: matches.free.get(0).cloned(),
             opts,
@@ -87,11 +94,14 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db.clone());
-    let tx_runner: Box<dyn Runner> = if opts.quiet {
+    let mut tx_runner: Box<dyn Runner> = if opts.quiet {
         Box::new(TxSilentRunner)
     } else {
         Box::new(TxEchoBachRunner)
     };
+    if opts.chronograph {
+        tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
+    }
     let mut tx_app = TxApp::new(tx_source, tx_runner);
     trace!("TxApp running");
     tx_app.run()?;
