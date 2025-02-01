@@ -25,6 +25,7 @@ graph TD
   tx-impl --> tx-factory
 
   tx-app --> payroll-domain
+  tx-app --> app
 
   tx-factory --> payroll-domain
   tx-factory --> tx-app
@@ -41,4 +42,5 @@ graph TD
   payroll-app --> tx-impl
   payroll-app --> text-parser-tx-source
   payroll-app --> tx-app
+  payroll-app --> app
 ```

@@ -1,5 +1,7 @@
 use log::trace;
 
+use app::Application;
+
 use crate::tx::{Response, Transaction};
 use crate::tx_source::TxSource;
 
@@ -15,7 +17,9 @@ impl TxApp {
     pub fn new(tx_source: Box<dyn TxSource>, runner: Box<dyn Runner>) -> Self {
         Self { tx_source, runner }
     }
-    pub fn run(&mut self) -> Result<(), anyhow::Error> {
+}
+impl Application for TxApp {
+    fn run(&mut self) -> Result<(), anyhow::Error> {
         trace!("TxApp::run called");
         while let Some(tx) = self.tx_source.get_tx_source() {
             trace!("TxApp: got next tx");

@@ -1,5 +1,5 @@
 [package]
-name = "tx-app"
+name = "app"
 version.workspace = true
 authors.workspace = true
 description.workspace = true
@@ -8,8 +8,3 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-chrono.workspace = true
-log.workspace = true
-
-app = { path = "../app" }
-payroll-domain = { path = "../payroll-domain" }

@@ -1,6 +1,7 @@
 use log::{debug, info, trace};
 use std::io::{BufRead, BufReader};
 
+use app::Application;
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
@@ -16,7 +17,7 @@ use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
-fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> TxApp {
+fn create_tx_app(app_conf: &AppConfig, db: HashDB) -> impl Application {
     trace!("create_tx_app called");
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.is_quiet() {
