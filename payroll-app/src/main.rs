@@ -8,7 +8,7 @@ use std::{
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::{Runner, TxApp};
+use tx_app::{Runner, TxApp, TxSource};
 use tx_impl::TxFactoryImpl;
 
 mod reader;
@@ -56,6 +56,42 @@ impl Opts {
         })
     }
 }
+impl From<Opts> for TxApp {
+    fn from(opts: Opts) -> Self {
+        let db = HashDB::new();
+
+        let tx_source = make_tx_source(db, &opts);
+        let mut tx_runner: Box<dyn Runner> = if opts.quiet {
+            Box::new(TxSilentRunner)
+        } else {
+            Box::new(TxEchoBachRunner)
+        };
+        if opts.chronograph {
+            tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
+        }
+        TxApp::new(tx_source, tx_runner)
+    }
+}
+
+fn make_tx_source(db: HashDB, opts: &Opts) -> Box<dyn TxSource> {
+    trace!("make_tx_source called");
+    let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+    if let Some(file) = opts.script_file.clone() {
+        debug!("make_tx_source: file={}", file);
+        let buf = std::fs::File::open(file).expect("open file");
+        let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
+        if !opts.quiet {
+            reader = Box::new(EchoReader::new(reader));
+        }
+        return Box::new(TextParserTxSource::new(tx_factory, reader));
+    }
+
+    debug!("make_tx_source: file is None, using stdin");
+    Box::new(TextParserTxSource::new(
+        tx_factory,
+        Box::new(InteractReader::new()),
+    ))
+}
 
 fn print_usage(opts: Opts) {
     let brief = format!("Usage: {} [options] FILE", opts.program);
@@ -74,40 +110,10 @@ fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    let make_tx_source = |db| {
-        trace!("make_tx_source called");
-        let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        if let Some(file) = opts.script_file {
-            debug!("make_tx_source: file={}", file);
-            let buf = std::fs::File::open(file).expect("open file");
-            let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
-            if !opts.quiet {
-                reader = Box::new(EchoReader::new(reader));
-            }
-            return TextParserTxSource::new(tx_factory, reader);
-        }
-
-        debug!("make_tx_source: file is None, using stdin");
-        TextParserTxSource::new(tx_factory, Box::new(InteractReader::new()))
-    };
-
-    let db = HashDB::new();
-
-    let tx_source = make_tx_source(db.clone());
-    let mut tx_runner: Box<dyn Runner> = if opts.quiet {
-        Box::new(TxSilentRunner)
-    } else {
-        Box::new(TxEchoBachRunner)
-    };
-    if opts.chronograph {
-        tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
-    }
-    let mut tx_app = TxApp::new(tx_source, tx_runner);
     trace!("TxApp running");
+    let mut tx_app: TxApp = opts.into();
     tx_app.run()?;
     info!("TxApp finished");
-
-    println!("{:#?}", db);
 
     Ok(())
 }
