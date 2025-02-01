@@ -66,7 +66,7 @@ fn print_usage(app_conf: &AppConfig) {
 fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
-    info!("TxApp starting");
+    info!("main starting");
 
     let app_conf = AppConfig::new()?;
     if app_conf.should_show_help() {
@@ -84,13 +84,14 @@ fn main() -> Result<(), anyhow::Error> {
         tx_app = Box::new(AppChronograph::new(tx_app));
     }
     tx_app.run()?;
+    trace!("TxApp finished");
 
     if !app_conf.should_run_quietly() {
         debug!("main: printing db at last");
         // this is just for developer
         println!("{:#?}", db);
     }
-    info!("TxApp finished");
+    info!("main finished");
 
     Ok(())
 }
