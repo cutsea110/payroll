@@ -7,20 +7,18 @@ pub trait Runner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error>;
 }
 
-pub struct TxApp<S, R>
+pub struct TxApp<S>
 where
     S: TxSource,
-    R: Runner,
 {
     tx_source: S,
-    runner: R,
+    runner: Box<dyn Runner>,
 }
-impl<S, R> TxApp<S, R>
+impl<S> TxApp<S>
 where
     S: TxSource,
-    R: Runner,
 {
-    pub fn new(tx_source: S, runner: R) -> Self {
+    pub fn new(tx_source: S, runner: Box<dyn Runner>) -> Self {
         Self { tx_source, runner }
     }
     pub fn run(&mut self) -> Result<(), anyhow::Error> {

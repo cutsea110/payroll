@@ -1,21 +1,25 @@
 use getopts::Options;
 use log::{debug, error, info, trace};
-use std::{env, io::BufReader};
+use std::{
+    env,
+    io::{BufRead, BufReader},
+};
 
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::TxApp;
+use tx_app::{Runner, TxApp};
 use tx_impl::TxFactoryImpl;
 
 mod reader;
 mod runner;
 
 use reader::{EchoReader, InteractReader};
-use runner::TxEchoBachRunner;
+use runner::{TxEchoBachRunner, TxSilentRunner};
 
 struct Opts {
     help: bool,
+    quiet: bool,
     program: String,
     script_file: Option<String>,
     opts: Options,
@@ -26,6 +30,7 @@ impl Opts {
         let program = args.get(0).expect("program name");
         let mut opts = Options::new();
         opts.optflag("h", "help", "Print this help menu");
+        opts.optflag("q", "quiet", "Don't output unnecessary information");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
@@ -37,6 +42,7 @@ impl Opts {
 
         Ok(Opts {
             help: matches.opt_present("h"),
+            quiet: matches.opt_present("q"),
             program: program.to_string(),
             script_file: matches.free.get(0).cloned(),
             opts,
@@ -67,8 +73,11 @@ fn main() -> Result<(), anyhow::Error> {
         if let Some(file) = opts.script_file {
             debug!("make_tx_source: file={}", file);
             let buf = std::fs::File::open(file).expect("open file");
-            let reader = Box::new(BufReader::new(buf));
-            return TextParserTxSource::new(tx_factory, Box::new(EchoReader::new(reader)));
+            let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
+            if !opts.quiet {
+                reader = Box::new(EchoReader::new(reader));
+            }
+            return TextParserTxSource::new(tx_factory, reader);
         }
 
         debug!("make_tx_source: file is None, using stdin");
@@ -78,7 +87,12 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     let tx_source = make_tx_source(db.clone());
-    let mut tx_app = TxApp::new(tx_source, TxEchoBachRunner);
+    let tx_runner: Box<dyn Runner> = if opts.quiet {
+        Box::new(TxSilentRunner)
+    } else {
+        Box::new(TxEchoBachRunner)
+    };
+    let mut tx_app = TxApp::new(tx_source, tx_runner);
     trace!("TxApp running");
     tx_app.run()?;
     info!("TxApp finished");
