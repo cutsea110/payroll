@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use std::io::{stdin, stdout, BufRead, Read, StdinLock, Write};
 
 pub struct EchoReader {
@@ -26,6 +26,7 @@ impl BufRead for EchoReader {
     }
     // read_line is the only method that needs to customize the behavior
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        trace!("EchoReader::read_line called");
         let line = self.reader.read_line(buf);
         debug!("read_line: buf is {}", buf);
         println!("Read line: {}", buf.trim());
@@ -60,6 +61,7 @@ impl BufRead for StdinReader {
     }
     // read_line is the only method that needs to customize the behavior
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        trace!("StdinReader::read_line called");
         print!("> ");
         stdout().flush().unwrap();
         self.stdin.read_line(buf)
@@ -133,11 +135,15 @@ impl BufRead for ReaderJoin {
         self.hd.read_until(byte, buf)
     }
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        trace!("ReaderJoin::read_line called");
         match self.hd.read_line(buf) {
             Ok(0) => {
+                debug!("ReaderJoin::read_line: current read_line return empty");
                 if self.tl.is_empty() {
+                    debug!("ReaderJoin::read_line: no more reader to read");
                     Ok(0)
                 } else {
+                    debug!("ReaderJoin::read_line: switch to next reader");
                     self.hd = self.tl.remove(0);
                     self.read_line(buf)
                 }
