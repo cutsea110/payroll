@@ -4,7 +4,7 @@ use app::Application;
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::{Runner, TxApp, TxSource};
+use tx_app::{TxApp, TxSource};
 use tx_impl::TxFactoryImpl;
 
 mod app_config;
@@ -15,25 +15,29 @@ mod runner;
 // TODO: remove db argument
 fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("build_tx_app called");
-    let tx_source = make_tx_source(db, &app_conf);
-    let mut tx_runner: Box<dyn Runner> = if app_conf.should_run_quietly() {
+
+    let mut tx_runner = if app_conf.should_run_quietly() {
         debug!("build_tx_app: using silent runner");
         runner::silent_runner()
     } else {
         debug!("build_tx_app: using echoback runner");
         runner::echoback_runner()
     };
+
     if app_conf.should_enable_chronograph() {
         debug!("build_tx_app: runner with chronograph");
         tx_runner = runner::with_chronograph(tx_runner);
     }
 
+    let tx_source = make_tx_source(db, &app_conf);
     Box::new(TxApp::new(tx_source, tx_runner))
 }
 
 fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
+
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+
     if let Some(file) = conf.script_file().clone() {
         debug!("make_tx_source: file={}", file);
         let mut reader = reader::file_reader(&file);
