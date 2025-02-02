@@ -1,16 +1,22 @@
 use log::{debug, trace};
-use std::io::{stdin, stdout, BufRead, BufReader, Read, StdinLock, Write};
+use std::{
+    fs::File,
+    io::{stdin, stdout, BufRead, BufReader, Read, StdinLock, Write},
+};
 
 pub fn file_reader(file: &str) -> Box<dyn BufRead> {
-    let buf = std::fs::File::open(file).expect("open file");
+    trace!("file_reader called");
+    let buf = File::open(file).expect("open file");
     Box::new(BufReader::new(buf))
 }
 
 pub fn interact_reader() -> Box<dyn BufRead> {
+    trace!("interact_reader called");
     with_echo(stdin_reader())
 }
 
 pub fn stdin_reader() -> Box<dyn BufRead> {
+    trace!("stdin_reader called");
     Box::new(StdinReader::new())
 }
 
@@ -49,6 +55,7 @@ impl BufRead for StdinReader {
 }
 
 pub fn with_echo(reader: Box<dyn BufRead>) -> Box<dyn BufRead> {
+    trace!("with_echo called");
     Box::new(EchoReader::new(reader))
 }
 
@@ -86,6 +93,7 @@ impl BufRead for EchoReader {
 }
 
 pub fn join(reader1: Box<dyn BufRead>, reader2: Box<dyn BufRead>) -> Box<dyn BufRead> {
+    trace!("join called");
     Box::new(ReaderJoin::join(reader1, reader2))
 }
 

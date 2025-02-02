@@ -35,17 +35,17 @@ fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
     Box::new(TxApp::new(tx_source, tx_runner))
 }
 
-fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
+fn make_tx_source(db: HashDB, conf: &AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-    if let Some(file) = opts.script_file().clone() {
+    if let Some(file) = conf.script_file().clone() {
         debug!("make_tx_source: file={}", file);
         let mut reader = reader::file_reader(&file);
-        if !opts.should_run_quietly() {
+        if !conf.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = reader::with_echo(reader);
         }
-        if opts.should_dive_into_repl() {
+        if conf.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
             reader = reader::join(reader, reader::interact_reader());
             return Box::new(TextParserTxSource::new(tx_factory, reader));
