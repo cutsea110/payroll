@@ -1,5 +1,35 @@
 use log::{debug, trace};
-use std::io::{stdin, stdout, BufRead, Read, StdinLock, Write};
+use std::io::{stdin, stdout, BufRead, BufReader, Read, StdinLock, Write};
+
+pub struct FileReader {
+    reader: Box<dyn BufRead>,
+}
+impl FileReader {
+    pub fn new(file_path: &str) -> Self {
+        let buf = std::fs::File::open(file_path).expect("open file");
+        let reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
+        Self { reader }
+    }
+}
+impl Read for FileReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reader.read(buf)
+    }
+}
+impl BufRead for FileReader {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.reader.fill_buf()
+    }
+    fn consume(&mut self, amt: usize) {
+        self.reader.consume(amt)
+    }
+    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.reader.read_until(byte, buf)
+    }
+    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        self.reader.read_line(buf)
+    }
+}
 
 pub struct EchoReader {
     reader: Box<dyn BufRead>,

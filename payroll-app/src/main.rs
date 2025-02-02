@@ -1,5 +1,5 @@
 use log::{debug, info, trace};
-use std::io::{BufRead, BufReader};
+use std::io::BufRead;
 
 use app::Application;
 use hs_db::HashDB;
@@ -15,7 +15,7 @@ mod runner;
 
 use app_config::AppConfig;
 use app_impl::AppChronograph;
-use reader::{EchoReader, InteractReader, ReaderJoin};
+use reader::{EchoReader, FileReader, InteractReader, ReaderJoin};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
@@ -42,8 +42,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
     if let Some(file) = opts.script_file().clone() {
         debug!("make_tx_source: file={}", file);
-        let buf = std::fs::File::open(file).expect("open file");
-        let mut reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
+        let mut reader: Box<dyn BufRead> = Box::new(FileReader::new(file));
         if !opts.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = Box::new(EchoReader::new(reader));
