@@ -6,6 +6,7 @@ pub struct AppConfig {
     help: bool,
     quiet: bool,
     chronograph: bool,
+    repl: bool,
     program: String,
     script_file: Option<String>,
     opts: Options,
@@ -22,6 +23,7 @@ impl AppConfig {
             "chronograph",
             "Print the time taken to execute each transaction",
         );
+        opts.optflag("r", "repl", "Run into REPL mode");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
@@ -35,6 +37,7 @@ impl AppConfig {
             help: matches.opt_present("h"),
             quiet: matches.opt_present("q"),
             chronograph: matches.opt_present("c"),
+            repl: matches.opt_present("r"),
             program: program.to_string(),
             script_file: matches.free.get(0).cloned(),
             opts,
@@ -48,6 +51,9 @@ impl AppConfig {
     }
     pub fn should_enable_chronograph(&self) -> bool {
         self.chronograph
+    }
+    pub fn should_dive_into_repl(&self) -> bool {
+        self.repl
     }
     pub fn script_file(&self) -> Option<&str> {
         self.script_file.as_deref()

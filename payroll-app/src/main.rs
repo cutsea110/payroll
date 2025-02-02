@@ -18,6 +18,18 @@ use app_impl::AppChronograph;
 use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
+struct TxSourceJoin {
+    prelude: Box<dyn TxSource>,
+    tx_source: Box<dyn TxSource>,
+}
+impl TxSource for TxSourceJoin {
+    fn get_tx_source(&mut self) -> Option<Box<dyn tx_app::Transaction>> {
+        self.prelude
+            .get_tx_source()
+            .or_else(|| self.tx_source.get_tx_source())
+    }
+}
+
 // TODO: remove db argument
 fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("build_tx_app called");
@@ -39,7 +51,7 @@ fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
 
 fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
-    let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
     if let Some(file) = opts.script_file().clone() {
         debug!("make_tx_source: file={}", file);
         let buf = std::fs::File::open(file).expect("open file");
@@ -47,6 +59,17 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         if !opts.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = Box::new(EchoReader::new(reader));
+        }
+        if opts.should_dive_into_repl() {
+            debug!("make_tx_source: dive into REPL mode after file loaded");
+            let tx_factory_extra = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
+            return Box::new(TxSourceJoin {
+                prelude: Box::new(TextParserTxSource::new(tx_factory, reader)),
+                tx_source: Box::new(TextParserTxSource::new(
+                    tx_factory_extra,
+                    Box::new(InteractReader::new()),
+                )),
+            });
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
     }
