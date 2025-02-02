@@ -10,7 +10,7 @@ use tx_impl::TxFactoryImpl;
 
 mod app_config;
 mod app_impl;
-mod reader;
+mod reader; // TODO: TxSource レベルでカスタム可能にしたい
 mod runner;
 
 use app_config::AppConfig;
