@@ -29,8 +29,7 @@ fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Applica
         tx_runner = runner_impl::with_chronograph(tx_runner);
     }
 
-    let tx_source = make_tx_source(db, &app_conf);
-    Box::new(TxApp::new(tx_source, tx_runner))
+    Box::new(TxApp::new(make_tx_source(db, &app_conf), tx_runner))
 }
 
 fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource> {
@@ -62,7 +61,7 @@ fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource>
 
 fn print_usage(app_conf: &app_config::AppConfig) {
     trace!("print_usage called");
-    println!("{}", app_conf.usage_string());
+    println!("{}", app_conf.help_message());
 }
 
 fn main() -> Result<(), anyhow::Error> {

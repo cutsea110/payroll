@@ -58,7 +58,7 @@ impl AppConfig {
     pub fn script_file(&self) -> Option<&str> {
         self.script_file.as_deref()
     }
-    pub fn usage_string(&self) -> String {
+    pub fn help_message(&self) -> String {
         let brief = format!("Usage: {} [options] FILE", self.program);
         self.opts.usage(&brief)
     }
