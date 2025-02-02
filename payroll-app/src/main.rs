@@ -1,5 +1,4 @@
 use log::{debug, info, trace};
-use std::io::BufRead;
 
 use app::Application;
 use hs_db::HashDB;
@@ -15,7 +14,7 @@ mod runner;
 
 use app_config::AppConfig;
 use app_impl::AppChronograph;
-use reader::{EchoReader, FileReader, InteractReader, ReaderJoin};
+use reader::{EchoReader, ReaderJoin};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
@@ -42,14 +41,14 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
     if let Some(file) = opts.script_file().clone() {
         debug!("make_tx_source: file={}", file);
-        let mut reader: Box<dyn BufRead> = Box::new(FileReader::new(file));
+        let mut reader = reader::make_file_reader(&file);
         if !opts.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = Box::new(EchoReader::new(reader));
         }
         if opts.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
-            reader = Box::new(ReaderJoin::join(reader, Box::new(InteractReader::new())));
+            reader = Box::new(ReaderJoin::join(reader, reader::make_interact_reader()));
             return Box::new(TextParserTxSource::new(tx_factory, reader));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
@@ -58,7 +57,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     debug!("make_tx_source: file is None, using stdin");
     Box::new(TextParserTxSource::new(
         tx_factory,
-        Box::new(InteractReader::new()),
+        reader::make_interact_reader(),
     ))
 }
 

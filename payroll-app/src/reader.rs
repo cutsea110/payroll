@@ -1,34 +1,13 @@
 use log::{debug, trace};
 use std::io::{stdin, stdout, BufRead, BufReader, Read, StdinLock, Write};
 
-pub struct FileReader {
-    reader: Box<dyn BufRead>,
+pub fn make_file_reader(file: &str) -> Box<dyn BufRead> {
+    let buf = std::fs::File::open(file).expect("open file");
+    Box::new(BufReader::new(buf))
 }
-impl FileReader {
-    pub fn new(file_path: &str) -> Self {
-        let buf = std::fs::File::open(file_path).expect("open file");
-        let reader: Box<dyn BufRead> = Box::new(BufReader::new(buf));
-        Self { reader }
-    }
-}
-impl Read for FileReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.reader.read(buf)
-    }
-}
-impl BufRead for FileReader {
-    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-        self.reader.fill_buf()
-    }
-    fn consume(&mut self, amt: usize) {
-        self.reader.consume(amt)
-    }
-    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
-        self.reader.read_until(byte, buf)
-    }
-    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        self.reader.read_line(buf)
-    }
+
+pub fn make_interact_reader() -> Box<dyn BufRead> {
+    Box::new(EchoReader::new(Box::new(StdinReader::new())))
 }
 
 pub struct EchoReader {
@@ -95,37 +74,6 @@ impl BufRead for StdinReader {
         print!("> ");
         stdout().flush().unwrap();
         self.stdin.read_line(buf)
-    }
-}
-
-pub struct InteractReader {
-    reader: Box<dyn BufRead>,
-}
-impl InteractReader {
-    pub fn new() -> Self {
-        Self {
-            // Interact means that the reader will echo the input from stdin
-            reader: Box::new(EchoReader::new(Box::new(StdinReader::new()))),
-        }
-    }
-}
-impl Read for InteractReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.reader.read(buf)
-    }
-}
-impl BufRead for InteractReader {
-    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-        self.reader.fill_buf()
-    }
-    fn consume(&mut self, amt: usize) {
-        self.reader.consume(amt)
-    }
-    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
-        self.reader.read_until(byte, buf)
-    }
-    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        self.reader.read_line(buf)
     }
 }
 
