@@ -50,7 +50,7 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         }
         if opts.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
-            reader = Box::new(ReaderJoin::new(reader, Box::new(InteractReader::new())));
+            reader = Box::new(ReaderJoin::join(reader, Box::new(InteractReader::new())));
             return Box::new(TextParserTxSource::new(tx_factory, reader));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));

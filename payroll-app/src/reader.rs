@@ -102,14 +102,19 @@ pub struct ReaderJoin {
     tl: Vec<Box<dyn BufRead>>,
 }
 impl ReaderJoin {
-    pub fn new(prelude: Box<dyn BufRead>, main: Box<dyn BufRead>) -> Self {
-        Self::cons(prelude, vec![main])
-    }
-    pub fn cons(prelude: Box<dyn BufRead>, readers: Vec<Box<dyn BufRead>>) -> Self {
+    pub fn new(reader: Box<dyn BufRead>) -> Self {
         Self {
-            hd: prelude,
-            tl: readers,
+            hd: reader,
+            tl: vec![],
         }
+    }
+    pub fn add_reader(&mut self, reader: Box<dyn BufRead>) {
+        self.tl.push(reader);
+    }
+    pub fn join(prelude: Box<dyn BufRead>, reader: Box<dyn BufRead>) -> Self {
+        let mut joined_reader = Self::new(prelude);
+        joined_reader.add_reader(reader);
+        joined_reader
     }
 }
 impl Read for ReaderJoin {
