@@ -18,15 +18,21 @@ use app_impl::AppChronograph;
 use reader::{EchoReader, InteractReader};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
-struct TxSourceJoin {
-    prelude: Box<dyn TxSource>,
-    tx_source: Box<dyn TxSource>,
+// TODO: モジュール化する
+struct TxSourceChain {
+    hd: Box<dyn TxSource>,
+    tl: Vec<Box<dyn TxSource>>,
 }
-impl TxSource for TxSourceJoin {
+impl TxSource for TxSourceChain {
     fn get_tx_source(&mut self) -> Option<Box<dyn tx_app::Transaction>> {
-        self.prelude
-            .get_tx_source()
-            .or_else(|| self.tx_source.get_tx_source())
+        if let Some(tx) = self.hd.get_tx_source() {
+            return Some(tx);
+        }
+        if self.tl.is_empty() {
+            return None;
+        }
+        self.hd = self.tl.remove(0);
+        self.get_tx_source()
     }
 }
 
@@ -51,6 +57,7 @@ fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
 
 fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
+    // FIXME: この clone は避けたい(下で tx_factory を再生成しているため)
     let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
     if let Some(file) = opts.script_file().clone() {
         debug!("make_tx_source: file={}", file);
@@ -62,13 +69,14 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         }
         if opts.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
+            // FIXME: ここで tx_factory を clone するのを避けるのが良い
             let tx_factory_extra = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
-            return Box::new(TxSourceJoin {
-                prelude: Box::new(TextParserTxSource::new(tx_factory, reader)),
-                tx_source: Box::new(TextParserTxSource::new(
+            return Box::new(TxSourceChain {
+                hd: Box::new(TextParserTxSource::new(tx_factory, reader)),
+                tl: vec![Box::new(TextParserTxSource::new(
                     tx_factory_extra,
                     Box::new(InteractReader::new()),
-                )),
+                ))],
             });
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
