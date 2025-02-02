@@ -15,26 +15,8 @@ mod runner;
 
 use app_config::AppConfig;
 use app_impl::AppChronograph;
-use reader::{EchoReader, InteractReader};
+use reader::{EchoReader, InteractReader, TxSourceJoin};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
-
-// TODO: モジュール化する
-struct TxSourceChain {
-    hd: Box<dyn TxSource>,
-    tl: Vec<Box<dyn TxSource>>,
-}
-impl TxSource for TxSourceChain {
-    fn get_tx_source(&mut self) -> Option<Box<dyn tx_app::Transaction>> {
-        if let Some(tx) = self.hd.get_tx_source() {
-            return Some(tx);
-        }
-        if self.tl.is_empty() {
-            return None;
-        }
-        self.hd = self.tl.remove(0);
-        self.get_tx_source()
-    }
-}
 
 // TODO: remove db argument
 fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
@@ -71,13 +53,13 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
             debug!("make_tx_source: dive into REPL mode after file loaded");
             // FIXME: ここで tx_factory を clone するのを避けるのが良い
             let tx_factory_extra = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
-            return Box::new(TxSourceChain {
-                hd: Box::new(TextParserTxSource::new(tx_factory, reader)),
-                tl: vec![Box::new(TextParserTxSource::new(
+            return Box::new(TxSourceJoin::new(
+                Box::new(TextParserTxSource::new(tx_factory, reader)),
+                Box::new(TextParserTxSource::new(
                     tx_factory_extra,
                     Box::new(InteractReader::new()),
-                ))],
-            });
+                )),
+            ));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
     }

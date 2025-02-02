@@ -1,6 +1,8 @@
 use log::debug;
 use std::io::{stdin, stdout, BufRead, Read, StdinLock, Write};
 
+use tx_app::TxSource;
+
 pub struct EchoReader {
     reader: Box<dyn BufRead>,
 }
@@ -94,5 +96,33 @@ impl BufRead for InteractReader {
     }
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
         self.reader.read_line(buf)
+    }
+}
+
+pub struct TxSourceJoin {
+    hd: Box<dyn TxSource>,
+    tl: Vec<Box<dyn TxSource>>,
+}
+impl TxSourceJoin {
+    pub fn new(prelude: Box<dyn TxSource>, main: Box<dyn TxSource>) -> Self {
+        Self::cons(prelude, vec![main])
+    }
+    pub fn cons(prelude: Box<dyn TxSource>, tx_sources: Vec<Box<dyn TxSource>>) -> Self {
+        Self {
+            hd: prelude,
+            tl: tx_sources,
+        }
+    }
+}
+impl TxSource for TxSourceJoin {
+    fn get_tx_source(&mut self) -> Option<Box<dyn tx_app::Transaction>> {
+        if let Some(tx) = self.hd.get_tx_source() {
+            return Some(tx);
+        }
+        if self.tl.is_empty() {
+            return None;
+        }
+        self.hd = self.tl.remove(0);
+        self.get_tx_source()
     }
 }
