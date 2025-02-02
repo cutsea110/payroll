@@ -1,4 +1,4 @@
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 
 use app::Application;
 use hs_db::HashDB;
@@ -85,7 +85,14 @@ fn main() -> Result<(), anyhow::Error> {
         debug!("main: using AppChronograph");
         tx_app = app_impl::with_chronograph(tx_app);
     }
-    tx_app.run()?;
+    match tx_app.run() {
+        Ok(_) => {
+            debug!("main: tx_app.run succeeded");
+        }
+        Err(e) => {
+            error!("main: tx_app.run failed: {:?}", e);
+        }
+    }
     trace!("TxApp finished");
 
     if !app_conf.should_run_quietly() {
