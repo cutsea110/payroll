@@ -563,7 +563,7 @@ fn date() -> impl Parser<Item = NaiveDate> {
     let day = uint32();
 
     year.join(month).join(day).map(|((y, m), d)| {
-        debug!("parsed date: {}-{}-{}", y, m, d);
+        debug!("parsed date: {}-{:02}-{:02}", y, m, d);
         NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32).expect("date")
     })
 }
@@ -1212,7 +1212,7 @@ fn verify_net_pay() -> impl Parser<Item = Tx> {
         .join(net_pay)
         .map(|((pay_date, emp_id), net_pay)| {
             debug!(
-                "parsed VerifyNetPay: pay_date={}, emp_id={}, net_pay{}",
+                "parsed VerifyNetPay: pay_date={}, emp_id={}, net_pay={}",
                 pay_date, emp_id, net_pay
             );
             Tx::VerifyNetPay {

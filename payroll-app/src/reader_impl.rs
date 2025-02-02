@@ -86,7 +86,7 @@ impl BufRead for EchoReader {
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
         trace!("EchoReader::read_line called");
         let line = self.reader.read_line(buf);
-        debug!("read_line: buf is {}", buf);
+        debug!("read_line: buf={:?}", buf);
         println!("Read line: {}", buf.trim());
         line
     }
