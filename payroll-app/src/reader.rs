@@ -1,53 +1,24 @@
 use log::{debug, trace};
 use std::io::{stdin, stdout, BufRead, BufReader, Read, StdinLock, Write};
 
-pub fn make_file_reader(file: &str) -> Box<dyn BufRead> {
+pub fn file_reader(file: &str) -> Box<dyn BufRead> {
     let buf = std::fs::File::open(file).expect("open file");
     Box::new(BufReader::new(buf))
 }
 
-pub fn make_interact_reader() -> Box<dyn BufRead> {
-    Box::new(EchoReader::new(Box::new(StdinReader::new())))
+pub fn interact_reader() -> Box<dyn BufRead> {
+    with_echo(stdin_reader())
 }
 
-pub struct EchoReader {
-    reader: Box<dyn BufRead>,
-}
-impl EchoReader {
-    pub fn new(reader: Box<dyn BufRead>) -> Self {
-        Self { reader }
-    }
-}
-impl Read for EchoReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.reader.read(buf)
-    }
-}
-impl BufRead for EchoReader {
-    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-        self.reader.fill_buf()
-    }
-    fn consume(&mut self, amt: usize) {
-        self.reader.consume(amt)
-    }
-    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
-        self.reader.read_until(byte, buf)
-    }
-    // read_line is the only method that needs to customize the behavior
-    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        trace!("EchoReader::read_line called");
-        let line = self.reader.read_line(buf);
-        debug!("read_line: buf is {}", buf);
-        println!("Read line: {}", buf.trim());
-        line
-    }
+pub fn stdin_reader() -> Box<dyn BufRead> {
+    Box::new(StdinReader::new())
 }
 
-pub struct StdinReader {
+struct StdinReader {
     stdin: StdinLock<'static>,
 }
 impl StdinReader {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             stdin: stdin().lock(),
         }
@@ -77,21 +48,62 @@ impl BufRead for StdinReader {
     }
 }
 
-pub struct ReaderJoin {
+pub fn with_echo(reader: Box<dyn BufRead>) -> Box<dyn BufRead> {
+    Box::new(EchoReader::new(reader))
+}
+
+struct EchoReader {
+    reader: Box<dyn BufRead>,
+}
+impl EchoReader {
+    fn new(reader: Box<dyn BufRead>) -> Self {
+        Self { reader }
+    }
+}
+impl Read for EchoReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reader.read(buf)
+    }
+}
+impl BufRead for EchoReader {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.reader.fill_buf()
+    }
+    fn consume(&mut self, amt: usize) {
+        self.reader.consume(amt)
+    }
+    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.reader.read_until(byte, buf)
+    }
+    // read_line is the only method that needs to customize the behavior
+    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        trace!("EchoReader::read_line called");
+        let line = self.reader.read_line(buf);
+        debug!("read_line: buf is {}", buf);
+        println!("Read line: {}", buf.trim());
+        line
+    }
+}
+
+pub fn join(reader1: Box<dyn BufRead>, reader2: Box<dyn BufRead>) -> Box<dyn BufRead> {
+    Box::new(ReaderJoin::join(reader1, reader2))
+}
+
+struct ReaderJoin {
     hd: Box<dyn BufRead>,
     tl: Vec<Box<dyn BufRead>>,
 }
 impl ReaderJoin {
-    pub fn new(reader: Box<dyn BufRead>) -> Self {
+    fn new(reader: Box<dyn BufRead>) -> Self {
         Self {
             hd: reader,
             tl: vec![],
         }
     }
-    pub fn add_reader(&mut self, reader: Box<dyn BufRead>) {
+    fn add_reader(&mut self, reader: Box<dyn BufRead>) {
         self.tl.push(reader);
     }
-    pub fn join(prelude: Box<dyn BufRead>, reader: Box<dyn BufRead>) -> Self {
+    fn join(prelude: Box<dyn BufRead>, reader: Box<dyn BufRead>) -> Self {
         let mut joined_reader = Self::new(prelude);
         joined_reader.add_reader(reader);
         joined_reader
