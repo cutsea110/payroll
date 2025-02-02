@@ -13,7 +13,6 @@ mod reader;
 mod runner;
 
 use app_config::AppConfig;
-use app_impl::AppChronograph;
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
@@ -83,7 +82,7 @@ fn main() -> Result<(), anyhow::Error> {
     let mut tx_app: Box<dyn Application> = build_tx_app(&app_conf, db.clone());
     if app_conf.should_enable_chronograph() {
         debug!("main: using AppChronograph");
-        tx_app = Box::new(AppChronograph::new(tx_app));
+        tx_app = app_impl::with_chronograph(tx_app);
     }
     tx_app.run()?;
     trace!("TxApp finished");

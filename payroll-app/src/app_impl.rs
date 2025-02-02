@@ -2,11 +2,16 @@ use log::{debug, trace};
 
 use app::Application;
 
-pub struct AppChronograph {
+pub fn with_chronograph(app: Box<dyn Application>) -> Box<dyn Application> {
+    trace!("with_chronograph called");
+    Box::new(AppChronograph::new(app))
+}
+
+struct AppChronograph {
     app: Box<dyn Application>,
 }
 impl AppChronograph {
-    pub fn new(app: Box<dyn Application>) -> Self {
+    fn new(app: Box<dyn Application>) -> Self {
         Self { app }
     }
 }
