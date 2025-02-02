@@ -12,10 +12,8 @@ mod app_impl;
 mod reader;
 mod runner;
 
-use app_config::AppConfig;
-
 // TODO: remove db argument
-fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
+fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("build_tx_app called");
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.should_run_quietly() {
@@ -33,7 +31,7 @@ fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
     Box::new(TxApp::new(tx_source, tx_runner))
 }
 
-fn make_tx_source(db: HashDB, conf: &AppConfig) -> Box<dyn TxSource> {
+fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
     if let Some(file) = conf.script_file().clone() {
@@ -58,7 +56,7 @@ fn make_tx_source(db: HashDB, conf: &AppConfig) -> Box<dyn TxSource> {
     ))
 }
 
-fn print_usage(app_conf: &AppConfig) {
+fn print_usage(app_conf: &app_config::AppConfig) {
     trace!("print_usage called");
     println!("{}", app_conf.usage_string());
 }
@@ -68,7 +66,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("main starting");
 
-    let app_conf = AppConfig::new()?;
+    let app_conf = app_config::AppConfig::new()?;
     if app_conf.should_show_help() {
         debug!("main: help flag is set");
         print_usage(&app_conf);
