@@ -9,8 +9,8 @@ use tx_impl::TxFactoryImpl;
 
 mod app_config;
 mod app_impl;
-mod reader;
-mod runner;
+mod reader_impl;
+mod runner_impl;
 
 // TODO: remove db argument
 fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Application> {
@@ -18,15 +18,15 @@ fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Applica
 
     let mut tx_runner = if app_conf.should_run_quietly() {
         debug!("build_tx_app: using silent runner");
-        runner::silent_runner()
+        runner_impl::silent_runner()
     } else {
         debug!("build_tx_app: using echoback runner");
-        runner::echoback_runner()
+        runner_impl::echoback_runner()
     };
 
     if app_conf.should_enable_chronograph() {
         debug!("build_tx_app: runner with chronograph");
-        tx_runner = runner::with_chronograph(tx_runner);
+        tx_runner = runner_impl::with_chronograph(tx_runner);
     }
 
     let tx_source = make_tx_source(db, &app_conf);
@@ -40,14 +40,14 @@ fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource>
 
     if let Some(file) = conf.script_file().clone() {
         debug!("make_tx_source: file={}", file);
-        let mut reader = reader::file_reader(&file);
+        let mut reader = reader_impl::file_reader(&file);
         if !conf.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
-            reader = reader::with_echo(reader);
+            reader = reader_impl::with_echo(reader);
         }
         if conf.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
-            reader = reader::join(reader, reader::interact_reader());
+            reader = reader_impl::join(reader, reader_impl::interact_reader());
             return Box::new(TextParserTxSource::new(tx_factory, reader));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
@@ -56,7 +56,7 @@ fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource>
     debug!("make_tx_source: file is None, using stdin");
     Box::new(TextParserTxSource::new(
         tx_factory,
-        reader::interact_reader(),
+        reader_impl::interact_reader(),
     ))
 }
 
