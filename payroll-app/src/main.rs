@@ -10,12 +10,12 @@ use tx_impl::TxFactoryImpl;
 
 mod app_config;
 mod app_impl;
-mod reader; // TODO: TxSource レベルでカスタム可能にしたい
+mod reader;
 mod runner;
 
 use app_config::AppConfig;
 use app_impl::AppChronograph;
-use reader::{EchoReader, InteractReader, TxSourceJoin};
+use reader::{EchoReader, InteractReader, ReaderJoin};
 use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
@@ -39,8 +39,7 @@ fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
 
 fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
     trace!("make_tx_source called");
-    // FIXME: この clone は避けたい(下で tx_factory を再生成しているため)
-    let tx_factory = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
+    let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
     if let Some(file) = opts.script_file().clone() {
         debug!("make_tx_source: file={}", file);
         let buf = std::fs::File::open(file).expect("open file");
@@ -51,15 +50,8 @@ fn make_tx_source(db: HashDB, opts: &AppConfig) -> Box<dyn TxSource> {
         }
         if opts.should_dive_into_repl() {
             debug!("make_tx_source: dive into REPL mode after file loaded");
-            // FIXME: ここで tx_factory を clone するのを避けるのが良い
-            let tx_factory_extra = TxFactoryImpl::new(db.clone(), PayrollFactoryImpl);
-            return Box::new(TxSourceJoin::new(
-                Box::new(TextParserTxSource::new(tx_factory, reader)),
-                Box::new(TextParserTxSource::new(
-                    tx_factory_extra,
-                    Box::new(InteractReader::new()),
-                )),
-            ));
+            reader = Box::new(ReaderJoin::new(reader, Box::new(InteractReader::new())));
+            return Box::new(TextParserTxSource::new(tx_factory, reader));
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
     }

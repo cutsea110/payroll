@@ -1,8 +1,6 @@
 use log::debug;
 use std::io::{stdin, stdout, BufRead, Read, StdinLock, Write};
 
-use tx_app::TxSource;
-
 pub struct EchoReader {
     reader: Box<dyn BufRead>,
 }
@@ -99,30 +97,48 @@ impl BufRead for InteractReader {
     }
 }
 
-pub struct TxSourceJoin {
-    hd: Box<dyn TxSource>,
-    tl: Vec<Box<dyn TxSource>>,
+pub struct ReaderJoin {
+    hd: Box<dyn BufRead>,
+    tl: Vec<Box<dyn BufRead>>,
 }
-impl TxSourceJoin {
-    pub fn new(prelude: Box<dyn TxSource>, main: Box<dyn TxSource>) -> Self {
+impl ReaderJoin {
+    pub fn new(prelude: Box<dyn BufRead>, main: Box<dyn BufRead>) -> Self {
         Self::cons(prelude, vec![main])
     }
-    pub fn cons(prelude: Box<dyn TxSource>, tx_sources: Vec<Box<dyn TxSource>>) -> Self {
+    pub fn cons(prelude: Box<dyn BufRead>, readers: Vec<Box<dyn BufRead>>) -> Self {
         Self {
             hd: prelude,
-            tl: tx_sources,
+            tl: readers,
         }
     }
 }
-impl TxSource for TxSourceJoin {
-    fn get_tx_source(&mut self) -> Option<Box<dyn tx_app::Transaction>> {
-        if let Some(tx) = self.hd.get_tx_source() {
-            return Some(tx);
+impl Read for ReaderJoin {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.hd.read(buf)
+    }
+}
+impl BufRead for ReaderJoin {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.hd.fill_buf()
+    }
+    fn consume(&mut self, amt: usize) {
+        self.hd.consume(amt)
+    }
+    fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.hd.read_until(byte, buf)
+    }
+    fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        match self.hd.read_line(buf) {
+            Ok(0) => {
+                if self.tl.is_empty() {
+                    Ok(0)
+                } else {
+                    self.hd = self.tl.remove(0);
+                    self.read_line(buf)
+                }
+            }
+            Ok(n) => Ok(n),
+            Err(e) => Err(e),
         }
-        if self.tl.is_empty() {
-            return None;
-        }
-        self.hd = self.tl.remove(0);
-        self.get_tx_source()
     }
 }
