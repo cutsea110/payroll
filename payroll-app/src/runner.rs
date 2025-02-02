@@ -2,9 +2,13 @@ use log::{debug, trace};
 use std::time::Instant;
 use tx_app::{Response, Runner, Transaction};
 
+pub fn echoback_runner() -> Box<dyn Runner> {
+    trace!("echoback_runner called");
+    Box::new(TxEchoBackRunner)
+}
 // echo back the result of the transaction
-pub struct TxEchoBachRunner;
-impl Runner for TxEchoBachRunner {
+struct TxEchoBackRunner;
+impl Runner for TxEchoBackRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
         trace!("TxRunner::run called");
         let res = tx.execute()?;
@@ -14,8 +18,12 @@ impl Runner for TxEchoBachRunner {
     }
 }
 
+pub fn silent_runner() -> Box<dyn Runner> {
+    trace!("silent_runner called");
+    Box::new(TxSilentRunner)
+}
 // silently ignore the result of the transaction
-pub struct TxSilentRunner;
+struct TxSilentRunner;
 impl Runner for TxSilentRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
         trace!("TxRunner::run called");
@@ -25,12 +33,16 @@ impl Runner for TxSilentRunner {
     }
 }
 
+pub fn with_chronograph(runner: Box<dyn Runner>) -> Box<dyn Runner> {
+    trace!("with_chronograph called");
+    Box::new(TxRunnerChronograph::new(runner))
+}
 // runner decorator that measures the time taken to run the transaction
-pub struct TxRunnerChronograph {
+struct TxRunnerChronograph {
     runner: Box<dyn Runner>,
 }
 impl TxRunnerChronograph {
-    pub fn new(runner: Box<dyn Runner>) -> Self {
+    fn new(runner: Box<dyn Runner>) -> Self {
         Self { runner }
     }
 }

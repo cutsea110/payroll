@@ -13,22 +13,21 @@ mod reader;
 mod runner;
 
 use app_config::AppConfig;
-use runner::{TxEchoBachRunner, TxRunnerChronograph, TxSilentRunner};
 
 // TODO: remove db argument
 fn build_tx_app(app_conf: &AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("build_tx_app called");
     let tx_source = make_tx_source(db, &app_conf);
     let mut tx_runner: Box<dyn Runner> = if app_conf.should_run_quietly() {
-        debug!("build_tx_app: using TxSilentRunner");
-        Box::new(TxSilentRunner)
+        debug!("build_tx_app: using silent runner");
+        runner::silent_runner()
     } else {
-        debug!("build_tx_app: using TxEchoBachRunner");
-        Box::new(TxEchoBachRunner)
+        debug!("build_tx_app: using echoback runner");
+        runner::echoback_runner()
     };
     if app_conf.should_enable_chronograph() {
-        debug!("build_tx_app: using TxRunnerChronograph");
-        tx_runner = Box::new(TxRunnerChronograph::new(tx_runner));
+        debug!("build_tx_app: runner with chronograph");
+        tx_runner = runner::with_chronograph(tx_runner);
     }
 
     Box::new(TxApp::new(tx_source, tx_runner))
