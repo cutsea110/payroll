@@ -1,4 +1,4 @@
-use log::{debug, error, info, trace};
+use log::{debug, info, trace};
 
 use app::Application;
 use hs_db::HashDB;
@@ -80,18 +80,15 @@ fn main() -> Result<(), anyhow::Error> {
 
     trace!("TxApp running");
     let mut tx_app: Box<dyn Application> = build_tx_app(&app_conf, db.clone());
+    if app_conf.should_soft_land() {
+        debug!("main: using AppSoftLanding");
+        tx_app = app_impl::with_soft_landing(tx_app);
+    }
     if app_conf.should_enable_chronograph() {
         debug!("main: using AppChronograph");
         tx_app = app_impl::with_chronograph(tx_app);
     }
-    match tx_app.run() {
-        Ok(_) => {
-            debug!("main: tx_app.run succeeded");
-        }
-        Err(e) => {
-            error!("main: tx_app.run failed: {:?}", e);
-        }
-    }
+    tx_app.run()?;
     trace!("TxApp finished");
 
     if !app_conf.should_run_quietly() {

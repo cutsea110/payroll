@@ -5,6 +5,7 @@ use std::env;
 pub struct AppConfig {
     help: bool,
     quiet: bool,
+    soft_landing: bool,
     chronograph: bool,
     repl: bool,
     program: String,
@@ -18,6 +19,7 @@ impl AppConfig {
         let mut opts = Options::new();
         opts.optflag("h", "help", "Print this help menu");
         opts.optflag("q", "quiet", "Don't output unnecessary information");
+        opts.optflag("s", "soft-landing", "Soft landing application");
         opts.optflag(
             "c",
             "chronograph",
@@ -36,6 +38,7 @@ impl AppConfig {
         Ok(AppConfig {
             help: matches.opt_present("h"),
             quiet: matches.opt_present("q"),
+            soft_landing: matches.opt_present("s"),
             chronograph: matches.opt_present("c"),
             repl: matches.opt_present("r"),
             program: program.to_string(),
@@ -48,6 +51,9 @@ impl AppConfig {
     }
     pub fn should_run_quietly(&self) -> bool {
         self.quiet
+    }
+    pub fn should_soft_land(&self) -> bool {
+        self.soft_landing
     }
     pub fn should_enable_chronograph(&self) -> bool {
         self.chronograph
