@@ -4,7 +4,7 @@ use app::Application;
 use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
-use tx_app::{TxApp, TxSource};
+use tx_app::{Runner, TxApp, TxSource};
 use tx_impl::TxFactoryImpl;
 
 mod app_config;
@@ -15,27 +15,10 @@ mod runner_impl;
 // TODO: remove db argument
 fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Application> {
     trace!("build_tx_app called");
-
-    let mut tx_runner = if app_conf.should_run_quietly() {
-        debug!("build_tx_app: using silent runner");
-        runner_impl::silent_runner()
-    } else {
-        debug!("build_tx_app: using echoback runner");
-        runner_impl::echoback_runner()
-    };
-
-    if app_conf.transaction_fail_safely() {
-        debug!("build_tx_app: runner with fail-safe");
-        tx_runner = runner_impl::with_failsafe(tx_runner);
-    }
-
-    if app_conf.should_enable_chronograph() {
-        debug!("build_tx_app: runner with chronograph");
-        tx_runner = runner_impl::with_chronograph(tx_runner);
-    }
-
-    let mut tx_app: Box<dyn Application> =
-        Box::new(TxApp::new(make_tx_source(db, &app_conf), tx_runner));
+    let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(
+        make_tx_source(db, &app_conf),
+        make_tx_runner(&app_conf),
+    ));
 
     if app_conf.should_soft_land() {
         debug!("build_tx_app: using AppSoftLanding");
@@ -47,6 +30,29 @@ fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Applica
     }
 
     tx_app
+}
+
+fn make_tx_runner(conf: &app_config::AppConfig) -> Box<dyn Runner> {
+    trace!("make_tx_runner called");
+    let mut tx_runner = if conf.should_run_quietly() {
+        debug!("make_tx_runner: using silent runner");
+        runner_impl::silent_runner()
+    } else {
+        debug!("make_tx_runner: using echoback runner");
+        runner_impl::echoback_runner()
+    };
+
+    if conf.transaction_fail_safely() {
+        debug!("build_tx_app: runner with failsafe");
+        tx_runner = runner_impl::with_failsafe(tx_runner);
+    }
+
+    if conf.should_enable_chronograph() {
+        debug!("build_tx_app: runner with chronograph");
+        tx_runner = runner_impl::with_chronograph(tx_runner);
+    }
+
+    tx_runner
 }
 
 fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource> {
