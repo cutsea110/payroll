@@ -1,4 +1,4 @@
-use log::{debug, trace};
+use log::{debug, error, trace};
 use std::time::Instant;
 use tx_app::{Response, Runner, Transaction};
 
@@ -54,5 +54,28 @@ impl Runner for TxRunnerChronograph {
         let elapsed = start.elapsed();
         println!("TxRunnerChronograph: elapsed={:?}", elapsed);
         Ok(res)
+    }
+}
+
+pub fn with_failsafe(runner: Box<dyn Runner>) -> Box<dyn Runner> {
+    trace!("with_fail_safe called");
+    Box::new(TxRunnerFailSafe::new(runner))
+}
+// runner decorator that catches any error and returns Response::Void
+struct TxRunnerFailSafe {
+    runner: Box<dyn Runner>,
+}
+impl TxRunnerFailSafe {
+    fn new(runner: Box<dyn Runner>) -> Self {
+        Self { runner }
+    }
+}
+impl Runner for TxRunnerFailSafe {
+    fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
+        trace!("TxRunnerFailSafe::run called");
+        self.runner.run(tx).or_else(|e| {
+            error!("TxRunnerFailSafe: error={}", e);
+            Ok(Response::Void)
+        })
     }
 }

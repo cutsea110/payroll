@@ -24,6 +24,11 @@ fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Applica
         runner_impl::echoback_runner()
     };
 
+    if app_conf.transaction_fail_safely() {
+        debug!("build_tx_app: runner with fail-safe");
+        tx_runner = runner_impl::with_failsafe(tx_runner);
+    }
+
     if app_conf.should_enable_chronograph() {
         debug!("build_tx_app: runner with chronograph");
         tx_runner = runner_impl::with_chronograph(tx_runner);

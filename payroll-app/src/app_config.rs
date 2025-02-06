@@ -5,6 +5,9 @@ use std::env;
 pub struct AppConfig {
     help: bool,
     quiet: bool,
+    // for each transaction
+    transaction_fail_safely: bool,
+    // for the whole application
     soft_landing: bool,
     chronograph: bool,
     repl: bool,
@@ -19,6 +22,7 @@ impl AppConfig {
         let mut opts = Options::new();
         opts.optflag("h", "help", "Print this help menu");
         opts.optflag("q", "quiet", "Don't output unnecessary information");
+        opts.optflag("f", "fail-safe-tx", "Transaction fail safely");
         opts.optflag("s", "soft-landing", "Soft landing application");
         opts.optflag(
             "c",
@@ -38,6 +42,7 @@ impl AppConfig {
         Ok(AppConfig {
             help: matches.opt_present("h"),
             quiet: matches.opt_present("q"),
+            transaction_fail_safely: matches.opt_present("f"),
             soft_landing: matches.opt_present("s"),
             chronograph: matches.opt_present("c"),
             repl: matches.opt_present("r"),
@@ -51,6 +56,9 @@ impl AppConfig {
     }
     pub fn should_run_quietly(&self) -> bool {
         self.quiet
+    }
+    pub fn transaction_fail_safely(&self) -> bool {
+        self.transaction_fail_safely
     }
     pub fn should_soft_land(&self) -> bool {
         self.soft_landing
