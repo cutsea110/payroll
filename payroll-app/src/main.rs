@@ -34,7 +34,19 @@ fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Applica
         tx_runner = runner_impl::with_chronograph(tx_runner);
     }
 
-    Box::new(TxApp::new(make_tx_source(db, &app_conf), tx_runner))
+    let mut tx_app: Box<dyn Application> =
+        Box::new(TxApp::new(make_tx_source(db, &app_conf), tx_runner));
+
+    if app_conf.should_soft_land() {
+        debug!("build_tx_app: using AppSoftLanding");
+        tx_app = app_impl::with_soft_landing(tx_app);
+    }
+    if app_conf.should_enable_chronograph() {
+        debug!("build_tx_app: using AppChronograph");
+        tx_app = app_impl::with_chronograph(tx_app);
+    }
+
+    tx_app
 }
 
 fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource> {
@@ -84,15 +96,7 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     trace!("TxApp running");
-    let mut tx_app: Box<dyn Application> = build_tx_app(&app_conf, db.clone());
-    if app_conf.should_soft_land() {
-        debug!("main: using AppSoftLanding");
-        tx_app = app_impl::with_soft_landing(tx_app);
-    }
-    if app_conf.should_enable_chronograph() {
-        debug!("main: using AppChronograph");
-        tx_app = app_impl::with_chronograph(tx_app);
-    }
+    let mut tx_app = build_tx_app(&app_conf, db.clone());
     tx_app.run()?;
     trace!("TxApp finished");
 
