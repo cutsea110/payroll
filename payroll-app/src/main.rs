@@ -13,18 +13,16 @@ mod reader_impl;
 mod runner_impl;
 
 // TODO: remove db argument
-fn build_tx_app(app_conf: &app_config::AppConfig, db: HashDB) -> Box<dyn Application> {
+fn build_tx_app(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn Application> {
     trace!("build_tx_app called");
-    let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(
-        make_tx_source(db, &app_conf),
-        make_tx_runner(&app_conf),
-    ));
+    let mut tx_app: Box<dyn Application> =
+        Box::new(TxApp::new(make_tx_source(db, &conf), make_tx_runner(&conf)));
 
-    if app_conf.should_soft_land() {
+    if conf.should_soft_land() {
         debug!("build_tx_app: using AppSoftLanding");
         tx_app = app_impl::with_soft_landing(tx_app);
     }
-    if app_conf.should_enable_chronograph() {
+    if conf.should_enable_chronograph() {
         debug!("build_tx_app: using AppChronograph");
         tx_app = app_impl::with_chronograph(tx_app);
     }
@@ -102,7 +100,7 @@ fn main() -> Result<(), anyhow::Error> {
     let db = HashDB::new();
 
     trace!("TxApp running");
-    let mut tx_app = build_tx_app(&app_conf, db.clone());
+    let mut tx_app = build_tx_app(db.clone(), &app_conf);
     tx_app.run()?;
     trace!("TxApp finished");
 
