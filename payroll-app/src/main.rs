@@ -7,10 +7,7 @@ use text_parser_tx_source::TextParserTxSource;
 use tx_app::{Runner, TxApp, TxSource};
 use tx_impl::TxFactoryImpl;
 
-mod app_config;
-mod app_impl;
-mod reader_impl;
-mod runner_impl;
+use payroll_app::{app_config, app_impl, reader_impl, runner_impl};
 
 // TODO: remove db argument
 fn build_tx_app(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn Application> {

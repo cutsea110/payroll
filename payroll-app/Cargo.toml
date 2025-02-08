@@ -18,3 +18,11 @@ payroll-impl = { path = "../payroll-impl" }
 text-parser-tx-source = { path = "../text-parser-tx-source" }
 tx-app = { path = "../tx-app" }
 tx-impl = { path = "../tx-impl" }
+
+[lib]
+name = "payroll_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "payroll-app"
+path = "src/main.rs"
