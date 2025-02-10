@@ -12,6 +12,8 @@ Usage: target/debug/payroll-app [options] FILE
 Options:
     -h, --help          Print this help menu
     -q, --quiet         Don't output unnecessary information
+    -f, --fail-safe-tx  Transaction fail safely
+    -s, --soft-landing  Soft landing application
     -c, --chronograph   Print the time taken to execute each transaction
     -r, --repl          Run into REPL mode
 ```
