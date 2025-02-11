@@ -46,15 +46,15 @@ impl EmployeeDao for HashDB {
         f(self.payroll_db.borrow_mut())
     }
 
-    fn insert<'a>(
+    fn add<'a>(
         &self,
         emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
-        trace!("HashDB::insert called");
+        trace!("HashDB::add called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();
             trace!(
-                "HashDB::insert::with_tx called: emp_id={},emp={:?}",
+                "HashDB::add::with_tx called: emp_id={},emp={:?}",
                 emp_id,
                 emp
             );
@@ -65,13 +65,13 @@ impl EmployeeDao for HashDB {
             Ok(emp_id)
         })
     }
-    fn remove<'a>(
+    fn delete<'a>(
         &self,
         id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::remove called");
+        trace!("HashDB::delete called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!("HashDB::remove::with_tx called: id={}", id);
+            trace!("HashDB::delete::with_tx called: id={}", id);
             if tx.employees.remove(&id).is_some() {
                 return Ok(());
             }
@@ -138,14 +138,14 @@ impl EmployeeDao for HashDB {
             Ok(())
         })
     }
-    fn remove_union_member<'a>(
+    fn delete_union_member<'a>(
         &self,
         member_id: MemberId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::remove_union_member called");
+        trace!("HashDB::delete_union_member called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::remove_union_member::with_tx called: member_id={}",
+                "HashDB::delete_union_member::with_tx called: member_id={}",
                 member_id
             );
             if tx.union_members.remove(&member_id).is_none() {

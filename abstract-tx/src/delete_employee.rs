@@ -16,7 +16,7 @@ pub trait DeleteEmployee: HaveEmployeeDao {
                 trace!("DeleteEmployee::run_tx called");
                 let emp_id = self.get_id();
                 debug!("DeleteEmployee::execute: emp_id={}", emp_id);
-                self.dao().remove(emp_id).run(&mut ctx)
+                self.dao().delete(emp_id).run(&mut ctx)
             })
             .map(|_| ())
             .map_err(UsecaseError::DeleteEmployeeFailed)

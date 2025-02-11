@@ -33,7 +33,7 @@ pub trait AddEmployee: HaveEmployeeDao {
                     self.get_affiliation(),
                 );
                 debug!("AddEmployee::execute: emp={:?}", emp);
-                self.dao().insert(emp).run(&mut ctx)
+                self.dao().add(emp).run(&mut ctx)
             })
             .map(|_| ())
             .map_err(UsecaseError::AddEmployeeFailed)

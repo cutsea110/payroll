@@ -26,11 +26,11 @@ pub trait EmployeeDao {
     where
         F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
 
-    fn insert<'a>(
+    fn add<'a>(
         &self,
         emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError>;
-    fn remove<'a>(
+    fn delete<'a>(
         &self,
         id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
@@ -48,7 +48,7 @@ pub trait EmployeeDao {
         member_id: MemberId,
         emp_id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
-    fn remove_union_member<'a>(
+    fn delete_union_member<'a>(
         &self,
         member_id: MemberId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;

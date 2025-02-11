@@ -71,7 +71,7 @@ where
             .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
             .member_id();
 
-        self.dao().remove_union_member(member_id).run(ctx)
+        self.dao().delete_union_member(member_id).run(ctx)
     }
 }
 // 共通インターフェースの実装
