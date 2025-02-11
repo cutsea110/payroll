@@ -12,7 +12,7 @@ use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 
 #[derive(Debug, Clone)]
 pub struct HashDB {
-    // HashDB を DBMS として EmpDb がデータベースを表現
+    // HashDB を DBMS として PayrollDb が DB(テーブルの集合) を表現
     payroll_db: Rc<RefCell<PayrollDb>>,
 }
 impl HashDB {
