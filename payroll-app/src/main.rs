@@ -55,9 +55,9 @@ fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource>
 
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
 
-    if let Some(file) = conf.script_file().clone() {
+    if let Some(file) = conf.script_file() {
         debug!("make_tx_source: file={}", file);
-        let mut reader = reader_impl::file_reader(&file);
+        let mut reader = reader_impl::file_reader(file);
         if !conf.should_run_quietly() {
             debug!("make_tx_source: using EchoReader");
             reader = reader_impl::with_echo(reader);
