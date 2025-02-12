@@ -30,7 +30,7 @@ impl BufRead for StdinReader {
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
         trace!("StdinReader::read_line called");
         print!("> ");
-        stdout().flush().unwrap();
+        stdout().flush().expect("flush stdout");
         self.stdin.read_line(buf)
     }
 }
