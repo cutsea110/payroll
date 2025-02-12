@@ -76,7 +76,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddHourlyEmployee {
-                    id: 42,
+                    id: 42.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     hourly_rate: 1000.0
@@ -93,7 +93,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddSalariedEmployee {
-                    id: 42,
+                    id: 42.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     salary: 1000.0
@@ -110,7 +110,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddCommissionedEmployee {
-                    id: 42,
+                    id: 42.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     salary: 1000.0,
@@ -124,7 +124,7 @@ mod test_transaction {
     fn test_del_emp() {
         let input = r#"DelEmp 42"#;
         let result = transaction().parse(input);
-        assert_eq!(result, Ok((Tx::DeleteEmployee { id: 42 }, "")));
+        assert_eq!(result, Ok((Tx::DeleteEmployee { id: 42.into() }, "")));
     }
     #[test]
     fn test_time_card() {
@@ -134,7 +134,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddTimeCard {
-                    id: 42,
+                    id: 42.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     hours: 8.0
                 },
@@ -150,7 +150,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddSalesReceipt {
-                    id: 42,
+                    id: 42.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     amount: 1000.0
                 },
@@ -182,7 +182,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeName {
-                    id: 42,
+                    id: 42.into(),
                     new_name: "Bob".to_string()
                 },
                 ""
@@ -197,7 +197,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeAddress {
-                    id: 42,
+                    id: 42.into(),
                     new_address: "123 Wall St.".to_string()
                 },
                 ""
@@ -212,7 +212,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeHourly {
-                    id: 42,
+                    id: 42.into(),
                     hourly_rate: 1000.0
                 },
                 ""
@@ -227,7 +227,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeSalaried {
-                    id: 42,
+                    id: 42.into(),
                     salary: 1000.0
                 },
                 ""
@@ -242,7 +242,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeCommissioned {
-                    id: 42,
+                    id: 42.into(),
                     salary: 1000.0,
                     commission_rate: 0.1
                 },
@@ -254,7 +254,7 @@ mod test_transaction {
     fn test_chg_hold() {
         let input = r#"ChgEmp 42 Hold"#;
         let result = transaction().parse(input);
-        assert_eq!(result, Ok((Tx::ChangeEmployeeHold { id: 42 }, "")));
+        assert_eq!(result, Ok((Tx::ChangeEmployeeHold { id: 42.into() }, "")));
     }
     #[test]
     fn test_chg_direct() {
@@ -264,7 +264,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeDirect {
-                    id: 42,
+                    id: 42.into(),
                     bank: "mufg".to_string(),
                     account: "1234567".to_string()
                 },
@@ -280,7 +280,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeMail {
-                    id: 42,
+                    id: 42.into(),
                     address: "bob@gmail.com".to_string()
                 },
                 ""
@@ -430,7 +430,7 @@ mod test_add_hourly_emp {
             result,
             Ok((
                 Tx::AddHourlyEmployee {
-                    id: 1,
+                    id: 1.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     hourly_rate: 1000.0
@@ -479,7 +479,7 @@ mod test_add_salary_emp {
             result,
             Ok((
                 Tx::AddSalariedEmployee {
-                    id: 1,
+                    id: 1.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     salary: 1000.0
@@ -535,7 +535,7 @@ mod test_add_commissioned_emp {
             result,
             Ok((
                 Tx::AddCommissionedEmployee {
-                    id: 1,
+                    id: 1.into(),
                     name: "Bob".to_string(),
                     address: "Home".to_string(),
                     salary: 1000.0,
@@ -565,7 +565,7 @@ mod test_del_emp {
     fn test() {
         let input = r#"DelEmp 1"#;
         let result = del_emp().parse(input);
-        assert_eq!(result, Ok((Tx::DeleteEmployee { id: 1 }, "")));
+        assert_eq!(result, Ok((Tx::DeleteEmployee { id: 1.into() }, "")));
     }
 }
 
@@ -623,7 +623,7 @@ mod test_time_card {
             result,
             Ok((
                 Tx::AddTimeCard {
-                    id: 1,
+                    id: 1.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     hours: 8.0
                 },
@@ -664,7 +664,7 @@ mod test_sales_receipt {
             result,
             Ok((
                 Tx::AddSalesReceipt {
-                    id: 1,
+                    id: 1.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     amount: 1000.0
                 },
@@ -745,7 +745,7 @@ mod test_chg_name {
             result,
             Ok((
                 Tx::ChangeEmployeeName {
-                    id: 1,
+                    id: 1.into(),
                     new_name: "Bob".to_string()
                 },
                 ""
@@ -780,7 +780,7 @@ mod test_chg_address {
             result,
             Ok((
                 Tx::ChangeEmployeeAddress {
-                    id: 1,
+                    id: 1.into(),
                     new_address: "123 Main St".to_string()
                 },
                 ""
@@ -818,7 +818,7 @@ mod test_chg_hourly {
             result,
             Ok((
                 Tx::ChangeEmployeeHourly {
-                    id: 1,
+                    id: 1.into(),
                     hourly_rate: 13.78
                 },
                 ""
@@ -853,7 +853,7 @@ mod test_chg_salaried {
             result,
             Ok((
                 Tx::ChangeEmployeeSalaried {
-                    id: 1,
+                    id: 1.into(),
                     salary: 1023.456
                 },
                 ""
@@ -900,7 +900,7 @@ mod test_chg_commissioned {
             result,
             Ok((
                 Tx::ChangeEmployeeCommissioned {
-                    id: 1,
+                    id: 1.into(),
                     salary: 1018.91,
                     commission_rate: 0.19
                 },
@@ -929,7 +929,7 @@ mod test_chg_hold {
     fn test() {
         let input = r#"ChgEmp 1 Hold"#;
         let result = chg_hold().parse(input);
-        assert_eq!(result, Ok((Tx::ChangeEmployeeHold { id: 1 }, "")));
+        assert_eq!(result, Ok((Tx::ChangeEmployeeHold { id: 1.into() }, "")));
     }
 }
 
@@ -967,7 +967,7 @@ mod test_chg_direct {
             result,
             Ok((
                 Tx::ChangeEmployeeDirect {
-                    id: 1,
+                    id: 1.into(),
                     bank: "Bank".to_string(),
                     account: "Account".to_string()
                 },
@@ -1000,7 +1000,7 @@ mod test_chg_mail {
             result,
             Ok((
                 Tx::ChangeEmployeeMail {
-                    id: 1,
+                    id: 1.into(),
                     address: "bob@gmail.com".to_string()
                 },
                 ""
