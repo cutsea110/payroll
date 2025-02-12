@@ -1,14 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
-use payroll_domain::{MemberId, NoAffiliation};
-use payroll_factory::PayrollFactory;
-
 use crate::{
     affiliation::UnionAffiliation,
     classification::{CommissionedClassification, HourlyClassification, SalariedClassification},
     method::{DirectMethod, HoldMethod, MailMethod},
     schedule::{BiweeklySchedule, MonthlySchedule, WeeklySchedule},
 };
+use payroll_domain::{MemberId, NoAffiliation};
+use payroll_factory::PayrollFactory;
 
 #[derive(Debug, Clone)]
 pub struct PayrollFactoryImpl;

@@ -1,11 +1,11 @@
 use anyhow;
 use chrono::NaiveDate;
 use log::trace;
-use payroll_impl::CommissionedClassification;
 
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
+use payroll_impl::CommissionedClassification;
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddSalesReceipt トランザクションの実装 (struct)

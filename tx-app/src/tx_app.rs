@@ -1,9 +1,8 @@
 use log::trace;
 
-use app::Application;
-
 use crate::tx::{Response, Transaction};
 use crate::tx_source::TxSource;
+use app::Application;
 
 pub trait Runner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error>;

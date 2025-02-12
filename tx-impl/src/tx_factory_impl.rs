@@ -1,12 +1,6 @@
 use chrono::NaiveDate;
 use log::trace;
 
-use dao::EmployeeDao;
-use payroll_domain::{EmployeeId, MemberId};
-use payroll_factory::PayrollFactory;
-use tx_app::Transaction;
-use tx_factory::TxFactory;
-
 use crate::{
     AddCommissionedEmployeeTx, AddHourlyEmployeeTx, AddSalariedEmployeeTx, AddSalesReceiptTx,
     AddServiceChargeTx, AddTimeCardTx, ChangeCommissionedTx, ChangeDirectTx,
@@ -14,6 +8,11 @@ use crate::{
     ChangeMemberTx, ChangeNoMemberTx, ChangeSalariedTx, DeleteEmployeeTx, PaydayTx,
     VerifyDeductionsTx, VerifyGrossPayTx, VerifyNetPayTx,
 };
+use dao::EmployeeDao;
+use payroll_domain::{EmployeeId, MemberId};
+use payroll_factory::PayrollFactory;
+use tx_app::Transaction;
+use tx_factory::TxFactory;
 
 pub struct TxFactoryImpl<T, F>
 where
