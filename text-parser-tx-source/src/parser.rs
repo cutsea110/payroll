@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use log::{debug, trace};
 
 use parsec_rs::{char, float32, int32, keyword, pred, spaces, string, uint32, Parser};
+use payroll_domain::{EmployeeId, MemberId};
 use tx_app::Tx;
 
 pub fn read_tx(line: &str) -> Option<Tx> {
@@ -165,7 +166,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::AddServiceCharge {
-                    member_id: 42,
+                    member_id: 42.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     amount: 1000.0
                 },
@@ -294,8 +295,8 @@ mod test_transaction {
             result,
             Ok((
                 Tx::ChangeEmployeeMember {
-                    emp_id: 42,
-                    member_id: 7234,
+                    emp_id: 42.into(),
+                    member_id: 7234.into(),
                     dues: 9.45
                 },
                 "",
@@ -306,7 +307,10 @@ mod test_transaction {
     fn test_no_member() {
         let input = r#"ChgEmp 42 NoMember"#;
         let result = transaction().parse(input);
-        assert_eq!(result, Ok((Tx::ChangeEmployeeNoMember { emp_id: 42 }, "")));
+        assert_eq!(
+            result,
+            Ok((Tx::ChangeEmployeeNoMember { emp_id: 42.into() }, ""))
+        );
     }
     #[test]
     fn test_payday() {
@@ -330,7 +334,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::VerifyGrossPay {
-                    emp_id: 42,
+                    emp_id: 42.into(),
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     gross_pay: 2130.55,
                 },
@@ -346,7 +350,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::VerifyDeductions {
-                    emp_id: 42,
+                    emp_id: 42.into(),
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     deductions: 118.55,
                 },
@@ -362,7 +366,7 @@ mod test_transaction {
             result,
             Ok((
                 Tx::VerifyNetPay {
-                    emp_id: 42,
+                    emp_id: 42.into(),
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
                     net_pay: 1989.90,
                 },
@@ -380,9 +384,17 @@ fn go_through() -> impl Parser<Item = ()> {
     spaces().skip(ignore).skip(spaces()).map(|_| ())
 }
 
+fn employee_id() -> impl Parser<Item = EmployeeId> {
+    uint32().map(Into::into).with(spaces())
+}
+
+fn member_id() -> impl Parser<Item = MemberId> {
+    uint32().map(Into::into).with(spaces())
+}
+
 fn add_hourly_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let name = string().with(spaces());
     let address = string().with(spaces());
     let hourly_rate = char('H').skip(spaces()).skip(float32());
@@ -431,7 +443,7 @@ mod test_add_hourly_emp {
 
 fn add_salary_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let name = string().with(spaces());
     let address = string().with(spaces());
     let monthly_rate = char('S').skip(spaces()).skip(float32());
@@ -480,7 +492,7 @@ mod test_add_salary_emp {
 
 fn add_commissioned_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let name = string().with(spaces());
     let address = string().with(spaces());
     let salary = char('C').skip(spaces()).skip(float32()).with(spaces());
@@ -537,7 +549,7 @@ mod test_add_commissioned_emp {
 
 fn del_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("DelEmp").skip(spaces());
-    let emp_id = uint32();
+    let emp_id = employee_id();
 
     prefix.skip(emp_id).map(|id| {
         debug!("parsed DeleteEmployee: id={}", id);
@@ -585,7 +597,7 @@ mod test_date {
 
 fn time_card() -> impl Parser<Item = Tx> {
     let prefix = keyword("TimeCard").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let date = date().with(spaces());
     let hours = float32();
 
@@ -623,7 +635,7 @@ mod test_time_card {
 
 fn sales_receipt() -> impl Parser<Item = Tx> {
     let prefix = keyword("SalesReceipt").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let date = date().with(spaces());
     let amount = float32();
 
@@ -664,7 +676,7 @@ mod test_sales_receipt {
 
 fn service_charge() -> impl Parser<Item = Tx> {
     let prefix = keyword("ServiceCharge").skip(spaces());
-    let member_id = uint32().with(spaces());
+    let member_id = member_id();
     let date = date().with(spaces());
     let amount = float32();
 
@@ -697,7 +709,7 @@ mod test_service_charge {
             result,
             Ok((
                 Tx::AddServiceCharge {
-                    member_id: 1,
+                    member_id: 1.into(),
                     date: NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
                     amount: 1000.0
                 },
@@ -709,7 +721,7 @@ mod test_service_charge {
 
 fn chg_name() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let name = keyword("Name").skip(spaces()).skip(string());
 
     prefix.skip(emp_id).join(name).map(|(id, new_name)| {
@@ -744,7 +756,7 @@ mod test_chg_name {
 
 fn chg_address() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let address = keyword("Address").skip(spaces()).skip(string());
 
     prefix.skip(emp_id).join(address).map(|(id, new_address)| {
@@ -779,7 +791,7 @@ mod test_chg_address {
 
 fn chg_hourly() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let hourly_rate = keyword("Hourly").skip(spaces()).skip(float32());
 
     prefix
@@ -817,7 +829,7 @@ mod test_chg_hourly {
 
 fn chg_salaried() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let salaried = keyword("Salaried").skip(spaces()).skip(float32());
 
     prefix.skip(emp_id).join(salaried).map(|(id, salary)| {
@@ -852,7 +864,7 @@ mod test_chg_salaried {
 
 fn chg_commissioned() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let salary = keyword("Commissioned")
         .skip(spaces())
         .skip(float32())
@@ -900,7 +912,7 @@ mod test_chg_commissioned {
 
 fn chg_hold() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let hold = keyword("Hold");
 
     prefix.skip(emp_id).with(hold).map(|id| {
@@ -923,7 +935,7 @@ mod test_chg_hold {
 
 fn chg_direct() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let bank = keyword("Direct")
         .skip(spaces())
         .skip(string())
@@ -967,7 +979,7 @@ mod test_chg_direct {
 
 fn chg_mail() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let address = keyword("Mail").skip(spaces()).skip(string());
 
     prefix.skip(emp_id).join(address).map(|(id, address)| {
@@ -999,11 +1011,8 @@ mod test_chg_mail {
 
 fn chg_member() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
-    let member_id = keyword("Member")
-        .skip(spaces())
-        .skip(uint32())
-        .with(spaces());
+    let emp_id = employee_id();
+    let member_id = keyword("Member").skip(spaces()).skip(member_id());
     let dues = keyword("Dues").skip(spaces()).skip(float32());
 
     prefix
@@ -1035,8 +1044,8 @@ mod test_chg_member {
             result,
             Ok((
                 Tx::ChangeEmployeeMember {
-                    emp_id: 1,
-                    member_id: 2,
+                    emp_id: 1.into(),
+                    member_id: 2.into(),
                     dues: 100.0
                 },
                 ""
@@ -1047,7 +1056,7 @@ mod test_chg_member {
 
 fn chg_no_member() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
-    let emp_id = uint32().with(spaces());
+    let emp_id = employee_id();
     let no_member = keyword("NoMember");
 
     prefix.skip(emp_id).with(no_member).map(|emp_id| {
@@ -1064,7 +1073,10 @@ mod test_chg_no_member {
     fn test() {
         let input = r#"ChgEmp 1 NoMember"#;
         let result = chg_no_member().parse(input);
-        assert_eq!(result, Ok((Tx::ChangeEmployeeNoMember { emp_id: 1 }, "")));
+        assert_eq!(
+            result,
+            Ok((Tx::ChangeEmployeeNoMember { emp_id: 1.into() }, ""))
+        );
     }
 }
 
@@ -1102,9 +1114,7 @@ fn verify_gross_pay() -> impl Parser<Item = Tx> {
     let verify = keyword("Verify").skip(spaces());
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
-    let emp_id = keyword("EmpId")
-        .skip(spaces())
-        .skip(uint32().with(spaces()));
+    let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
     let gross_pay = keyword("GrossPay").skip(spaces()).skip(float32());
 
     verify
@@ -1138,7 +1148,7 @@ mod test_verify_gross_pay {
             Ok((
                 Tx::VerifyGrossPay {
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-                    emp_id: 1234,
+                    emp_id: 1234.into(),
                     gross_pay: 2280.35
                 },
                 ""
@@ -1151,9 +1161,7 @@ fn verify_deductions() -> impl Parser<Item = Tx> {
     let verify = keyword("Verify").skip(spaces());
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
-    let emp_id = keyword("EmpId")
-        .skip(spaces())
-        .skip(uint32().with(spaces()));
+    let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
     let deductions = keyword("Deductions").skip(spaces()).skip(float32());
 
     verify
@@ -1187,7 +1195,7 @@ mod test_verify_deductions {
             Ok((
                 Tx::VerifyDeductions {
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-                    emp_id: 1234,
+                    emp_id: 1234.into(),
                     deductions: 180.55
                 },
                 ""
@@ -1200,9 +1208,7 @@ fn verify_net_pay() -> impl Parser<Item = Tx> {
     let verify = keyword("Verify").skip(spaces());
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
-    let emp_id = keyword("EmpId")
-        .skip(spaces())
-        .skip(uint32().with(spaces()));
+    let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
     let net_pay = keyword("NetPay").skip(spaces()).skip(float32());
 
     verify
@@ -1236,7 +1242,7 @@ mod test_verify_net_pay {
             Ok((
                 Tx::VerifyNetPay {
                     pay_date: NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-                    emp_id: 1234,
+                    emp_id: 1234.into(),
                     net_pay: 2099.80
                 },
                 ""
