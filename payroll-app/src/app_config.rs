@@ -33,9 +33,9 @@ impl AppConfig {
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
-            Err(f) => {
-                error!("parse_args: error parsing options: {}", f);
-                return Err(anyhow::Error::msg(f.to_string()));
+            Err(e) => {
+                error!("parse_args: error parsing options: {}", e);
+                return Err(anyhow::Error::msg(e.to_string()));
             }
         };
 
