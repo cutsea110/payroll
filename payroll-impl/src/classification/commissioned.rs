@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use log::{debug, trace};
 use std::any::Any;
 
 use payroll_domain::{Paycheck, PaymentClassification};
@@ -44,13 +45,17 @@ impl PaymentClassification for CommissionedClassification {
         self
     }
     fn calculate_pay(&self, pc: &Paycheck) -> f32 {
-        let mut total_pay = self.salary;
+        trace!("CommissionedClassification::calculate_pay called");
         let pay_period = pc.get_pay_period();
-        for sr in &self.sales_receipts {
-            if pay_period.contains(&sr.date) {
-                total_pay += self.calculate_pay_for_sales_receipt(sr);
-            }
-        }
-        total_pay
+        debug!("pay_period: {} - {}", pay_period.start(), pay_period.end());
+        let commissioned_amount = self
+            .sales_receipts
+            .iter()
+            .filter(|sr| pay_period.contains(&sr.date))
+            .map(|sr| self.calculate_pay_for_sales_receipt(sr))
+            .sum::<f32>();
+        debug!("commissioned_amount: {}", commissioned_amount);
+
+        self.salary + commissioned_amount
     }
 }

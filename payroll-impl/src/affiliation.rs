@@ -1,4 +1,5 @@
 use chrono::{Datelike, NaiveDate, Weekday};
+use log::{debug, trace};
 use std::any::Any;
 
 use payroll_domain::{Affiliation, MemberId, Paycheck};
@@ -44,21 +45,25 @@ impl Affiliation for UnionAffiliation {
         self
     }
     fn calculate_deductions(&self, pc: &Paycheck) -> f32 {
-        let mut total_deductions = 0.0;
+        trace!("UnionAffiliation::calculate_deductions called");
         let pay_period = pc.get_pay_period();
-        for d in pc.get_pay_period().start().iter_days() {
-            if d > *pay_period.end() {
-                break;
-            }
-            if d.weekday() == Weekday::Fri {
-                total_deductions += self.dues;
-            }
-        }
-        for sc in self.service_charges.iter() {
-            if pay_period.contains(&sc.date) {
-                total_deductions += sc.amount;
-            }
-        }
-        total_deductions
+        debug!("pay_period: {} - {}", pay_period.start(), pay_period.end());
+        let dues_amount = pay_period
+            .start()
+            .iter_days()
+            .take_while(|d| *d <= *pay_period.end())
+            .filter(|d| d.weekday() == Weekday::Fri)
+            .count() as f32
+            * self.dues;
+        debug!("dues_amount: {}", dues_amount);
+        let service_amount = self
+            .service_charges
+            .iter()
+            .filter(|sc| pay_period.contains(&sc.date))
+            .map(|sc| sc.amount)
+            .sum::<f32>();
+        debug!("service_amount: {}", service_amount);
+
+        dues_amount + service_amount
     }
 }

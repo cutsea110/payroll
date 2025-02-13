@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use log::{debug, trace};
 use std::any::Any;
 
 use payroll_domain::{Paycheck, PaymentClassification};
@@ -43,13 +44,17 @@ impl PaymentClassification for HourlyClassification {
         self
     }
     fn calculate_pay(&self, pc: &Paycheck) -> f32 {
+        trace!("HourlyClassification::calculate_pay called");
         let pay_period = pc.get_pay_period();
-        let mut total_pay = 0.0;
-        for tc in &self.timecards {
-            if pay_period.contains(&tc.date) {
-                total_pay += self.calculate_pay_for_timecard(tc);
-            }
-        }
-        total_pay
+        debug!("pay_period: {} - {}", pay_period.start(), pay_period.end());
+        let hourly_amount = self
+            .timecards
+            .iter()
+            .filter(|tc| pay_period.contains(&tc.date))
+            .map(|tc| self.calculate_pay_for_timecard(tc))
+            .sum::<f32>();
+        debug!("hourly_amount: {}", hourly_amount);
+
+        hourly_amount
     }
 }
