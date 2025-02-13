@@ -2,6 +2,9 @@
 
 ref.) [アジャイルソフトウェア開発の奥義 第2版](https://www.amazon.co.jp/dp/4797347783)
 
+This project is implementation for payroll application written in Rust.
+The payroll app is described at the book above.
+
 ## Usage
 
 ```bash
