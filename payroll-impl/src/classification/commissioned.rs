@@ -52,8 +52,9 @@ impl PaymentClassification for CommissionedClassification {
             .sales_receipts
             .iter()
             .filter(|sr| pay_period.contains(&sr.date))
-            .map(|sr| self.calculate_pay_for_sales_receipt(sr))
-            .sum::<f32>();
+            .fold(0 as f32, |acc, sr| {
+                acc + self.calculate_pay_for_sales_receipt(sr)
+            });
         debug!("commissioned_amount: {}", commissioned_amount);
 
         self.salary + commissioned_amount

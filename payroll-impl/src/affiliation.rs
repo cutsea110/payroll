@@ -53,15 +53,13 @@ impl Affiliation for UnionAffiliation {
             .iter_days()
             .take_while(|d| *d <= *pay_period.end())
             .filter(|d| d.weekday() == Weekday::Fri)
-            .count() as f32
-            * self.dues;
+            .fold(0 as f32, |acc, _| acc + self.dues);
         debug!("dues_amount: {}", dues_amount);
         let service_amount = self
             .service_charges
             .iter()
             .filter(|sc| pay_period.contains(&sc.date))
-            .map(|sc| sc.amount)
-            .sum::<f32>();
+            .fold(0 as f32, |acc, sc| acc + sc.amount);
         debug!("service_amount: {}", service_amount);
 
         dues_amount + service_amount
