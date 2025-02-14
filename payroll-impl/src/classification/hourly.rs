@@ -51,9 +51,7 @@ impl PaymentClassification for HourlyClassification {
             .timecards
             .iter()
             .filter(|tc| pay_period.contains(&tc.date))
-            .fold(0 as f32, |acc, tc| {
-                acc + self.calculate_pay_for_timecard(tc)
-            });
+            .fold(0f32, |acc, tc| acc + self.calculate_pay_for_timecard(tc));
         debug!("hourly_amount: {}", hourly_amount);
 
         hourly_amount
