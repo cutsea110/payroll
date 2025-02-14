@@ -31,8 +31,11 @@ impl HourlyClassification {
         self.timecards.push(TimeCard::new(date, hours));
     }
     fn calculate_pay_for_timecard(&self, tc: &TimeCard) -> f32 {
+        trace!("HourlyClassification::calculate_pay_for_timecard called");
         let overtime = (tc.hours - 8.0).max(0.0);
+        debug!("overtime: {}", overtime);
         let straight_time = tc.hours - overtime;
+        debug!("straight_time: {}", straight_time);
         straight_time * self.hourly_rate + overtime * self.hourly_rate * 1.5
     }
 }
