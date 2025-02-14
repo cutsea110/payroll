@@ -1,6 +1,6 @@
 use anyhow;
 use chrono::NaiveDate;
-use log::trace;
+use log::{debug, trace};
 
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
@@ -52,6 +52,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        trace!("AddSalesReceiptTx::change called");
         emp.classification()
             .borrow_mut()
             .as_any_mut()
@@ -60,6 +61,7 @@ where
                 "classification is not CommissionedClassification".into(),
             ))?
             .add_sales_receipt(self.date, self.amount);
+        debug!("sales receipt added: {:?}", emp.classification().borrow());
         Ok(())
     }
 }

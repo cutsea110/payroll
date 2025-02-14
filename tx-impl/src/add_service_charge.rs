@@ -1,6 +1,6 @@
 use anyhow;
 use chrono::NaiveDate;
-use log::trace;
+use log::{debug, trace};
 use std::{cell::RefCell, rc::Rc};
 
 use abstract_tx::ChangeAffiliation;
@@ -53,11 +53,13 @@ where
         self.member_id
     }
     fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError> {
+        trace!("AddServiceChargeTx::change called");
         aff.borrow_mut()
             .as_any_mut()
             .downcast_mut::<UnionAffiliation>()
             .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
             .add_service_charge(self.date, self.amount);
+        debug!("service charge added: {:?}", aff.borrow());
         Ok(())
     }
 }

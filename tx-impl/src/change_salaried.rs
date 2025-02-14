@@ -1,5 +1,5 @@
 use anyhow;
-use log::trace;
+use log::{debug, trace};
 
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
@@ -55,8 +55,11 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        trace!("ChangeSalariedTx::change called");
         emp.set_classification(self.payroll_factory.mk_salaried_classification(self.salary));
+        debug!("classification changed: {:?}", emp.classification());
         emp.set_schedule(self.payroll_factory.mk_monthly_schedule());
+        debug!("schedule changed: {:?}", emp.schedule());
         Ok(())
     }
 }

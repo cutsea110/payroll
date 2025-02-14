@@ -1,5 +1,5 @@
 use anyhow;
-use log::trace;
+use log::{debug, trace};
 
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
@@ -55,7 +55,9 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        trace!("ChangeMailTx::change called");
         emp.set_method(self.payroll_factory.mk_mail_method(&self.address));
+        debug!("method changed: {:?}", emp.method());
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 use anyhow;
-use log::trace;
+use log::{debug, trace};
 use tx_rs::Tx;
 
 use abstract_tx::ChangeMember;
@@ -70,7 +70,7 @@ where
             .downcast_ref::<UnionAffiliation>()
             .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
             .member_id();
-
+        debug!("delete union member: {}", member_id);
         self.dao().delete_union_member(member_id).run(ctx)
     }
 }

@@ -48,6 +48,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        trace!("ChangeEmployeeNameTx::change called");
         emp.set_name(&self.new_name);
         Ok(())
     }

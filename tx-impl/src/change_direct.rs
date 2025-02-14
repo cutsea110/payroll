@@ -1,5 +1,5 @@
 use anyhow;
-use log::trace;
+use log::{debug, trace};
 
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
@@ -57,10 +57,12 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
+        trace!("ChangeDirectTx::change called");
         emp.set_method(
             self.payroll_factory
                 .mk_direct_method(&self.bank, &self.account),
         );
+        debug!("method changed: {:?}", emp.method());
         Ok(())
     }
 }
