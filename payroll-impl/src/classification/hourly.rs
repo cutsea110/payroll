@@ -36,7 +36,8 @@ impl HourlyClassification {
         debug!("overtime: {}", overtime);
         let straight_time = tc.hours - overtime;
         debug!("straight_time: {}", straight_time);
-        straight_time * self.hourly_rate + overtime * self.hourly_rate * 1.5
+
+        (straight_time + overtime * 1.5) * self.hourly_rate
     }
 }
 impl PaymentClassification for HourlyClassification {
