@@ -59,7 +59,7 @@ pub trait EmployeeDao {
     fn record_paycheck<'a>(
         &self,
         emp_id: EmployeeId,
-        paycheck: payroll_domain::Paycheck,
+        paycheck: Paycheck,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
     fn find_paycheck<'a>(
         &self,

@@ -1,10 +1,11 @@
 use anyhow;
 use log::{debug, trace};
+use std::{cell::RefCell, rc::Rc};
 use tx_rs::Tx;
 
 use abstract_tx::ChangeMember;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
-use payroll_domain::EmployeeId;
+use payroll_domain::{Affiliation, EmployeeId};
 use payroll_factory::PayrollFactory;
 use payroll_impl::UnionAffiliation;
 use tx_app::{Response, Transaction};
@@ -54,7 +55,7 @@ where
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
-    fn get_affiliation(&self) -> std::rc::Rc<std::cell::RefCell<dyn payroll_domain::Affiliation>> {
+    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
         self.payroll_factory.mk_no_affiliation()
     }
     fn record_membership<'a>(

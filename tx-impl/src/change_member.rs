@@ -5,7 +5,7 @@ use tx_rs::Tx;
 
 use abstract_tx::ChangeMember;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
-use payroll_domain::{EmployeeId, MemberId};
+use payroll_domain::{Affiliation, EmployeeId, MemberId};
 use payroll_factory::PayrollFactory;
 use tx_app::{Response, Transaction};
 
@@ -64,7 +64,7 @@ where
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
-    fn get_affiliation(&self) -> Rc<RefCell<dyn payroll_domain::Affiliation>> {
+    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
         self.payroll_factory
             .mk_union_affiliation(self.member_id, self.dues)
     }
