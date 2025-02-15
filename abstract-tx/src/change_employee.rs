@@ -9,6 +9,7 @@ use payroll_domain::{Employee, EmployeeId};
 pub trait ChangeEmployee: HaveEmployeeDao {
     fn get_id(&self) -> EmployeeId;
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError>;
+
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("ChangeEmployeeName::execute called");
         self.dao()

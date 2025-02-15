@@ -9,7 +9,6 @@ use payroll_domain::{Affiliation, EmployeeId};
 // ユースケース: ChangeMember トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeMember: HaveEmployeeDao {
     fn get_emp_id(&self) -> EmployeeId;
-
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
     fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError>;
 
