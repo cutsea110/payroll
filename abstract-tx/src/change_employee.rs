@@ -16,9 +16,9 @@ pub trait ChangeEmployee: HaveEmployeeDao {
             .run_tx(|mut ctx| {
                 trace!("ChangeEmployee::run_tx called");
                 let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
-                debug!(r#"changing emp="{:?}""#, emp);
+                debug!("changing emp={:?}", emp);
                 self.change(&mut emp)?;
-                debug!(r#"changed emp="{:?}""#, emp);
+                debug!("changed emp={:?}", emp);
                 self.dao().update(emp).run(&mut ctx)
             })
             .map_err(UsecaseError::ChangeEmployeeFailed)
