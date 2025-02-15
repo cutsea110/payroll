@@ -13,6 +13,7 @@ where
     T: EmployeeDao,
 {
     id: EmployeeId,
+
     dao: T,
 }
 impl<T> DeleteEmployeeTx<T>
