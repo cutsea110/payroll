@@ -48,16 +48,16 @@ impl Employee {
         &self.address
     }
     pub fn classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        self.classification.clone()
+        Rc::clone(&self.classification)
     }
     pub fn schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        self.schedule.clone()
+        Rc::clone(&self.schedule)
     }
     pub fn method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        self.method.clone()
+        Rc::clone(&self.method)
     }
     pub fn affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-        self.affiliation.clone()
+        Rc::clone(&self.affiliation)
     }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
