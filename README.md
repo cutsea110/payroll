@@ -1,4 +1,4 @@
-# payroll (ケーススタディ)
+# payroll (給与支払いシステム)
 
 ref.) [アジャイルソフトウェア開発の奥義 第2版](https://www.amazon.co.jp/dp/4797347783)
 
