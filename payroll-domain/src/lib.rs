@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use dyn_clone::DynClone;
+use log::{debug, trace};
 use std::{any::Any, cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
 
 mod types;
@@ -84,12 +85,17 @@ impl Employee {
         self.schedule.borrow().get_pay_period(pay_date)
     }
     pub fn payday(&self, pc: &mut Paycheck) {
+        trace!("Employee::payday");
         let gross_pay = self.classification.borrow().calculate_pay(pc);
+        debug!("gross_pay: {}", gross_pay);
         let deductions = self.affiliation.borrow().calculate_deductions(pc);
+        debug!("deductions: {}", deductions);
         let net_pay = gross_pay - deductions;
+        debug!("net_pay: {}", net_pay);
         pc.set_gross_pay(gross_pay);
         pc.set_deductions(deductions);
         pc.set_net_pay(net_pay);
+        debug!("updated paycheck: {:?}", pc);
         self.method.borrow().pay(pc);
     }
 }

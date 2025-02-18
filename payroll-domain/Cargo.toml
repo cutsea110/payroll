@@ -7,5 +7,6 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
+log.workspace = true
 chrono.workspace = true
 dyn-clone.workspace = true
