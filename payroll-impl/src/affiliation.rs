@@ -71,6 +71,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_add_service_charge() {
+        let mut af = UnionAffiliation::new(1.into(), 1.2);
+        assert_eq!(af.service_charges.len(), 0);
+
+        af.add_service_charge(NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(), 7.50);
+        assert_eq!(af.service_charges.len(), 1);
+        assert_eq!(
+            af.service_charges[0].date,
+            NaiveDate::from_ymd_opt(2025, 2, 1).unwrap()
+        );
+        assert_eq!(af.service_charges[0].amount, 7.50);
+
+        af.add_service_charge(NaiveDate::from_ymd_opt(2025, 2, 28).unwrap(), 10.20);
+        assert_eq!(af.service_charges.len(), 2);
+        assert_eq!(
+            af.service_charges[1].date,
+            NaiveDate::from_ymd_opt(2025, 2, 28).unwrap()
+        );
+        assert_eq!(af.service_charges[1].amount, 10.20);
+
+        af.add_service_charge(NaiveDate::from_ymd_opt(2025, 3, 3).unwrap(), 5.25);
+        assert_eq!(af.service_charges.len(), 3);
+        assert_eq!(
+            af.service_charges[2].date,
+            NaiveDate::from_ymd_opt(2025, 3, 3).unwrap()
+        );
+        assert_eq!(af.service_charges[2].amount, 5.25);
+    }
+
+    #[test]
     fn test_calculate_deductions() {
         use chrono::NaiveDate;
         use payroll_domain::{Affiliation, Paycheck};
