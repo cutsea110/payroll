@@ -65,3 +65,45 @@ impl Affiliation for UnionAffiliation {
         dues_amount + service_amount
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_deductions() {
+        use chrono::NaiveDate;
+        use payroll_domain::{Affiliation, Paycheck};
+
+        let af = UnionAffiliation {
+            member_id: 1.into(),
+            dues: 1.2,
+            service_charges: vec![
+                ServiceCharge::new(NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(), 7.50),
+                ServiceCharge::new(NaiveDate::from_ymd_opt(2025, 2, 28).unwrap(), 10.20),
+                ServiceCharge::new(NaiveDate::from_ymd_opt(2025, 3, 3).unwrap(), 5.25),
+            ],
+        };
+
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        );
+        let deductions = af.calculate_deductions(&pc);
+        assert_eq!(deductions, 6.0); // 1.2 * 5
+
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2025, 2, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 2, 28).unwrap(),
+        );
+        let deductions = af.calculate_deductions(&pc);
+        assert_eq!(deductions, 22.5); // 1.2 * 4 + 7.50 + 10.20
+
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2025, 3, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 3, 31).unwrap(),
+        );
+        let deductions = af.calculate_deductions(&pc);
+        assert_eq!(deductions, 10.05); // 1.2 * 4 + 5.25
+    }
+}
