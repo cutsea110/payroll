@@ -102,9 +102,6 @@ mod tests {
 
     #[test]
     fn test_calculate_deductions() {
-        use chrono::NaiveDate;
-        use payroll_domain::{Affiliation, Paycheck};
-
         let af = UnionAffiliation {
             member_id: 1.into(),
             dues: 1.2,
