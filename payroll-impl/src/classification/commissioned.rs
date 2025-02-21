@@ -73,7 +73,7 @@ mod tests {
         );
         let cc = CommissionedClassification::new(100.0, 0.1);
         let pay = cc.calculate_pay(&pc);
-        assert_eq!(pay, 100.0);
+        assert_eq!(pay, 100.0); // salary only
     }
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
         let mut cc = CommissionedClassification::new(100.0, 0.1);
         cc.add_sales_receipt(NaiveDate::from_ymd_opt(2025, 1, 25).unwrap(), 1234.0);
         let pay = cc.calculate_pay(&pc);
-        assert_eq!(pay, 223.4);
+        assert_eq!(pay, 223.4); // 100 + 1234 * 0.1
     }
 
     #[test]
@@ -98,7 +98,7 @@ mod tests {
         cc.add_sales_receipt(NaiveDate::from_ymd_opt(2025, 1, 25).unwrap(), 1234.0);
         cc.add_sales_receipt(NaiveDate::from_ymd_opt(2025, 1, 26).unwrap(), 5678.0);
         let pay = cc.calculate_pay(&pc);
-        assert_eq!(pay, 791.2); // 100 + 123.4 + 567.8
+        assert_eq!(pay, 791.2); // 100 + 1234 * 0.1 + 5678 * 0.1
     }
 
     #[test]
@@ -110,6 +110,6 @@ mod tests {
         let mut cc = CommissionedClassification::new(100.0, 0.1);
         cc.add_sales_receipt(NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(), 1234.0);
         let pay = cc.calculate_pay(&pc);
-        assert_eq!(pay, 100.0);
+        assert_eq!(pay, 100.0); // salary only
     }
 }
