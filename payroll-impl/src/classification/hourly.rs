@@ -61,3 +61,65 @@ impl PaymentClassification for HourlyClassification {
         hourly_amount
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_no_timecard() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2021, 1, 25).unwrap()
+                ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
+        );
+        let hc = HourlyClassification::new(10.0);
+        assert_eq!(hc.calculate_pay(&pc), 0.0);
+    }
+
+    #[test]
+    fn test_add_single_timecard() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2021, 1, 25).unwrap()
+                ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
+        );
+        let mut hc = HourlyClassification::new(10.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
+        assert_eq!(hc.calculate_pay(&pc), 80.0); // 8 * 10
+    }
+
+    #[test]
+    fn test_add_multiple_timecards() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2021, 1, 25).unwrap()
+                ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
+        );
+        let mut hc = HourlyClassification::new(10.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 26).unwrap(), 8.0);
+        assert_eq!(hc.calculate_pay(&pc), 160.0); // 8 * 10 + 8 * 10
+    }
+
+    #[test]
+    fn test_add_outrange_timecards() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2021, 1, 25).unwrap()
+                ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
+        );
+        let mut hc = HourlyClassification::new(10.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 26).unwrap(), 8.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 2, 1).unwrap(), 8.0);
+        assert_eq!(hc.calculate_pay(&pc), 160.0); // (8 + 8) * 10
+    }
+
+    #[test]
+    fn test_add_overtime_timecard() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2021, 1, 25).unwrap()
+                ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
+        );
+        let mut hc = HourlyClassification::new(10.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 10.0);
+        assert_eq!(hc.calculate_pay(&pc), 110.0); // (8 + 2 * 1.5) * 10
+    }
+}
