@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_multiple_service_charge() {
+    fn test_add_multiple_service_charges() {
         let pc = Paycheck::new(
             NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
                 ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
