@@ -73,7 +73,8 @@ mod tests {
                 ..=NaiveDate::from_ymd_opt(2021, 1, 31).unwrap(),
         );
         let hc = HourlyClassification::new(10.0);
-        assert_eq!(hc.calculate_pay(&pc), 0.0);
+        let pay = hc.calculate_pay(&pc);
+        assert_eq!(pay, 0.0);
     }
 
     #[test]
@@ -84,7 +85,8 @@ mod tests {
         );
         let mut hc = HourlyClassification::new(10.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
-        assert_eq!(hc.calculate_pay(&pc), 80.0); // 8 * 10
+        let pay = hc.calculate_pay(&pc);
+        assert_eq!(pay, 80.0); // 8 * 10
     }
 
     #[test]
@@ -96,7 +98,8 @@ mod tests {
         let mut hc = HourlyClassification::new(10.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 26).unwrap(), 8.0);
-        assert_eq!(hc.calculate_pay(&pc), 160.0); // 8 * 10 + 8 * 10
+        let pay = hc.calculate_pay(&pc);
+        assert_eq!(pay, 160.0); // 8 * 10 + 8 * 10
     }
 
     #[test]
@@ -109,7 +112,8 @@ mod tests {
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 8.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 26).unwrap(), 8.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 2, 1).unwrap(), 8.0);
-        assert_eq!(hc.calculate_pay(&pc), 160.0); // (8 + 8) * 10
+        let pay = hc.calculate_pay(&pc);
+        assert_eq!(pay, 160.0); // (8 + 8) * 10
     }
 
     #[test]
@@ -120,6 +124,7 @@ mod tests {
         );
         let mut hc = HourlyClassification::new(10.0);
         hc.add_timecard(NaiveDate::from_ymd_opt(2021, 1, 25).unwrap(), 10.0);
-        assert_eq!(hc.calculate_pay(&pc), 110.0); // (8 + 2 * 1.5) * 10
+        let pay = hc.calculate_pay(&pc);
+        assert_eq!(pay, 110.0); // (8 + 2 * 1.5) * 10
     }
 }
