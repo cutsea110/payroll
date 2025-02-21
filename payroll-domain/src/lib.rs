@@ -182,3 +182,19 @@ impl Affiliation for NoAffiliation {
         0.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_no_service_charge() {
+        let pc = Paycheck::new(
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        );
+        let aff = NoAffiliation;
+        let deductions = aff.calculate_deductions(&pc);
+        assert_eq!(deductions, 0.0);
+    }
+}
