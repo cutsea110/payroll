@@ -40,6 +40,6 @@ mod tests {
                 ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
         );
         let pay = pc.calculate_pay(&paycheck);
-        assert_eq!(pay, 1000.0);
+        assert_eq!(pay, 1000.0); // salary only
     }
 }
