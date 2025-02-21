@@ -26,3 +26,20 @@ impl PaymentClassification for SalariedClassification {
         self.salary
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test() {
+        let pc = SalariedClassification::new(1000.0);
+        let paycheck = Paycheck::new(
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+        );
+        let pay = pc.calculate_pay(&paycheck);
+        assert_eq!(pay, 1000.0);
+    }
+}
