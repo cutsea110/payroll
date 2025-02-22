@@ -18,3 +18,51 @@ impl PaymentSchedule for MonthlySchedule {
         pay_date.with_day(1).unwrap()..=pay_date
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test_pay_date() {
+        let ms = MonthlySchedule;
+        assert!(ms.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 31).unwrap()));
+        assert!(!ms.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 30).unwrap()));
+        assert!(!ms.is_pay_date(NaiveDate::from_ymd_opt(2028, 2, 28).unwrap()));
+        assert!(ms.is_pay_date(NaiveDate::from_ymd_opt(2028, 2, 29).unwrap()));
+    }
+
+    #[test]
+    fn test_pay_period() {
+        let ms = MonthlySchedule;
+        let pay_date = NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
+        let pay_period = ms.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 15).unwrap()
+        );
+        let pay_date = NaiveDate::from_ymd_opt(2025, 1, 31).unwrap();
+        let pay_period = ms.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 31).unwrap()
+        );
+        let pay_date = NaiveDate::from_ymd_opt(2028, 2, 20).unwrap();
+        let pay_period = ms.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2028, 2, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2028, 2, 20).unwrap()
+        );
+        let pay_date = NaiveDate::from_ymd_opt(2028, 2, 29).unwrap();
+        let pay_period = ms.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2028, 2, 1).unwrap()
+                ..=NaiveDate::from_ymd_opt(2028, 2, 29).unwrap()
+        );
+    }
+}
