@@ -13,3 +13,38 @@ impl PaymentSchedule for BiweeklySchedule {
         pay_date.checked_sub_days(Days::new(13)).unwrap()..=pay_date
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test_is_pay_date() {
+        let bs = BiweeklySchedule;
+        assert!(bs.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 10).unwrap()));
+        assert!(!bs.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 11).unwrap()));
+        assert!(!bs.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 17).unwrap()));
+        assert!(!bs.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 23).unwrap()));
+        assert!(bs.is_pay_date(NaiveDate::from_ymd_opt(2025, 1, 24).unwrap()));
+    }
+
+    #[test]
+    fn test_pay_period() {
+        let bs = BiweeklySchedule;
+        let pay_date = NaiveDate::from_ymd_opt(2025, 1, 10).unwrap();
+        let pay_period = bs.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2024, 12, 28).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 10).unwrap()
+        );
+        let pay_date = NaiveDate::from_ymd_opt(2025, 1, 24).unwrap();
+        let pay_period = bs.get_pay_period(pay_date);
+        assert_eq!(
+            pay_period,
+            NaiveDate::from_ymd_opt(2025, 1, 11).unwrap()
+                ..=NaiveDate::from_ymd_opt(2025, 1, 24).unwrap()
+        );
+    }
+}
