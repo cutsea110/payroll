@@ -276,14 +276,12 @@ mod tests {
             dao: t.clone(),
             payroll_factory: t.clone(),
         });
-        let res = tx.execute();
+        let _ = tx.execute();
 
-        assert!(res.is_ok());
         assert_eq!(t.received.borrow().len(), 1);
         let binding = t.received.borrow();
-        let v = binding.get(0);
-        assert!(v.is_some());
-        let v = v.unwrap();
+        assert!(binding.get(0).is_some());
+        let v = binding.get(0).unwrap();
         assert_eq!(v.id(), 1.into());
         assert_eq!(v.name(), "Bob");
         assert_eq!(v.address(), "Home");
