@@ -116,7 +116,7 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct Tester {
-        received: Rc<RefCell<Vec<Employee>>>,
+        employees: Rc<RefCell<Vec<Employee>>>,
     }
     impl EmployeeDao for Tester {
         type Ctx<'a> = &'a ();
@@ -133,7 +133,7 @@ mod tests {
             emp: Employee,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
             tx_rs::with_tx(move |_ctx| {
-                self.received.borrow_mut().push(emp);
+                self.employees.borrow_mut().push(emp);
                 Ok(1.into()) // no care
             })
         }
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn test_add_emp() {
         let t = Tester {
-            received: Rc::new(RefCell::new(vec![])),
+            employees: Rc::new(RefCell::new(vec![])),
         };
 
         let tx: Box<dyn tx_app::Transaction> = Box::new(AddSalariedEmployeeTx {
@@ -278,8 +278,8 @@ mod tests {
         });
         let _ = tx.execute();
 
-        assert_eq!(t.received.borrow().len(), 1);
-        let binding = t.received.borrow();
+        assert_eq!(t.employees.borrow().len(), 1);
+        let binding = t.employees.borrow();
         assert!(binding.get(0).is_some());
         let v = binding.get(0).unwrap();
         assert_eq!(v.id(), 1.into());
