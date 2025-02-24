@@ -3,7 +3,7 @@ use std::any::Any;
 
 use payroll_domain::{Paycheck, PaymentClassification};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SalariedClassification {
     salary: f32,
 }
