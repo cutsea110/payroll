@@ -1,9 +1,9 @@
 use chrono::{Datelike, Days, NaiveDate};
-use std::ops::RangeInclusive;
+use std::{any::Any, ops::RangeInclusive};
 
 use payroll_domain::PaymentSchedule;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MonthlySchedule;
 impl MonthlySchedule {
     pub fn is_last_day_of_month(&self, date: NaiveDate) -> bool {
@@ -11,6 +11,12 @@ impl MonthlySchedule {
     }
 }
 impl PaymentSchedule for MonthlySchedule {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn is_pay_date(&self, date: NaiveDate) -> bool {
         self.is_last_day_of_month(date)
     }

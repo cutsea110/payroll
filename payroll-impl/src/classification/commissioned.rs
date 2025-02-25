@@ -4,7 +4,7 @@ use std::any::Any;
 
 use payroll_domain::{Paycheck, PaymentClassification};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct SalesReceipt {
     date: NaiveDate,
     amount: f32,
@@ -15,7 +15,7 @@ impl SalesReceipt {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CommissionedClassification {
     salary: f32,
     commission_rate: f32,
