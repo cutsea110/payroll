@@ -349,15 +349,14 @@ mod tests {
             actual: Rc::new(RefCell::new(vec![])),
         };
 
-        let tx: Box<dyn tx_app::Transaction> = Box::new(AddSalariedEmployeeTx {
-            id: 1.into(),
-            name: "Bob".to_string(),
-            address: "Home".to_string(),
-            salary: 123.0,
-
-            dao: t.clone(),
-            payroll_factory: t.clone(),
-        });
+        let tx: Box<dyn tx_app::Transaction> = Box::new(AddSalariedEmployeeTx::new(
+            1.into(),
+            "Bob",
+            "Home",
+            123.0,
+            t.clone(),
+            t.clone(),
+        ));
         let _ = tx.execute();
 
         t.assert();
