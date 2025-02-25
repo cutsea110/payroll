@@ -4,7 +4,7 @@ use std::any::Any;
 
 use payroll_domain::{Affiliation, MemberId, Paycheck};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct ServiceCharge {
     date: NaiveDate,
     amount: f32,
@@ -15,7 +15,7 @@ impl ServiceCharge {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnionAffiliation {
     member_id: MemberId,
     dues: f32,

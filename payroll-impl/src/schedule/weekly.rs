@@ -1,11 +1,17 @@
 use chrono::{Datelike, Days, NaiveDate, Weekday};
-use std::ops::RangeInclusive;
+use std::{any::Any, ops::RangeInclusive};
 
 use payroll_domain::PaymentSchedule;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WeeklySchedule;
 impl PaymentSchedule for WeeklySchedule {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn is_pay_date(&self, date: NaiveDate) -> bool {
         date.weekday() == Weekday::Fri
     }

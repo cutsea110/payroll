@@ -1,6 +1,8 @@
+use std::any::Any;
+
 use payroll_domain::{Paycheck, PaymentMethod};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DirectMethod {
     bank: String,
     account: String,
@@ -14,6 +16,12 @@ impl DirectMethod {
     }
 }
 impl PaymentMethod for DirectMethod {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn pay(&self, pc: &Paycheck) {
         println!("DirectMethod to {} {}: {:#?}", self.bank, self.account, pc);
     }

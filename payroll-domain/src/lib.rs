@@ -151,12 +151,16 @@ pub trait PaymentClassification: Debug + DynClone {
 dyn_clone::clone_trait_object!(PaymentClassification);
 
 pub trait PaymentSchedule: Debug + DynClone {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
     fn is_pay_date(&self, date: NaiveDate) -> bool;
     fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate>;
 }
 dyn_clone::clone_trait_object!(PaymentSchedule);
 
 pub trait PaymentMethod: Debug + DynClone {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
     // TODO: return type
     fn pay(&self, pc: &Paycheck);
 }
@@ -169,7 +173,7 @@ pub trait Affiliation: Debug + DynClone {
 }
 dyn_clone::clone_trait_object!(Affiliation);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NoAffiliation;
 impl Affiliation for NoAffiliation {
     fn as_any(&self) -> &dyn Any {

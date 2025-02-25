@@ -4,7 +4,7 @@ use std::any::Any;
 
 use payroll_domain::{Paycheck, PaymentClassification};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct TimeCard {
     date: NaiveDate,
     hours: f32,
@@ -15,7 +15,7 @@ impl TimeCard {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HourlyClassification {
     hourly_rate: f32,
     timecards: Vec<TimeCard>,
