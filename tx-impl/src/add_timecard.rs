@@ -77,3 +77,301 @@ where
             .map_err(Into::into)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+    use std::{cell::RefCell, rc::Rc};
+
+    use dao::{DaoError, EmployeeDao};
+    use payroll_domain::{
+        Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
+        PaymentClassification, PaymentMethod, PaymentSchedule,
+    };
+    use payroll_factory::PayrollFactory;
+    use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
+
+    #[derive(Debug, Clone)]
+    enum Call {
+        Fetch(EmployeeId),
+        Update(Employee),
+    }
+
+    #[derive(Debug, Clone)]
+    struct Tester {
+        expect: Vec<Call>,
+        actual: Rc<RefCell<Vec<Call>>>,
+
+        fetched: Rc<RefCell<Vec<Result<Employee, DaoError>>>>,
+        updated: Rc<RefCell<Vec<Result<(), DaoError>>>>,
+    }
+    impl Tester {
+        fn assert(&self) {
+            let borrowed = self.actual.borrow();
+            assert_eq!(borrowed.len(), self.expect.len());
+            for (e, a) in self.expect.iter().zip(borrowed.iter()) {
+                match e {
+                    Call::Fetch(e) => {
+                        if let Call::Fetch(a) = a {
+                            assert_eq!(a, e);
+                        } else {
+                            assert!(false, "unexpected call: {:?}", a);
+                        }
+                    }
+                    Call::Update(e) => {
+                        if let Call::Update(a) = a {
+                            assert_eq!(a.id(), e.id());
+                            assert_eq!(a.name(), e.name());
+                            assert_eq!(a.address(), e.address());
+                            assert_eq!(
+                                a.classification()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<HourlyClassification>(),
+                                e.classification()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<HourlyClassification>(),
+                            );
+                            assert!(a
+                                .schedule()
+                                .borrow()
+                                .as_any()
+                                .downcast_ref::<WeeklySchedule>()
+                                .is_some());
+                            // 今の MonthlySchedule は特にフィールドがないのでこのテストは不要ではある
+                            assert_eq!(
+                                a.schedule()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<WeeklySchedule>(),
+                                e.schedule()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<WeeklySchedule>()
+                            );
+                            assert!(a
+                                .method()
+                                .borrow()
+                                .as_any()
+                                .downcast_ref::<HoldMethod>()
+                                .is_some());
+                            // 今の HoldMethod は特にフィールドがないのでこのテストは不要ではある
+                            assert_eq!(
+                                a.method().borrow().as_any().downcast_ref::<HoldMethod>(),
+                                e.method().borrow().as_any().downcast_ref::<HoldMethod>()
+                            );
+                            assert!(a
+                                .affiliation()
+                                .borrow()
+                                .as_any()
+                                .downcast_ref::<NoAffiliation>()
+                                .is_some());
+                            // 今の NoAffiliation は特にフィールドがないのでこのテストは不要ではある
+                            assert_eq!(
+                                a.affiliation()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<NoAffiliation>(),
+                                e.affiliation()
+                                    .borrow()
+                                    .as_any()
+                                    .downcast_ref::<NoAffiliation>()
+                            );
+                        } else {
+                            assert!(false, "unexpected call: {:?}", a);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    impl EmployeeDao for Tester {
+        type Ctx<'a> = &'a ();
+
+        fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>
+        where
+            F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
+        {
+            f(&())
+        }
+
+        fn add<'a>(
+            &self,
+            _emp: Employee,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| unreachable!("add method should not be called"))
+        }
+        fn delete<'a>(
+            &self,
+            _id: EmployeeId,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| unreachable!("delete method should not be called"))
+        }
+
+        fn fetch<'a>(
+            &self,
+            id: EmployeeId,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Employee, Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| {
+                self.actual.borrow_mut().push(Call::Fetch(id));
+                self.fetched.borrow_mut().pop().unwrap()
+            })
+        }
+
+        fn fetch_all<'a>(
+            &self,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Employee)>, Err = DaoError>
+        {
+            tx_rs::with_tx(move |_ctx| unreachable!("fetch_all method should not be called"))
+        }
+
+        fn update<'a>(
+            &self,
+            emp: Employee,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| {
+                self.actual.borrow_mut().push(Call::Update(emp));
+                self.updated.borrow_mut().pop().unwrap()
+            })
+        }
+
+        fn add_union_member<'a>(
+            &self,
+            _member_id: MemberId,
+            _emp_id: EmployeeId,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| unreachable!("add_union_member method should not be called"))
+        }
+
+        fn delete_union_member<'a>(
+            &self,
+            _member_id: MemberId,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| {
+                unreachable!("delete_union_member method should not be called")
+            })
+        }
+
+        fn find_union_member<'a>(
+            &self,
+            _member_id: MemberId,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| {
+                unreachable!("find_union_member method should not be called")
+            })
+        }
+
+        fn record_paycheck<'a>(
+            &self,
+            _emp_id: EmployeeId,
+            _paycheck: Paycheck,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| unreachable!("record_paycheck method should not be called"))
+        }
+
+        fn find_paycheck<'a>(
+            &self,
+            _emp_id: EmployeeId,
+            _pay_date: NaiveDate,
+        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError> {
+            tx_rs::with_tx(move |_ctx| unreachable!("find_paycheck method should not be called"))
+        }
+    }
+    impl PayrollFactory for Tester {
+        fn mk_salaried_classification(
+            &self,
+            _salary: f32,
+        ) -> Rc<RefCell<dyn PaymentClassification>> {
+            unimplemented!("mk_salaried_classification is not implemented")
+        }
+        fn mk_hourly_classification(
+            &self,
+            _hourly_rate: f32,
+        ) -> Rc<RefCell<dyn PaymentClassification>> {
+            unimplemented!("mk_hourly_classification is not implemented")
+        }
+        fn mk_commissioned_classification(
+            &self,
+            _salary: f32,
+            _commission_rate: f32,
+        ) -> Rc<RefCell<dyn PaymentClassification>> {
+            unimplemented!("mk_commissioned_classification is not implemented")
+        }
+
+        fn mk_weekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+            unimplemented!("mk_weekly_schedule is not implemented")
+        }
+        fn mk_monthly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+            unimplemented!("mk_monthly_schedule is not implemented")
+        }
+        fn mk_biweekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+            unimplemented!("mk_biweekly_schedule is not implemented")
+        }
+
+        fn mk_hold_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+            unimplemented!("mk_hold_method is not implemented")
+        }
+
+        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Rc<RefCell<dyn PaymentMethod>> {
+            unimplemented!("mk_direct_method is not implemented")
+        }
+        fn mk_mail_method(&self, _address: &str) -> Rc<RefCell<dyn PaymentMethod>> {
+            unimplemented!("mk_mail_method is not implemented")
+        }
+
+        fn mk_union_affiliation(
+            &self,
+            _member_id: MemberId,
+            _dues: f32,
+        ) -> Rc<RefCell<dyn Affiliation>> {
+            unimplemented!("mk_union_affiliation is not implemented")
+        }
+        fn mk_no_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+            unimplemented!("mk_no_affiliation is not implemented")
+        }
+    }
+
+    #[test]
+    fn test_add_timecard() {
+        let mut hc = HourlyClassification::new(12.0);
+        hc.add_timecard(NaiveDate::from_ymd_opt(2025, 3, 5).unwrap(), 8.0);
+        let t = Tester {
+            expect: vec![
+                Call::Fetch(1.into()),
+                Call::Update(Employee::new(
+                    1.into(),
+                    "Bob",
+                    "Home",
+                    Rc::new(RefCell::new(hc)),
+                    Rc::new(RefCell::new(WeeklySchedule)),
+                    Rc::new(RefCell::new(HoldMethod)),
+                    Rc::new(RefCell::new(NoAffiliation)),
+                )),
+            ],
+            actual: Rc::new(RefCell::new(vec![])),
+
+            fetched: Rc::new(RefCell::new(vec![Ok(Employee::new(
+                1.into(),
+                "Bob",
+                "Home",
+                Rc::new(RefCell::new(HourlyClassification::new(12.0))),
+                Rc::new(RefCell::new(WeeklySchedule)),
+                Rc::new(RefCell::new(HoldMethod)),
+                Rc::new(RefCell::new(NoAffiliation)),
+            ))])),
+            updated: Rc::new(RefCell::new(vec![Ok(())])),
+        };
+
+        let tx: Box<dyn tx_app::Transaction> = Box::new(AddTimeCardTx::new(
+            1.into(),
+            NaiveDate::from_ymd_opt(2025, 3, 5).unwrap(),
+            8.0,
+            t.clone(),
+        ));
+        let _ = tx.execute();
+
+        t.assert();
+    }
+}
