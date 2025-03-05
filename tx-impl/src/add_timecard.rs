@@ -85,11 +85,7 @@ mod tests {
     use std::{cell::RefCell, rc::Rc};
 
     use dao::{DaoError, EmployeeDao};
-    use payroll_domain::{
-        Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
-        PaymentClassification, PaymentMethod, PaymentSchedule,
-    };
-    use payroll_factory::PayrollFactory;
+    use payroll_domain::{Employee, EmployeeId, MemberId, NoAffiliation, Paycheck};
     use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
 
     #[derive(Debug, Clone)]
@@ -277,59 +273,6 @@ mod tests {
             _pay_date: NaiveDate,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError> {
             tx_rs::with_tx(move |_ctx| unreachable!("find_paycheck method should not be called"))
-        }
-    }
-    impl PayrollFactory for Tester {
-        fn mk_salaried_classification(
-            &self,
-            _salary: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
-            unimplemented!("mk_salaried_classification is not implemented")
-        }
-        fn mk_hourly_classification(
-            &self,
-            _hourly_rate: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
-            unimplemented!("mk_hourly_classification is not implemented")
-        }
-        fn mk_commissioned_classification(
-            &self,
-            _salary: f32,
-            _commission_rate: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
-            unimplemented!("mk_commissioned_classification is not implemented")
-        }
-
-        fn mk_weekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-            unimplemented!("mk_weekly_schedule is not implemented")
-        }
-        fn mk_monthly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-            unimplemented!("mk_monthly_schedule is not implemented")
-        }
-        fn mk_biweekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-            unimplemented!("mk_biweekly_schedule is not implemented")
-        }
-
-        fn mk_hold_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-            unimplemented!("mk_hold_method is not implemented")
-        }
-
-        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Rc<RefCell<dyn PaymentMethod>> {
-            unimplemented!("mk_direct_method is not implemented")
-        }
-        fn mk_mail_method(&self, _address: &str) -> Rc<RefCell<dyn PaymentMethod>> {
-            unimplemented!("mk_mail_method is not implemented")
-        }
-
-        fn mk_union_affiliation(
-            &self,
-            _member_id: MemberId,
-            _dues: f32,
-        ) -> Rc<RefCell<dyn Affiliation>> {
-            unimplemented!("mk_union_affiliation is not implemented")
-        }
-        fn mk_no_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-            unimplemented!("mk_no_affiliation is not implemented")
         }
     }
 
