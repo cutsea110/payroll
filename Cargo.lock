@@ -305,14 +305,14 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.21.0"
+version = "1.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cde51589ab56b20a6f686b2c68f7a0bd6add753d697abf720d63f8db3ab7b1ad"
+checksum = "d75b0bedcc4fe52caa0e03d9f1151a323e4aa5e2d78ba3580400cd3c9e2bc4bc"
 
 [[package]]
 name = "parsec-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#3122477d90b54c6313b4854c70611926b7eb3a32"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#4f143e54629a52c23096df14810a724d261a0d0f"
 dependencies = [
  "thiserror",
 ]
@@ -538,7 +538,7 @@ dependencies = [
 [[package]]
 name = "tx-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#3122477d90b54c6313b4854c70611926b7eb3a32"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#4f143e54629a52c23096df14810a724d261a0d0f"
 
 [[package]]
 name = "unicode-ident"
