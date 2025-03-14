@@ -136,7 +136,7 @@ mod tests {
                                 .as_any()
                                 .downcast_ref::<WeeklySchedule>()
                                 .is_some());
-                            // 今の MonthlySchedule は特にフィールドがないのでこのテストは不要ではある
+                            // 今の WeeklySchedule は特にフィールドがないのでこのテストは不要ではある
                             assert_eq!(
                                 a.schedule()
                                     .borrow()
