@@ -104,7 +104,7 @@ mod test_transaction {
     }
     #[test]
     fn test_add_commissioned_emp() {
-        let input = r#"AddEmp 42 "Bob" "Home" C 1000.0 0.1"#;
+        let input = r#"AddEmp 42 "Bob" "Home" C 1000.0 .1"#;
         let result = transaction().parse(input);
         assert_eq!(
             result,
@@ -236,7 +236,7 @@ mod test_transaction {
     }
     #[test]
     fn test_chg_commissioned() {
-        let input = r#"ChgEmp 42 Commissioned 1000.0 0.1"#;
+        let input = r#"ChgEmp 42 Commissioned 1000.0 .1"#;
         let result = transaction().parse(input);
         assert_eq!(
             result,
@@ -529,7 +529,7 @@ mod test_add_commissioned_emp {
 
     #[test]
     fn test() {
-        let input = r#"AddEmp 1 "Bob" "Home" C 1000.0 0.1"#;
+        let input = r#"AddEmp 1 "Bob" "Home" C 1000.0 .1"#;
         let result = add_commissioned_emp().parse(input);
         assert_eq!(
             result,
@@ -894,7 +894,7 @@ mod test_chg_commissioned {
 
     #[test]
     fn test() {
-        let input = r#"ChgEmp 1 Commissioned 1018.91 0.19"#;
+        let input = r#"ChgEmp 1 Commissioned 1018.91 .19"#;
         let result = chg_commissioned().parse(input);
         assert_eq!(
             result,

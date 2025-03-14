@@ -22,8 +22,8 @@ TimeCard 57 2024-08-09 8.0
 
 # Commissioned emp
 #
-AddEmp 71 "Charlie" "Office" C 500.20 0.1
-ChgEmp 71 Commissioned 502.50 0.125
+AddEmp 71 "Charlie" "Office" C 500.20 .1
+ChgEmp 71 Commissioned 502.50 .125
 ChgEmp 71 Hold
 ChgEmp 71 Member 7235 Dues 8.75
 
