@@ -1,4 +1,4 @@
-# payroll (給与支払いシステム)
+# payroll (Case Study of Uncle Bob)
 
 [![Rust](https://github.com/cutsea110/payroll/actions/workflows/rust.yml/badge.svg)](https://github.com/cutsea110/payroll/actions/workflows/rust.yml)
 
