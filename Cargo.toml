@@ -16,9 +16,9 @@ dyn-clone = "1.0.17"
 env_logger = "0.11.6"
 getopts = "0.2.21"
 log = "0.4.22"
-parsec-rs = { git = "https://github.com/cutsea110/fragments.git", subdir = "parsec-rs", branch = "main" }
+parsec-rs = { git = "https://github.com/cutsea110/fragments.git", package = "parsec-rs", branch = "main" }
 thiserror = "1.0.63"
-tx-rs = { git = "https://github.com/cutsea110/fragments.git", subdir = "tx-rs", branch = "main" }
+tx-rs = { git = "https://github.com/cutsea110/fragments.git", package = "tx-rs", branch = "main" }
 
 [profile.release]
 panic = "abort"
