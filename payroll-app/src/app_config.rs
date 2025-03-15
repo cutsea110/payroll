@@ -1,5 +1,5 @@
 use getopts::Options;
-use log::error;
+use log::{error, trace};
 use std::env;
 
 pub struct AppConfig {
@@ -73,6 +73,7 @@ impl AppConfig {
         self.script_file.as_deref()
     }
     pub fn help_message(&self) -> String {
+        trace!("help_message called");
         let brief = format!("Usage: {} [options] FILE", self.program);
         self.opts.usage(&brief)
     }
