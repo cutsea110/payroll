@@ -94,9 +94,7 @@ fn print_header(_app_conf: &app_config::AppConfig) {
         r#""#,
         r#"When you quit, you press Ctrl-D."#,
     ];
-    for line in lines {
-        eprintln!("{}", line);
-    }
+    eprintln!("{}", lines.join("\n"));
 }
 
 fn main() -> Result<(), anyhow::Error> {
