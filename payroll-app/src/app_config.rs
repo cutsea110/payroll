@@ -52,24 +52,34 @@ impl AppConfig {
         })
     }
     pub fn should_show_help(&self) -> bool {
+        trace!("showld_show_help called: {}", self.help);
         self.help
     }
     pub fn should_run_quietly(&self) -> bool {
+        trace!("should_run_quietly called: {}", self.quiet);
         self.quiet
     }
     pub fn transaction_fail_safely(&self) -> bool {
+        trace!(
+            "transaction_fail_safely called: {}",
+            self.transaction_fail_safely
+        );
         self.transaction_fail_safely
     }
     pub fn should_soft_land(&self) -> bool {
+        trace!("should_soft_land called: {}", self.soft_landing);
         self.soft_landing
     }
     pub fn should_enable_chronograph(&self) -> bool {
+        trace!("should_enable_chronograph called: {}", self.chronograph);
         self.chronograph
     }
     pub fn should_dive_into_repl(&self) -> bool {
+        trace!("should_dive_into_repl called: {}", self.repl);
         self.repl
     }
     pub fn script_file(&self) -> Option<&str> {
+        trace!("script_file called: {:?}", self.script_file);
         self.script_file.as_deref()
     }
     pub fn help_message(&self) -> String {
