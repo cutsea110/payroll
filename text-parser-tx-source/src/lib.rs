@@ -1,4 +1,4 @@
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use std::io::BufRead;
 
 use tx_app::{Transaction, Tx, TxSource};
@@ -138,7 +138,10 @@ where
             let line = self.reader.read_line(&mut buf);
             debug!("Read line: {:?}", buf);
             match line {
-                Ok(0) => break,
+                Ok(0) => {
+                    debug!("Got EOF");
+                    break;
+                }
                 Ok(_) => {
                     if let Some(tx) = parser::read_tx(&buf).map(|tx| {
                         debug!("Parsed tx: {:?}", tx);
@@ -146,11 +149,11 @@ where
                     }) {
                         return Some(tx);
                     }
-                    debug!("Skipping line: {:?}", line);
+                    warn!("Skipping line: {:?}", line);
                     continue;
                 }
                 Err(e) => {
-                    warn!("Error reading line: {}", e);
+                    error!("Error reading line: {}", e);
                     break;
                 }
             }
