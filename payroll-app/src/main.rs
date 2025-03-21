@@ -103,6 +103,7 @@ fn main() -> Result<(), anyhow::Error> {
     info!("main starting");
 
     let app_conf = app_config::AppConfig::new()?;
+    debug!("main: app_conf={:#?}", app_conf);
     if app_conf.should_show_help() {
         debug!("main: help flag is set");
         print_usage(&app_conf);

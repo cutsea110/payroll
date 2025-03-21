@@ -1,6 +1,6 @@
 use getopts::Options;
 use log::{error, trace};
-use std::env;
+use std::{env, fmt};
 
 pub struct AppConfig {
     help: bool,
@@ -14,6 +14,20 @@ pub struct AppConfig {
     program: String,
     script_file: Option<String>,
     opts: Options,
+}
+impl fmt::Debug for AppConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("AppConfig")
+            .field("help", &self.help)
+            .field("quiet", &self.quiet)
+            .field("transaction_fail_safely", &self.transaction_fail_safely)
+            .field("soft_landing", &self.soft_landing)
+            .field("chronograph", &self.chronograph)
+            .field("repl", &self.repl)
+            .field("program", &self.program)
+            .field("script_file", &self.script_file)
+            .finish()
+    }
 }
 impl AppConfig {
     pub fn new() -> Result<Self, anyhow::Error> {
