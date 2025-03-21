@@ -98,7 +98,10 @@ fn print_header(_app_conf: &app_config::AppConfig) {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    env_logger::init();
+    env_logger::Builder::from_default_env()
+        .format_source_path(true)
+        .format_line_number(true)
+        .init();
 
     info!("main starting");
 
