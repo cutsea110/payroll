@@ -150,12 +150,10 @@ where
                         return Some(tx);
                     }
                     warn!("Skipping line: {:?}", buf);
-                    eprintln!("Invalid tx: {:?}", buf);
                     continue;
                 }
                 Err(ref e) => {
                     error!("Error reading line: {}", e);
-                    eprintln!("Couldn't read line: {:?}", buf);
                     break;
                 }
             }
