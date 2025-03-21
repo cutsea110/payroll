@@ -136,7 +136,7 @@ where
         loop {
             let mut buf = String::new();
             let line = self.reader.read_line(&mut buf);
-            debug!("Read line: {:?}", buf);
+            debug!("Got line: {:?}", buf);
             match line {
                 Ok(0) => {
                     debug!("Got EOF");
@@ -149,11 +149,13 @@ where
                     }) {
                         return Some(tx);
                     }
-                    warn!("Skipping line: {:?}", line);
+                    warn!("Skipping line: {:?}", buf);
+                    eprintln!("Invalid tx: {:?}", buf);
                     continue;
                 }
-                Err(e) => {
+                Err(ref e) => {
                     error!("Error reading line: {}", e);
+                    eprintln!("Couldn't read line: {:?}", buf);
                     break;
                 }
             }
