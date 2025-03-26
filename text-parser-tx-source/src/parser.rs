@@ -7,7 +7,13 @@ use tx_app::Tx;
 
 pub fn read_tx(line: &str) -> Option<Tx> {
     trace!("read_tx called");
-    transaction().parse(line).ok().map(|(tx, _)| tx)
+    match transaction().parse(line) {
+        Ok((tx, _)) => Some(tx),
+        Err(e) => {
+            debug!("Error parsing tx: {:?}", e);
+            None
+        }
+    }
 }
 
 fn transaction() -> impl Parser<Item = Tx> {
