@@ -151,7 +151,7 @@ where
                     Err(e) => {
                         warn!("Skip line: {}", e);
                         let space = " ".repeat(e.position - 1);
-                        let message = e.message.clone() + " ?";
+                        let message = e.message.clone() + " expected";
                         eprintln!("Error parsing line: \n{}{}^ {}", buf, space, message);
                         continue;
                     }
