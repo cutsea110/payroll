@@ -142,16 +142,20 @@ where
                     debug!("Got EOF");
                     break;
                 }
-                Ok(_) => {
-                    if let Some(tx) = parser::read_tx(&buf).map(|tx| {
+                Ok(_) => match parser::read_tx(&buf) {
+                    Ok(tx) => {
                         debug!("Parsed tx: {:?}", tx);
-                        self.dispatch(tx)
-                    }) {
+                        let tx = self.dispatch(tx);
                         return Some(tx);
                     }
-                    warn!("Skipping line: {:?}", buf);
-                    continue;
-                }
+                    Err(e) => {
+                        warn!("Skip line: {}", e);
+                        let space = " ".repeat(e.position - 1);
+                        let message = e.message.clone() + " ?";
+                        eprintln!("Error parsing line: \n{}{}^ {}", buf, space, message);
+                        continue;
+                    }
+                },
                 Err(ref e) => {
                     error!("Error reading line: {}", e);
                     break;

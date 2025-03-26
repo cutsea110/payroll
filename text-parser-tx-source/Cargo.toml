@@ -10,6 +10,7 @@ edition.workspace = true
 chrono.workspace = true
 log.workspace = true
 parsec-rs.workspace = true
+thiserror.workspace = true
 
 payroll-domain = { path = "../payroll-domain" }
 tx-app = { path = "../tx-app" }

@@ -1,18 +1,31 @@
 use chrono::NaiveDate;
 use log::{debug, trace};
 use parsec_rs::{char, float32, int32, keyword, pred, spaces, string, uint32, Parser};
+use thiserror::Error;
 
 use payroll_domain::{EmployeeId, MemberId};
 use tx_app::Tx;
 
-pub fn read_tx(line: &str) -> Option<Tx> {
+#[derive(Debug, Clone, Error)]
+#[error("parse error at position {position}: {message}")]
+pub struct TextParserError {
+    pub position: usize,
+    pub message: String,
+}
+impl From<parsec_rs::ParseError> for TextParserError {
+    fn from(e: parsec_rs::ParseError) -> Self {
+        Self {
+            position: e.position(),
+            message: e.expected().get(0).map_or("", |v| v).to_string(),
+        }
+    }
+}
+
+pub fn read_tx(line: &str) -> Result<Tx, TextParserError> {
     trace!("read_tx called");
     match transaction().parse(line) {
-        Ok((tx, _)) => Some(tx),
-        Err(e) => {
-            debug!("Error parsing tx: {:?}", e);
-            None
-        }
+        Ok((tx, _)) => Ok(tx),
+        Err(e) => Err(e.into()),
     }
 }
 
