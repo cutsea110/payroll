@@ -67,3 +67,47 @@ graph TD
   payroll-app --> app
 ```
 
+## Run on docker
+
+See [Dockerhub cutsea110/payroll-app](https://hub.docker.com/repository/docker/cutsea110/payroll-app/general).
+
+```bash
+$ docker run -v ./:/work -it --rm cutsea110/payroll-app:0.1.0 payroll-app -h
+Usage: payroll-app [options] FILE
+
+Options:
+    -h, --help          Print this help menu
+    -q, --quiet         Don't output unnecessary information
+    -f, --fail-safe-tx  Transaction fail safely
+    -s, --soft-landing  Soft landing application
+    -c, --chronograph   Print the time taken to execute each transaction
+    -r, --repl          Run into REPL mode
+```
+
+## For Developer
+
+### How to build Docker image
+
+You should specify the version 0.1.1, because the latest version is 0.1.0.
+
+```bash
+$ docker buildx build --load -t cutsea110/payroll-app:0.1.1 .
+```
+### How to run on Docker image
+
+I suppose that you have some test programs for payroll-app in `${PWD}/script` directory.
+
+```bash
+$ docker run -v ${PWD}/script:/work -it --rm cutsea110/payroll-app:0.1.1 payroll-app /work/test1.scr
+```
+
+### Share Dockerhub
+
+```bash
+$ docker login
+$ docker push cutsea110/payroll-app:0.1.1
+```
+
+### Update This README
+
+You should update docker image version for next.
