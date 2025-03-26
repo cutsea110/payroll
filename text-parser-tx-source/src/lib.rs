@@ -150,9 +150,10 @@ where
                     }
                     Err(e) => {
                         warn!("Skip line: {}", e);
-                        let space = " ".repeat(e.position - 1);
+                        let indent_len = e.position;
+                        let indent = " ".repeat(indent_len);
                         let message = e.message.clone() + " expected";
-                        eprintln!("Error parsing line: \n{}{}^ {}", buf, space, message);
+                        eprintln!("Error parsing line: \n{}{}^ {}", buf, indent, message);
                         continue;
                     }
                 },

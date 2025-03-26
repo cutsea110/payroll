@@ -7,16 +7,18 @@ use payroll_domain::{EmployeeId, MemberId};
 use tx_app::Tx;
 
 #[derive(Debug, Clone, Error)]
-#[error("parse error at position {position}: {message}")]
+#[error("parse error at position {position}: {message} (found: {found:?})")]
 pub struct TextParserError {
     pub position: usize,
     pub message: String,
+    pub found: Option<String>,
 }
 impl From<parsec_rs::ParseError> for TextParserError {
     fn from(e: parsec_rs::ParseError) -> Self {
         Self {
             position: e.position(),
-            message: e.expected().get(0).map_or("", |v| v).to_string(),
+            message: e.expected().get(0).cloned().unwrap_or_default(),
+            found: e.found().cloned(),
         }
     }
 }
@@ -404,19 +406,29 @@ fn go_through() -> impl Parser<Item = ()> {
 }
 
 fn employee_id() -> impl Parser<Item = EmployeeId> {
-    uint32().map(Into::into).with(spaces())
+    uint32()
+        .map(Into::into)
+        .with(spaces())
+        .label("employee_id".into())
 }
 
 fn member_id() -> impl Parser<Item = MemberId> {
-    uint32().map(Into::into).with(spaces())
+    uint32()
+        .map(Into::into)
+        .with(spaces())
+        .label("member_id".into())
 }
 
 fn add_hourly_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
     let emp_id = employee_id();
-    let name = string().with(spaces());
-    let address = string().with(spaces());
-    let hourly_rate = char('H').skip(spaces()).skip(float32());
+    let name = string().with(spaces()).label("name".into());
+    let address = string().with(spaces()).label("address".into());
+    let hourly_rate = char('H')
+        .label("payment classification".into())
+        .skip(spaces())
+        .skip(float32())
+        .label("hourly rate".into());
 
     prefix
         .skip(emp_id)
@@ -463,9 +475,13 @@ mod test_add_hourly_emp {
 fn add_salary_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
     let emp_id = employee_id();
-    let name = string().with(spaces());
-    let address = string().with(spaces());
-    let monthly_rate = char('S').skip(spaces()).skip(float32());
+    let name = string().with(spaces()).label("name".into());
+    let address = string().with(spaces()).label("address".into());
+    let monthly_rate = char('S')
+        .label("payment classification".into())
+        .skip(spaces())
+        .skip(float32())
+        .label("monthly salary".into());
 
     prefix
         .skip(emp_id)
@@ -512,10 +528,15 @@ mod test_add_salary_emp {
 fn add_commissioned_emp() -> impl Parser<Item = Tx> {
     let prefix = keyword("AddEmp").skip(spaces());
     let emp_id = employee_id();
-    let name = string().with(spaces());
-    let address = string().with(spaces());
-    let salary = char('C').skip(spaces()).skip(float32()).with(spaces());
-    let commission_rate = float32();
+    let name = string().with(spaces()).label("name".into());
+    let address = string().with(spaces()).label("address".into());
+    let salary = char('C')
+        .label("payment classification".into())
+        .skip(spaces())
+        .skip(float32())
+        .label("salary".into())
+        .with(spaces());
+    let commission_rate = float32().label("commission rate".into());
 
     prefix
         .skip(emp_id)
@@ -592,8 +613,9 @@ fn date() -> impl Parser<Item = NaiveDate> {
     let year = int32().with(char('-'));
     let month = uint32().with(char('-'));
     let day = uint32();
+    let date = year.join(month).join(day).label("date".into());
 
-    year.join(month).join(day).map(|((y, m), d)| {
+    date.map(|((y, m), d)| {
         debug!("parsed date: {}-{:02}-{:02}", y, m, d);
         NaiveDate::from_ymd_opt(y as i32, m as u32, d as u32).expect("date")
     })
@@ -618,7 +640,7 @@ fn time_card() -> impl Parser<Item = Tx> {
     let prefix = keyword("TimeCard").skip(spaces());
     let emp_id = employee_id();
     let date = date().with(spaces());
-    let hours = float32();
+    let hours = float32().label("hour".into());
 
     prefix
         .skip(emp_id)
@@ -656,7 +678,7 @@ fn sales_receipt() -> impl Parser<Item = Tx> {
     let prefix = keyword("SalesReceipt").skip(spaces());
     let emp_id = employee_id();
     let date = date().with(spaces());
-    let amount = float32();
+    let amount = float32().label("amount".into());
 
     prefix
         .skip(emp_id)
@@ -697,7 +719,7 @@ fn service_charge() -> impl Parser<Item = Tx> {
     let prefix = keyword("ServiceCharge").skip(spaces());
     let member_id = member_id();
     let date = date().with(spaces());
-    let amount = float32();
+    let amount = float32().label("amount".into());
 
     prefix
         .skip(member_id)
@@ -741,7 +763,10 @@ mod test_service_charge {
 fn chg_name() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let name = keyword("Name").skip(spaces()).skip(string());
+    let name = keyword("Name")
+        .skip(spaces())
+        .skip(string())
+        .label("new name".into());
 
     prefix.skip(emp_id).join(name).map(|(id, new_name)| {
         debug!(
@@ -776,7 +801,10 @@ mod test_chg_name {
 fn chg_address() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let address = keyword("Address").skip(spaces()).skip(string());
+    let address = keyword("Address")
+        .skip(spaces())
+        .skip(string())
+        .label("new address".into());
 
     prefix.skip(emp_id).join(address).map(|(id, new_address)| {
         debug!(
@@ -811,7 +839,10 @@ mod test_chg_address {
 fn chg_hourly() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let hourly_rate = keyword("Hourly").skip(spaces()).skip(float32());
+    let hourly_rate = keyword("Hourly")
+        .skip(spaces())
+        .skip(float32())
+        .label("hourly rate".into());
 
     prefix
         .skip(emp_id)
@@ -849,7 +880,10 @@ mod test_chg_hourly {
 fn chg_salaried() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let salaried = keyword("Salaried").skip(spaces()).skip(float32());
+    let salaried = keyword("Salaried")
+        .skip(spaces())
+        .skip(float32())
+        .label("monthly salary".into());
 
     prefix.skip(emp_id).join(salaried).map(|(id, salary)| {
         debug!(
@@ -887,8 +921,9 @@ fn chg_commissioned() -> impl Parser<Item = Tx> {
     let salary = keyword("Commissioned")
         .skip(spaces())
         .skip(float32())
+        .label("salary".into())
         .with(spaces());
-    let commission_rate = float32();
+    let commission_rate = float32().label("commission rate".into());
 
     prefix
         .skip(emp_id)
@@ -932,7 +967,7 @@ mod test_chg_commissioned {
 fn chg_hold() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let hold = keyword("Hold");
+    let hold = keyword("Hold").label("payment method".into());
 
     prefix.skip(emp_id).with(hold).map(|id| {
         debug!("parsed ChangeEmployeeHold: id={}", id);
@@ -956,10 +991,12 @@ fn chg_direct() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
     let bank = keyword("Direct")
+        .label("payment method".into())
         .skip(spaces())
         .skip(string())
+        .label("bank".into())
         .with(spaces());
-    let account = string();
+    let account = string().label("account".into());
 
     prefix
         .skip(emp_id)
@@ -999,7 +1036,11 @@ mod test_chg_direct {
 fn chg_mail() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let address = keyword("Mail").skip(spaces()).skip(string());
+    let address = keyword("Mail")
+        .label("payment method".into())
+        .skip(spaces())
+        .skip(string())
+        .label("mail address".into());
 
     prefix.skip(emp_id).join(address).map(|(id, address)| {
         debug!("parsed ChangeEmployeeMail: id={}, address={}", id, address);
@@ -1031,8 +1072,14 @@ mod test_chg_mail {
 fn chg_member() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let member_id = keyword("Member").skip(spaces()).skip(member_id());
-    let dues = keyword("Dues").skip(spaces()).skip(float32());
+    let member_id = keyword("Member")
+        .label("affiliation".into())
+        .skip(spaces())
+        .skip(member_id());
+    let dues = keyword("Dues")
+        .skip(spaces())
+        .skip(float32())
+        .label("dues".into());
 
     prefix
         .skip(emp_id)
@@ -1076,7 +1123,7 @@ mod test_chg_member {
 fn chg_no_member() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let no_member = keyword("NoMember");
+    let no_member = keyword("NoMember").label("affiliation".into());
 
     prefix.skip(emp_id).with(no_member).map(|emp_id| {
         debug!("parsed ChangeEmployeeNoMember: emp_id={}", emp_id);
@@ -1134,7 +1181,10 @@ fn verify_gross_pay() -> impl Parser<Item = Tx> {
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
     let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
-    let gross_pay = keyword("GrossPay").skip(spaces()).skip(float32());
+    let gross_pay = keyword("GrossPay")
+        .skip(spaces())
+        .skip(float32())
+        .label("gross pay".into());
 
     verify
         .skip(paycheck)
@@ -1181,7 +1231,10 @@ fn verify_deductions() -> impl Parser<Item = Tx> {
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
     let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
-    let deductions = keyword("Deductions").skip(spaces()).skip(float32());
+    let deductions = keyword("Deductions")
+        .skip(spaces())
+        .skip(float32())
+        .label("deductions".into());
 
     verify
         .skip(paycheck)
@@ -1228,7 +1281,10 @@ fn verify_net_pay() -> impl Parser<Item = Tx> {
     let paycheck = keyword("Paycheck").skip(spaces());
     let pay_date = date().with(spaces());
     let emp_id = keyword("EmpId").skip(spaces()).skip(employee_id());
-    let net_pay = keyword("NetPay").skip(spaces()).skip(float32());
+    let net_pay = keyword("NetPay")
+        .skip(spaces())
+        .skip(float32())
+        .label("net pay".into());
 
     verify
         .skip(paycheck)
