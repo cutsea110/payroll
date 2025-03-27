@@ -17,7 +17,7 @@ impl From<parsec_rs::ParseError> for TextParserError {
     fn from(e: parsec_rs::ParseError) -> Self {
         Self {
             position: e.position(),
-            message: e.expected().get(0).cloned().unwrap_or_default(),
+            message: e.expected().join(" or "),
             found: e.found().cloned(),
         }
     }
@@ -424,18 +424,16 @@ fn add_hourly_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let hourly_rate = char('H')
-        .label("payment classification".into())
-        .skip(spaces())
-        .skip(float32())
-        .label("hourly rate".into());
+    let hourly = char('H').skip(spaces()).label("`H'".into());
+    let hourly_rate = float32().label("hourly rate".into());
 
     prefix
         .skip(emp_id)
         .join(name)
         .join(address)
+        .join(hourly)
         .join(hourly_rate)
-        .map(|(((id, name), address), hourly_rate)| {
+        .map(|((((id, name), address), _), hourly_rate)| {
             debug!(
                 "parsed AddHourlyEmployee: id={}, name={}, address={}, hourly_rate={}",
                 id, name, address, hourly_rate
@@ -477,18 +475,16 @@ fn add_salary_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let monthly_rate = char('S')
-        .label("payment classification".into())
-        .skip(spaces())
-        .skip(float32())
-        .label("monthly salary".into());
+    let salaried = char('S').skip(spaces()).label("`S'".into());
+    let monthly_rate = float32().with(spaces()).label("monthly salary".into());
 
     prefix
         .skip(emp_id)
         .join(name)
         .join(address)
+        .join(salaried)
         .join(monthly_rate)
-        .map(|(((id, name), address), salary)| {
+        .map(|((((id, name), address), _), salary)| {
             debug!(
                 "parsed AddSalariedEmployee: id={}, name={}, address={}, salary={}",
                 id, name, address, salary
@@ -530,21 +526,18 @@ fn add_commissioned_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let salary = char('C')
-        .label("payment classification".into())
-        .skip(spaces())
-        .skip(float32())
-        .label("salary".into())
-        .with(spaces());
+    let salaried = char('C').skip(spaces()).label("`C'".into());
+    let salary = float32().label("salary".into()).with(spaces());
     let commission_rate = float32().label("commission rate".into());
 
     prefix
         .skip(emp_id)
         .join(name)
         .join(address)
+        .join(salaried)
         .join(salary)
         .join(commission_rate)
-        .map(|((((id, name), address), salary), commission_rate)| {
+        .map(|(((((id, name), address), _), salary), commission_rate)| {
             debug!(
 		    "parsed AddCommissionedEmployee: id={}, name={}, address={}, salary={}, commission_rate={}",
 		    id,
@@ -967,7 +960,7 @@ mod test_chg_commissioned {
 fn chg_hold() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
-    let hold = keyword("Hold").label("payment method".into());
+    let hold = keyword("Hold").label("`Hold'".into());
 
     prefix.skip(emp_id).with(hold).map(|id| {
         debug!("parsed ChangeEmployeeHold: id={}", id);
@@ -991,7 +984,7 @@ fn chg_direct() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
     let bank = keyword("Direct")
-        .label("payment method".into())
+        .label("`Direct'".into())
         .skip(spaces())
         .skip(string())
         .label("bank".into())
@@ -1037,7 +1030,7 @@ fn chg_mail() -> impl Parser<Item = Tx> {
     let prefix = keyword("ChgEmp").skip(spaces());
     let emp_id = employee_id();
     let address = keyword("Mail")
-        .label("payment method".into())
+        .label("`Mail'".into())
         .skip(spaces())
         .skip(string())
         .label("mail address".into());
