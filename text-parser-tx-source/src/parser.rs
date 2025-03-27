@@ -30,10 +30,10 @@ impl From<parsec_rs::ParseError> for TextParserError {
 
 pub fn read_tx(line: &str) -> Result<Tx, TextParserError> {
     trace!("read_tx called");
-    match transaction().parse(line) {
-        Ok((tx, _)) => Ok(tx),
-        Err(e) => Err(e.into()),
-    }
+    transaction()
+        .parse(line)
+        .map(|(tx, _)| tx)
+        .map_err(Into::into)
 }
 
 fn transaction() -> impl Parser<Item = Tx> {

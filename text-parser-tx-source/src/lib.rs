@@ -137,9 +137,10 @@ where
             let mut buf = String::new();
             let line = self.reader.read_line(&mut buf);
             debug!("Got line: {:?}", buf);
+
             match line {
                 Ok(0) => {
-                    debug!("Got EOF");
+                    debug!("Got EOS");
                     break;
                 }
                 Ok(_) => match parser::read_tx(&buf) {
@@ -150,10 +151,11 @@ where
                     }
                     Err(e) => {
                         warn!("Skip line: {}", e);
-                        let indent_len = e.position;
-                        let indent = " ".repeat(indent_len);
-                        let message = e.message.clone() + " expected";
-                        eprintln!("Error parsing line: \n{}{}^ {}", buf, indent, message);
+                        let indent = " ".repeat(e.position);
+                        eprintln!(
+                            "Error parsing line: \n{}{}^ {} expected",
+                            buf, indent, e.message
+                        );
                         continue;
                     }
                 },
