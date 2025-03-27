@@ -73,7 +73,7 @@ graph TD
 See [Dockerhub cutsea110/payroll-app](https://hub.docker.com/repository/docker/cutsea110/payroll-app/general).
 
 ```bash
-$ docker run -v ./:/work -it --rm cutsea110/payroll-app:0.1.0 payroll-app -h
+$ docker run -v ./:/work -it --rm cutsea110/payroll-app:0.1.1 payroll-app -h
 Usage: payroll-app [options] FILE
 
 Options:
@@ -89,24 +89,24 @@ Options:
 
 ### How to build Docker image
 
-You should specify the version 0.1.1, because the latest version is 0.1.0.
+You should specify the version 0.1.2, because the latest version is 0.1.1.
 
 ```bash
-$ docker buildx build --load -t cutsea110/payroll-app:0.1.1 .
+$ docker buildx build --load -t cutsea110/payroll-app:0.1.2 .
 ```
 ### How to run on Docker image
 
 I suppose that you have some test programs for payroll-app in `${PWD}/script` directory.
 
 ```bash
-$ docker run -v ${PWD}/script:/work -it --rm cutsea110/payroll-app:0.1.1 payroll-app /work/test1.scr
+$ docker run -v ${PWD}/script:/work -it --rm cutsea110/payroll-app:0.1.2 payroll-app /work/test1.scr
 ```
 
 ### Share Dockerhub
 
 ```bash
 $ docker login
-$ docker push cutsea110/payroll-app:0.1.1
+$ docker push cutsea110/payroll-app:0.1.2
 ```
 
 ### Update This README
