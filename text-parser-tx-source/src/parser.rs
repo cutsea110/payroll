@@ -28,6 +28,30 @@ impl From<parsec_rs::ParseError> for TextParserError {
     }
 }
 
+pub fn ignoreable(line: &str) -> bool {
+    let empty = pred(|c| c.is_whitespace() && c != '\n').many0();
+    empty
+        .with(pred(|c| c == '#' || c == '\n'))
+        .parse(line)
+        .is_ok()
+}
+
+#[cfg(test)]
+mod test_ignoreable {
+    use super::*;
+
+    #[test]
+    fn test_ignoreable() {
+        assert_eq!(ignoreable("\n"), true);
+        assert_eq!(ignoreable("# comment\n"), true);
+        assert_eq!(ignoreable("    \n"), true);
+
+        assert_eq!(ignoreable(""), false, "the case EOS");
+        assert_eq!(ignoreable("test"), false);
+        assert_eq!(ignoreable("  a  \n"), false);
+    }
+}
+
 pub fn read_tx(line: &str) -> Result<Tx, TextParserError> {
     trace!("read_tx called");
     transaction()

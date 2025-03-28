@@ -138,6 +138,13 @@ where
             let line = self.reader.read_line(&mut buf);
             debug!("Got line: {:?}", buf);
 
+            // The case of empty line or comment line.
+            // In this case, parser::read_tx will return an error, but we'd like to ignore it.
+            if parser::ignoreable(&buf) {
+                debug!("Ignoring line: {:?}", buf);
+                continue;
+            }
+
             match line {
                 Ok(0) => {
                     debug!("Got EOS");
