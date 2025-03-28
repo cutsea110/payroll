@@ -37,9 +37,9 @@ fn make_tx_runner(conf: &app_config::AppConfig) -> Box<dyn Runner> {
         runner_impl::echoback_runner()
     };
 
-    if conf.transaction_fail_safely() {
-        debug!("build_tx_app: runner with failsafe");
-        tx_runner = runner_impl::with_failsafe(tx_runner);
+    if conf.transaction_failopen() {
+        debug!("build_tx_app: runner with failopen");
+        tx_runner = runner_impl::with_failopen(tx_runner);
     }
 
     if conf.should_enable_chronograph() {

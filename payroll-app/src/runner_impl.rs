@@ -19,8 +19,8 @@ pub fn with_chronograph(runner: Box<dyn Runner>) -> Box<dyn Runner> {
     Box::new(runner_chronograph::TxRunnerChronograph::new(runner))
 }
 
-mod runner_failsafe;
-pub fn with_failsafe(runner: Box<dyn Runner>) -> Box<dyn Runner> {
-    trace!("with_fail_safe called");
-    Box::new(runner_failsafe::TxRunnerFailSafe::new(runner))
+mod runner_failopen;
+pub fn with_failopen(runner: Box<dyn Runner>) -> Box<dyn Runner> {
+    trace!("with_failopen called");
+    Box::new(runner_failopen::TxRunnerFailOpen::new(runner))
 }

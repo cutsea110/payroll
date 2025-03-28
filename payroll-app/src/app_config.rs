@@ -6,7 +6,7 @@ pub struct AppConfig {
     help: bool,
     quiet: bool,
     // for each transaction
-    transaction_fail_safely: bool,
+    transaction_failopen: bool,
     // for the whole application
     soft_landing: bool,
     chronograph: bool,
@@ -20,7 +20,7 @@ impl fmt::Debug for AppConfig {
         f.debug_struct("AppConfig")
             .field("help", &self.help)
             .field("quiet", &self.quiet)
-            .field("transaction_fail_safely", &self.transaction_fail_safely)
+            .field("transaction_failopen", &self.transaction_failopen)
             .field("soft_landing", &self.soft_landing)
             .field("chronograph", &self.chronograph)
             .field("repl", &self.repl)
@@ -36,7 +36,7 @@ impl AppConfig {
         let mut opts = Options::new();
         opts.optflag("h", "help", "Print this help menu");
         opts.optflag("q", "quiet", "Don't output unnecessary information");
-        opts.optflag("f", "fail-safe-tx", "Transaction fail safely");
+        opts.optflag("f", "failopen-tx", "Transaction failopen");
         opts.optflag("s", "soft-landing", "Soft landing application");
         opts.optflag(
             "c",
@@ -56,7 +56,7 @@ impl AppConfig {
         Ok(AppConfig {
             help: matches.opt_present("h"),
             quiet: matches.opt_present("q"),
-            transaction_fail_safely: matches.opt_present("f"),
+            transaction_failopen: matches.opt_present("f"),
             soft_landing: matches.opt_present("s"),
             chronograph: matches.opt_present("c"),
             repl: matches.opt_present("r"),
@@ -73,12 +73,9 @@ impl AppConfig {
         trace!("should_run_quietly called: {}", self.quiet);
         self.quiet
     }
-    pub fn transaction_fail_safely(&self) -> bool {
-        trace!(
-            "transaction_fail_safely called: {}",
-            self.transaction_fail_safely
-        );
-        self.transaction_fail_safely
+    pub fn transaction_failopen(&self) -> bool {
+        trace!("transaction_failopen called: {}", self.transaction_failopen);
+        self.transaction_failopen
     }
     pub fn should_soft_land(&self) -> bool {
         trace!("should_soft_land called: {}", self.soft_landing);
