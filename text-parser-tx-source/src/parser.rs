@@ -42,13 +42,13 @@ mod test_ignoreable {
 
     #[test]
     fn test_ignoreable() {
-        assert_eq!(ignoreable("\n"), true);
-        assert_eq!(ignoreable("# comment\n"), true);
-        assert_eq!(ignoreable("    \n"), true);
+        assert_eq!(ignoreable("\n"), true, "empty line");
+        assert_eq!(ignoreable("# comment\n"), true, "line comment only");
+        assert_eq!(ignoreable("    \n"), true, "whitespace only");
 
         assert_eq!(ignoreable(""), false, "the case EOS");
-        assert_eq!(ignoreable("test"), false);
-        assert_eq!(ignoreable("  a  \n"), false);
+        assert_eq!(ignoreable("test"), false, "invalid command");
+        assert_eq!(ignoreable(" a\n"), false, "invalid command with whitespace");
     }
 }
 
@@ -453,16 +453,16 @@ fn add_hourly_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let hourly = char('H').skip(spaces()).label("`H'".into());
+    let key = char('H').skip(spaces()).label("`H'".into());
     let hourly_rate = float32().label("hourly rate".into());
 
     prefix
         .skip(emp_id)
         .join(name)
         .join(address)
-        .join(hourly)
+        .with(key)
         .join(hourly_rate)
-        .map(|((((id, name), address), _), hourly_rate)| {
+        .map(|(((id, name), address), hourly_rate)| {
             debug!(
                 "parsed AddHourlyEmployee: id={}, name={}, address={}, hourly_rate={}",
                 id, name, address, hourly_rate
@@ -504,16 +504,16 @@ fn add_salary_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let salaried = char('S').skip(spaces()).label("`S'".into());
-    let monthly_rate = float32().with(spaces()).label("monthly salary".into());
+    let key = char('S').skip(spaces()).label("`S'".into());
+    let salary = float32().with(spaces()).label("monthly salary".into());
 
     prefix
         .skip(emp_id)
         .join(name)
         .join(address)
-        .join(salaried)
-        .join(monthly_rate)
-        .map(|((((id, name), address), _), salary)| {
+        .with(key)
+        .join(salary)
+        .map(|(((id, name), address), salary)| {
             debug!(
                 "parsed AddSalariedEmployee: id={}, name={}, address={}, salary={}",
                 id, name, address, salary
@@ -555,7 +555,7 @@ fn add_commissioned_emp() -> impl Parser<Item = Tx> {
     let emp_id = employee_id();
     let name = string().with(spaces()).label("name".into());
     let address = string().with(spaces()).label("address".into());
-    let salaried = char('C').skip(spaces()).label("`C'".into());
+    let key = char('C').skip(spaces()).label("`C'".into());
     let salary = float32().with(spaces()).label("salary".into());
     let commission_rate = float32().label("commission rate".into());
 
@@ -563,10 +563,10 @@ fn add_commissioned_emp() -> impl Parser<Item = Tx> {
         .skip(emp_id)
         .join(name)
         .join(address)
-        .join(salaried)
+        .with(key)
         .join(salary)
         .join(commission_rate)
-        .map(|(((((id, name), address), _), salary), commission_rate)| {
+        .map(|((((id, name), address), salary), commission_rate)| {
             debug!(
 		    "parsed AddCommissionedEmployee: id={}, name={}, address={}, salary={}, commission_rate={}",
 		    id,
