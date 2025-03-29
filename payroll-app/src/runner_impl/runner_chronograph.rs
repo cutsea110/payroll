@@ -15,9 +15,9 @@ impl Runner for TxRunnerChronograph {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
         trace!("TxRunnerChronograph::run called");
         let start = Instant::now();
-        let res = self.runner.run(tx)?;
+        let res = self.runner.run(tx);
         let elapsed = start.elapsed();
         println!("TxRunnerChronograph: elapsed={:?}", elapsed);
-        Ok(res)
+        res
     }
 }

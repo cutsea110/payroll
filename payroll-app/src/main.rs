@@ -16,11 +16,11 @@ fn build_tx_app(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn Application
         Box::new(TxApp::new(make_tx_source(db, &conf), make_tx_runner(&conf)));
 
     if conf.should_soft_land() {
-        debug!("build_tx_app: using AppSoftLanding");
+        debug!("build_tx_app: should soft landing, using with_soft_landing");
         tx_app = app_impl::with_soft_landing(tx_app);
     }
     if conf.should_enable_chronograph() {
-        debug!("build_tx_app: using AppChronograph");
+        debug!("build_tx_app: should enable chronograph, using with_chronograph");
         tx_app = app_impl::with_chronograph(tx_app);
     }
 
@@ -30,20 +30,20 @@ fn build_tx_app(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn Application
 fn make_tx_runner(conf: &app_config::AppConfig) -> Box<dyn Runner> {
     trace!("make_tx_runner called");
     let mut tx_runner = if conf.should_run_quietly() {
-        debug!("make_tx_runner: using silent runner");
+        debug!("make_tx_runner: should run quietly, using silent_runner");
         runner_impl::silent_runner()
     } else {
-        debug!("make_tx_runner: using echoback runner");
+        debug!("make_tx_runner: shouldn't run quietly, using echoback_runner");
         runner_impl::echoback_runner()
     };
 
     if conf.transaction_failopen() {
-        debug!("build_tx_app: runner with failopen");
+        debug!("make_tx_runner: transaction failopen, using with_failopen");
         tx_runner = runner_impl::with_failopen(tx_runner);
     }
 
     if conf.should_enable_chronograph() {
-        debug!("build_tx_app: runner with chronograph");
+        debug!("make_tx_runner: should enable chronograph, using with_chronograph");
         tx_runner = runner_impl::with_chronograph(tx_runner);
     }
 
@@ -56,14 +56,14 @@ fn make_tx_source(db: HashDB, conf: &app_config::AppConfig) -> Box<dyn TxSource>
     let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
 
     if let Some(file) = conf.script_file() {
-        debug!("make_tx_source: file={}", file);
+        debug!("make_tx_source: with file={}, using file_reader", file);
         let mut reader = reader_impl::file_reader(file);
         if !conf.should_run_quietly() {
-            debug!("make_tx_source: using EchoReader");
+            debug!("make_tx_source: shouldn't run quietly, using echoback_reader");
             reader = reader_impl::with_echo(reader);
         }
         if conf.should_dive_into_repl() {
-            debug!("make_tx_source: dive into REPL mode after file loaded");
+            debug!("make_tx_source: should dive into REPL, using interact_reader");
             reader = reader_impl::join(reader, reader_impl::interact_reader());
         }
         return Box::new(TextParserTxSource::new(tx_factory, reader));
@@ -108,24 +108,24 @@ fn main() -> Result<(), anyhow::Error> {
     let app_conf = app_config::AppConfig::new()?;
     debug!("main: app_conf={:#?}", app_conf);
     if app_conf.should_show_help() {
-        debug!("main: help flag is set");
+        debug!("main: should show help");
         print_usage(&app_conf);
         return Ok(());
     }
     if !app_conf.should_run_quietly() {
-        debug!("main: header");
+        debug!("main: shouldn't run quietly");
         print_header(&app_conf);
     }
 
     let db = HashDB::new();
 
-    trace!("TxApp running");
+    trace!("main: TxApp running");
     let mut tx_app = build_tx_app(db.clone(), &app_conf);
     tx_app.run()?;
-    trace!("TxApp finished");
+    trace!("main: TxApp finished");
 
     if !app_conf.should_run_quietly() {
-        debug!("main: printing db at last");
+        debug!("main: shouldn't run quietly");
         // this is just for developer
         println!("{:#?}", db);
     }
