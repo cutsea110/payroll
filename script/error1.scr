@@ -1,0 +1,4 @@
+# verify gross_pay
+DelEmp 1429 # expect error occurring
+# don't reach here
+AddEmp 1429 "Robert Martin" "Home" S 3215.88
