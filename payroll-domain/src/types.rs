@@ -12,6 +12,11 @@ impl From<u32> for EmployeeId {
         Self(id)
     }
 }
+impl From<EmployeeId> for u32 {
+    fn from(id: EmployeeId) -> Self {
+        id.0
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MemberId(u32);
