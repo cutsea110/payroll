@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::any::Any;
@@ -34,9 +34,8 @@ impl PaymentMethod for HoldMethod {
             deductions: pc.deductions(),
             net_pay: pc.net_pay(),
         };
-        println!(
-            "{}",
-            serde_json::to_string(&hold_pay).expect("serialize HoldPay as JSON")
-        );
+        let json = serde_json::to_string(&hold_pay).expect("serialize HoldPay as JSON");
+        debug!("HoldMethod::pay: {}", json);
+        println!("{}", json);
     }
 }

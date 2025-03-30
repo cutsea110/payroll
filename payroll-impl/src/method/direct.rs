@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::any::Any;
@@ -51,9 +51,8 @@ impl PaymentMethod for DirectMethod {
             deductions: pc.deductions(),
             net_pay: pc.net_pay(),
         };
-        println!(
-            "{}",
-            serde_json::to_string(&direct_pay).expect("serialize DirectPay as JSON")
-        );
+        let json = serde_json::to_string(&direct_pay).expect("serialize DirectPay as JSON");
+        debug!("DirectMethod::pay: {}", json);
+        println!("{}", json);
     }
 }

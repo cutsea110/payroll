@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::any::Any;
@@ -47,9 +47,8 @@ impl PaymentMethod for MailMethod {
             deductions: pc.deductions(),
             net_pay: pc.net_pay(),
         };
-        println!(
-            "{}",
-            serde_json::to_string(&mail_pay).expect("serialize MailPay as JSON")
-        );
+        let json = serde_json::to_string(&mail_pay).expect("serialize MailPay as JSON");
+        debug!("MailMethod::pay: {}", json);
+        println!("{}", json);
     }
 }
