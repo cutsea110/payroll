@@ -1,5 +1,5 @@
 [workspace]
-members = [ "abstract-tx", "app", "dao", "hs-db", "payroll-app" , "payroll-domain", "payroll-factory", "payroll-impl", "text-parser-tx-source", "tx-app", "tx-factory", "tx-impl"]
+members = [ "abstract-tx", "app", "dao", "hs-db", "payroll-app" , "payroll-domain", "payroll-factory", "payroll-impl", "payroll-test", "text-parser-tx-source", "tx-app", "tx-factory", "tx-impl"]
 resolver = "2"
 
 [workspace.package]
