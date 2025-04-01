@@ -7,3 +7,8 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
+env_logger.workspace = true
+getopts.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
