@@ -1,4 +1,4 @@
 # verify gross_pay
 AddEmp 1429 "Robert Martin" "Home" S 3215.88
 Payday 2025-01-31
-Verify Paycheck 2025-01-31 EmpId 1429 GrossPay 3215.88
+Verify Paycheck EmpId 1429 GrossPay 3215.88
