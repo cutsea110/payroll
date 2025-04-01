@@ -96,7 +96,7 @@ impl Employee {
         pc.set_deductions(deductions);
         pc.set_net_pay(net_pay);
         debug!("updated paycheck: {:?}", pc);
-        self.method.borrow().pay(self.id, &self.name, pc);
+        self.method.borrow().pay(self.id, pc);
     }
 }
 
@@ -162,7 +162,7 @@ pub trait PaymentMethod: Debug + DynClone {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     // TODO: return type
-    fn pay(&self, emp_id: EmployeeId, name: &str, pc: &Paycheck);
+    fn pay(&self, emp_id: EmployeeId, pc: &Paycheck);
 }
 dyn_clone::clone_trait_object!(PaymentMethod);
 

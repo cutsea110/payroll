@@ -10,7 +10,6 @@ use std::{
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Paycheck {
     emp_id: u32,
-    name: String,
     gross_pay: f32,
     deductions: f32,
     net_pay: f32,

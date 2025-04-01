@@ -8,7 +8,6 @@ use payroll_domain::{EmployeeId, Paycheck, PaymentMethod};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MailPay {
     emp_id: u32,
-    name: String,
 
     address: String,
 
@@ -35,11 +34,10 @@ impl PaymentMethod for MailMethod {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
-    fn pay(&self, emp_id: EmployeeId, name: &str, pc: &Paycheck) {
+    fn pay(&self, emp_id: EmployeeId, pc: &Paycheck) {
         trace!("MailMethod::pay called");
         let mail_pay = MailPay {
             emp_id: emp_id.into(),
-            name: name.to_string(),
 
             address: self.address.clone(),
 

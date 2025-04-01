@@ -8,7 +8,6 @@ use payroll_domain::{EmployeeId, Paycheck, PaymentMethod};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HoldPay {
     emp_id: u32,
-    name: String,
 
     gross_pay: f32,
     deductions: f32,
@@ -24,11 +23,10 @@ impl PaymentMethod for HoldMethod {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
-    fn pay(&self, emp_id: EmployeeId, name: &str, pc: &Paycheck) {
+    fn pay(&self, emp_id: EmployeeId, pc: &Paycheck) {
         trace!("HoldMethod::pay called");
         let hold_pay = HoldPay {
             emp_id: emp_id.into(),
-            name: name.to_string(),
 
             gross_pay: pc.gross_pay(),
             deductions: pc.deductions(),
