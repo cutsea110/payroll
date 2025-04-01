@@ -102,27 +102,6 @@ where
                 self.tx_factory.mk_change_employee_no_member_tx(emp_id)
             }
             Tx::Payday { date } => self.tx_factory.mk_payday_tx(date),
-            Tx::VerifyGrossPay {
-                emp_id,
-                pay_date,
-                gross_pay,
-            } => self
-                .tx_factory
-                .mk_verify_gross_pay_tx(emp_id, pay_date, gross_pay),
-            Tx::VerifyDeductions {
-                emp_id,
-                pay_date,
-                deductions,
-            } => self
-                .tx_factory
-                .mk_verify_deductions_tx(emp_id, pay_date, deductions),
-            Tx::VerifyNetPay {
-                emp_id,
-                pay_date,
-                net_pay,
-            } => self
-                .tx_factory
-                .mk_verify_net_pay_tx(emp_id, pay_date, net_pay),
         }
     }
 }

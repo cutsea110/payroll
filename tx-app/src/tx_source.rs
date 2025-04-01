@@ -86,23 +86,6 @@ pub enum Tx {
     Payday {
         date: NaiveDate,
     },
-
-    // for testing
-    VerifyGrossPay {
-        emp_id: EmployeeId,
-        pay_date: NaiveDate,
-        gross_pay: f32,
-    },
-    VerifyDeductions {
-        emp_id: EmployeeId,
-        pay_date: NaiveDate,
-        deductions: f32,
-    },
-    VerifyNetPay {
-        emp_id: EmployeeId,
-        pay_date: NaiveDate,
-        net_pay: f32,
-    },
 }
 
 pub trait TxSource {

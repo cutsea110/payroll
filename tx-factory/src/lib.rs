@@ -79,24 +79,4 @@ pub trait TxFactory {
     ) -> Box<dyn Transaction>;
     fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
     fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction>;
-
-    // for testing
-    fn mk_verify_gross_pay_tx(
-        &self,
-        id: EmployeeId,
-        date: NaiveDate,
-        amount: f32,
-    ) -> Box<dyn Transaction>;
-    fn mk_verify_deductions_tx(
-        &self,
-        id: EmployeeId,
-        date: NaiveDate,
-        amount: f32,
-    ) -> Box<dyn Transaction>;
-    fn mk_verify_net_pay_tx(
-        &self,
-        id: EmployeeId,
-        date: NaiveDate,
-        amount: f32,
-    ) -> Box<dyn Transaction>;
 }

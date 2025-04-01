@@ -17,10 +17,6 @@ mod change_salaried;
 mod delete_employee;
 mod payday;
 mod tx_factory_impl;
-// for testing
-mod verify_deductions;
-mod verify_gross_pay;
-mod verify_net_pay;
 
 pub use add_commissioned_employee::*;
 pub use add_hourly_employee::*;
@@ -41,7 +37,3 @@ pub use change_salaried::*;
 pub use delete_employee::*;
 pub use payday::*;
 pub use tx_factory_impl::*;
-// for testing
-pub use verify_deductions::*;
-pub use verify_gross_pay::*;
-pub use verify_net_pay::*;
