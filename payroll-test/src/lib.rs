@@ -23,4 +23,9 @@ impl Verify {
         debug!("parse: line={}", line);
         parser::read_verify(line)
     }
+    pub fn is_verify(line: &str) -> bool {
+        trace!("is_verify called");
+        debug!("is_verify: line={}", line);
+        parser::is_verify(line)
+    }
 }

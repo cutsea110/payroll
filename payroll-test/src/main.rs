@@ -28,7 +28,7 @@ fn main() {
     let text = fs::read_to_string(script_file_path).expect("Failed to read script file");
 
     for line in text.lines() {
-        if line.starts_with("Verify") {
+        if Verify::is_verify(line) {
             // Payday の標準出力をキャプチャ
             let mut output_json = String::new();
             reader

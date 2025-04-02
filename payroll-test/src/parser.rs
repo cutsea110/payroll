@@ -11,6 +11,11 @@ pub fn read_verify(line: &str) -> Result<Verify, &str> {
         .map_err(|_| "parse error")
 }
 
+pub fn is_verify(line: &str) -> bool {
+    trace!("is_verify called");
+    spaces().skip(keyword("Verify")).parse(line).is_ok()
+}
+
 fn employee_id() -> impl Parser<Item = u32> {
     uint32()
         .map(Into::into)
