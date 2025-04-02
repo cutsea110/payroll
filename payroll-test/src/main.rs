@@ -53,13 +53,13 @@ fn main() {
                 }
             }
         } else {
-            writeln!(stdin, "{}", line).expect("Failed to write to stdin");
+            writeln!(stdin, "{}", line).expect("write to stdin");
             let mut buff = String::new();
             reader.read_line(&mut buff).expect("read echo back");
-            stdin.flush().expect("Failed to flush stdin");
+            stdin.flush().expect("flush stdin");
         }
     }
 
     // 終了処理
-    let _ = child.wait().expect("Failed to wait on child process");
+    let _ = child.wait().expect("wait on child process");
 }
