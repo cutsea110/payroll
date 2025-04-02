@@ -51,9 +51,8 @@ fn main() {
 
     let script_file_path = env::args().nth(1).expect("script file path is required");
     let text = fs::read_to_string(script_file_path).expect("Failed to read script file");
-    let lines: Vec<String> = text.lines().map(Into::into).collect();
 
-    for line in lines {
+    for line in text.lines() {
         if line.starts_with("Verify") {
             // Payday の標準出力をキャプチャ
             let mut output_json = String::new();
