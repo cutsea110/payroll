@@ -11,10 +11,14 @@ use test_runner::{Paycheck, Verify};
 const APP_PATH: &str = "./target/debug/payroll-app";
 
 fn main() {
-    env_logger::init();
+    env_logger::Builder::from_default_env()
+        .format_source_path(true)
+        .format_line_number(true)
+        .init();
 
     info!("main starting");
 
+    // run up payroll-app
     let mut child = Command::new(APP_PATH)
         .arg("-qfs")
         .stdin(Stdio::piped())
@@ -23,18 +27,21 @@ fn main() {
         .expect("start app");
     trace!("app started: PID={}", child.id());
 
+    // pipe of in/out to payroll-app
     let stdin = child.stdin.as_mut().expect("open stdin");
     trace!("stdin opened");
     let stdout = child.stdout.take().expect("open stdout");
     trace!("stdout opened");
     let mut reader = BufReader::new(stdout);
 
+    // open test script
     let script_file_path = env::args().nth(1).expect("script file path is required");
     trace!("script file path: {}", script_file_path);
     let text = fs::read_to_string(script_file_path).expect("read script");
     trace!("script:\n{}", text);
 
-    for line in text.lines() {
+    // do commands
+    for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
         if Verify::is_verify(line) {
             // Payday の標準出力をキャプチャ
             let mut output_json = String::new();
@@ -44,7 +51,7 @@ fn main() {
             debug!("test <- app: {}", output_json);
 
             // JSON の検証
-            let expect = match Verify::parse(&line) {
+            let expect = match Verify::parse(i, &line) {
                 Ok(v) => v,
                 Err(e) => {
                     eprintln!("{}", e);

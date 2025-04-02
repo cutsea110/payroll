@@ -3,14 +3,15 @@ use parsec_rs::{float32, keyword, spaces, uint32, Parser};
 
 use crate::Verify;
 
-pub fn read_verify(line: &str) -> Result<Verify, String> {
+pub fn read_verify(line_no: usize, line: &str) -> Result<Verify, String> {
     trace!("read_verify called");
     verify().parse(line).map(|(v, _)| v).map_err(|e| {
         format!(
-            "{}\n{}^ {}",
+            "Parse error at L{}:\n{}\n{}^ {}",
+            line_no,
             line,
             " ".repeat(e.position()),
-            e.expected().join(" or ")
+            e.expected().join(" or ") + " expected"
         )
     })
 }
