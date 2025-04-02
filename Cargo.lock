@@ -375,6 +375,7 @@ dependencies = [
  "env_logger",
  "getopts",
  "log",
+ "parsec-rs",
  "serde",
  "serde_json",
 ]

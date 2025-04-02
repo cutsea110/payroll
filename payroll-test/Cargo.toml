@@ -12,3 +12,13 @@ getopts.workspace = true
 log.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+parsec-rs.workspace = true
+
+[lib]
+name = "test_runner"
+path = "src/lib.rs"
+
+[[bin]]
+name = "payroll-test"
+path = "src/main.rs"

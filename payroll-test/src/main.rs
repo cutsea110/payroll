@@ -1,5 +1,4 @@
-use log::{debug, info, trace};
-use serde::Deserialize;
+use log::info;
 use serde_json;
 use std::{
     env, fs,
@@ -7,31 +6,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-struct Paycheck {
-    emp_id: u32,
-    gross_pay: f32,
-    deductions: f32,
-    net_pay: f32,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Verify {
-    GrossPay { emp_id: u32, gross_pay: f32 },
-    Deductions { emp_id: u32, deductions: f32 },
-    NetPay { emp_id: u32, net_pay: f32 },
-}
-impl Verify {
-    fn parse(line: &str) -> Result<Self, ()> {
-        trace!("parse called");
-        debug!("parse: line={}", line);
-
-        Ok(Verify::GrossPay {
-            emp_id: 1429,
-            gross_pay: 3215.88,
-        })
-    }
-}
+use test_runner::{Paycheck, Verify};
 
 fn main() {
     env_logger::init();
@@ -68,7 +43,14 @@ fn main() {
                     assert_eq!(actual.emp_id, emp_id);
                     assert_eq!(actual.gross_pay, gross_pay);
                 }
-                _ => todo!(),
+                Verify::Deductions { emp_id, deductions } => {
+                    assert_eq!(actual.emp_id, emp_id);
+                    assert_eq!(actual.deductions, deductions);
+                }
+                Verify::NetPay { emp_id, net_pay } => {
+                    assert_eq!(actual.emp_id, emp_id);
+                    assert_eq!(actual.net_pay, net_pay);
+                }
             }
         } else {
             writeln!(stdin, "{}", line).expect("Failed to write to stdin");
