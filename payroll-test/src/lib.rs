@@ -18,7 +18,7 @@ pub enum Verify {
     NetPay { emp_id: u32, net_pay: f32 },
 }
 impl Verify {
-    pub fn parse(line: &str) -> Result<Self, &str> {
+    pub fn parse(line: &str) -> Result<Self, String> {
         trace!("parse called");
         debug!("parse: line={}", line);
         parser::read_verify(line)

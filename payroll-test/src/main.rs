@@ -36,7 +36,13 @@ fn main() {
                 .expect("read from payroll-app stdout");
 
             // JSON の検証
-            let expect = Verify::parse(&line).expect("convert verify");
+            let expect = match Verify::parse(&line) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    break;
+                }
+            };
             let actual: Paycheck = serde_json::from_str(&output_json).expect("parse JSON");
             match expect {
                 Verify::GrossPay { emp_id, gross_pay } => {
@@ -59,7 +65,6 @@ fn main() {
             stdin.flush().expect("flush stdin");
         }
     }
-
     // 終了処理
     let _ = child.wait().expect("wait on child process");
 }
