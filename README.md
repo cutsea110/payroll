@@ -96,10 +96,10 @@ $ docker buildx build --load -t cutsea110/payroll-app:0.1.3 .
 ```
 ### How to run on Docker image
 
-I suppose that you have some test programs for payroll-app in `${PWD}/script` directory.
+I suppose that you have some test programs for payroll-app in `${PWD}/scenario` directory.
 
 ```bash
-$ docker run -v ${PWD}/script:/work -it --rm cutsea110/payroll-app:0.1.3 payroll-app /work/test1.scr
+$ docker run -v ${PWD}/scenario:/work -it --rm cutsea110/payroll-app:0.1.3 payroll-app /work/test1.scr
 ```
 
 ### Share Dockerhub
