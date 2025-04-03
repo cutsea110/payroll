@@ -67,7 +67,7 @@ impl TestRunner {
             }
         }
     }
-    pub fn run(&mut self, script_file_path: &str) {
+    pub fn run(mut self, script_file_path: &str) -> ExitStatus {
         trace!("script file path: {}", script_file_path);
         let text = fs::read_to_string(&script_file_path).expect("read script file");
         trace!("script:\n{}", text);
@@ -97,9 +97,6 @@ impl TestRunner {
                 self.read_line(&mut buff);
             }
         }
-    }
-    pub fn shutdown(mut self) -> ExitStatus {
-        trace!("shutdown called");
 
         debug!("stdin closing ...");
         // After all commands are executed, close the standard output
@@ -107,9 +104,6 @@ impl TestRunner {
         // If this is not done, the child process will not exit
         drop(self.stdin);
         debug!("stdin dropped and waiting for child process stoped ...");
-        let exit_code = self.child.wait().expect("wait for child process");
-        trace!("child process({}) exited: {}", self.child.id(), exit_code);
-
-        exit_code
+        self.child.wait().expect("wait for child process")
     }
 }

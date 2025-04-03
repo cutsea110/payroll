@@ -18,13 +18,12 @@ fn main() {
         eprint!("Running test {}\t ... ", script_file_path);
 
         // run up payroll-app
-        let mut runner = TestRunner::new("./target/debug/payroll-app");
-        runner.run(&script_file_path);
-        runner.shutdown();
+        let runner = TestRunner::new("./target/debug/payroll-app");
+        let exit_code = runner.run(&script_file_path);
 
         // CLOSE: eprintln
         eprintln!("PASS");
-        debug!("test succeeded:{}", script_file_path);
+        debug!("test succeeded: {} code={}", script_file_path, exit_code);
     }
 
     info!("main finished");
