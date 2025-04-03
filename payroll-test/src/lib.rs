@@ -17,7 +17,6 @@ pub struct TestRunner {
 }
 impl TestRunner {
     pub fn new(app_path: &str) -> Self {
-        trace!("spawn_target called");
         let mut child = Command::new(app_path)
             .arg("-qfs")
             .stdin(Stdio::piped())
@@ -28,9 +27,7 @@ impl TestRunner {
 
         // pipe of in/out to payroll-app
         let stdin = child.stdin.take().expect("open stdin");
-        trace!("stdin opened");
         let stdout = child.stdout.take().expect("open stdout");
-        trace!("stdout opened");
         let reader = BufReader::new(stdout);
 
         TestRunner {
@@ -65,21 +62,25 @@ impl TestRunner {
             }
         }
     }
-    pub fn run(mut self, script_file_path: &str) -> bool {
-        trace!("script file path: {}", script_file_path);
-        match fs::exists(script_file_path) {
-            Ok(true) => debug!("script file exists"),
-            Ok(false) => {
-                eprintln!("script file not found: {}", script_file_path);
-                return false;
-            }
-            Err(e) => {
-                eprintln!("script file error: {}", e);
-                return false;
-            }
+    fn shutdown(mut self) {
+        // After all commands are executed, close the standard output
+        // This will cause the child process to receive EOF and exit
+        // If this is not done, the child process will not exit
+        drop(self.stdin);
+        // wait for the child process to exit
+        self.child.wait().expect("wait for child process");
+    }
+    pub fn run(mut self, fp: &str) -> bool {
+        trace!("script file path: {}", fp);
+        if !fs::exists(fp).unwrap_or(false) {
+            debug!("script file not found: {}", fp);
+            eprintln!("script file not found: {}", fp);
+            // terminate child process
+            self.shutdown();
+            return false;
         }
 
-        let text = fs::read_to_string(&script_file_path).expect("read script file");
+        let text = fs::read_to_string(&fp).expect("read script file");
 
         let mut result = true;
 
@@ -108,14 +109,7 @@ impl TestRunner {
                 self.read_line(&mut buff);
             }
         }
-
-        trace!("stdin closing ...");
-        // After all commands are executed, close the standard output
-        // This will cause the child process to receive EOF and exit
-        // If this is not done, the child process will not exit
-        drop(self.stdin);
-        trace!("stdin dropped and waiting for child process stoped ...");
-        self.child.wait().expect("wait for child process");
+        self.shutdown();
 
         result
     }

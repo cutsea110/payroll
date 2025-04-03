@@ -18,12 +18,11 @@ fn main() {
         // OPEN: eprint
         eprint!("Running test {}\t ... ", fp);
 
-        // run up payroll-app
         let runner = TestRunner::new(&app_path);
-        let pass = runner.run(&fp);
+        let result = runner.run(&fp);
 
         // CLOSE: eprintln
-        if pass {
+        if result {
             eprintln!("PASS");
             debug!("test passed: {}", fp);
         } else {
