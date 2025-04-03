@@ -104,11 +104,13 @@ impl TestRunner {
                 let actual: Paycheck = serde_json::from_str(&output_json).expect("parse JSON");
                 self.assert(actual, expect);
             } else {
+                // capture Transaction or comment
                 self.write_line(line);
                 let mut buff = String::new();
                 self.read_line(&mut buff);
             }
         }
+        // terminate child process
         self.shutdown();
 
         result
