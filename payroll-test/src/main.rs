@@ -3,6 +3,8 @@ use std::env;
 
 use test_runner::TestRunner;
 
+const APP_PATH: &str = "./target/debug/payroll-app";
+
 fn main() {
     env_logger::Builder::from_default_env()
         .format_source_path(true)
@@ -18,7 +20,7 @@ fn main() {
         eprint!("Running test {}\t ... ", script_file_path);
 
         // run up payroll-app
-        let runner = TestRunner::new("./target/debug/payroll-app");
+        let runner = TestRunner::new(APP_PATH);
         let pass = runner.run(&script_file_path);
 
         // CLOSE: eprintln

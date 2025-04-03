@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use std::{
     fs,
     io::{BufRead, BufReader, Write},
@@ -67,6 +67,18 @@ impl TestRunner {
     }
     pub fn run(mut self, script_file_path: &str) -> bool {
         trace!("script file path: {}", script_file_path);
+        match fs::exists(script_file_path) {
+            Ok(true) => debug!("script file exists"),
+            Ok(false) => {
+                eprintln!("script file not found: {}", script_file_path);
+                return false;
+            }
+            Err(e) => {
+                eprintln!("script file error: {}", e);
+                return false;
+            }
+        }
+
         let text = fs::read_to_string(&script_file_path).expect("read script file");
 
         let mut result = true;
