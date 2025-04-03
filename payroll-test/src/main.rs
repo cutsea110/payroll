@@ -19,11 +19,16 @@ fn main() {
 
         // run up payroll-app
         let runner = TestRunner::new("./target/debug/payroll-app");
-        let exit_code = runner.run(&script_file_path);
+        let pass = runner.run(&script_file_path);
 
         // CLOSE: eprintln
-        eprintln!("PASS");
-        debug!("test succeeded: {} code={}", script_file_path, exit_code);
+        if pass {
+            eprintln!("PASS");
+            debug!("test passed: {}", script_file_path);
+        } else {
+            eprintln!("FAIL");
+            debug!("test failed: {}", script_file_path);
+        }
     }
 
     info!("main finished");

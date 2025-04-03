@@ -1,8 +1,8 @@
-use log::{debug, trace};
+use log::trace;
 use std::{
     fs,
     io::{BufRead, BufReader, Write},
-    process::{Child, ChildStdin, ChildStdout, Command, ExitStatus, Stdio},
+    process::{Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
 mod model;
@@ -24,7 +24,7 @@ impl TestRunner {
             .stdout(Stdio::piped())
             .spawn()
             .expect("start child process");
-        trace!("app started: PID={}", child.id());
+        trace!("app started: pid={}", child.id());
 
         // pipe of in/out to payroll-app
         let stdin = child.stdin.take().expect("open stdin");
@@ -42,54 +42,53 @@ impl TestRunner {
     fn read_line(&mut self, buf: &mut String) {
         self.reader.read_line(buf).expect("read line");
         self.stdin.flush().expect("flush");
-        debug!("test <- app: {}", buf);
+        trace!("test <- app: {}", buf);
     }
     fn write_line(&mut self, line: &str) {
-        debug!("test -> app: {}", line);
+        trace!("test -> app: {}", line);
         writeln!(self.stdin, "{}", line).expect("write line");
     }
     fn assert(&self, actual: Paycheck, expect: Verify) {
+        trace!("expect: {:?}, actual: {:?}", expect, actual);
         match expect {
             Verify::GrossPay { emp_id, gross_pay } => {
-                debug!("verify gross pay");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.gross_pay, gross_pay);
             }
             Verify::Deductions { emp_id, deductions } => {
-                debug!("verify deductions");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.deductions, deductions);
             }
             Verify::NetPay { emp_id, net_pay } => {
-                debug!("verify net pay");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.net_pay, net_pay);
             }
         }
     }
-    pub fn run(mut self, script_file_path: &str) -> ExitStatus {
+    pub fn run(mut self, script_file_path: &str) -> bool {
         trace!("script file path: {}", script_file_path);
         let text = fs::read_to_string(&script_file_path).expect("read script file");
-        trace!("script:\n{}", text);
+
+        let mut result = true;
 
         // execute commands
         for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
-            debug!("execute line {}: {}", i, line);
+            trace!("execute line {}: {}", i, line);
             if Verify::is_verify(line) {
-                // Payday の標準出力をキャプチャ
+                // capture stdout of Payday
                 let mut output_json = String::new();
                 self.read_line(&mut output_json);
 
-                // JSON の検証
+                // verify JSON
                 let expect: Verify = match Verify::parse(i, line) {
                     Ok(v) => v,
                     Err(e) => {
+                        result = false;
                         eprintln!("{}", e);
                         break;
                     }
                 };
                 let actual: Paycheck = serde_json::from_str(&output_json).expect("parse JSON");
-                debug!("expect: {:?}, actual: {:?}", expect, actual);
                 self.assert(actual, expect);
             } else {
                 self.write_line(line);
@@ -98,12 +97,14 @@ impl TestRunner {
             }
         }
 
-        debug!("stdin closing ...");
+        trace!("stdin closing ...");
         // After all commands are executed, close the standard output
         // This will cause the child process to receive EOF and exit
         // If this is not done, the child process will not exit
         drop(self.stdin);
-        debug!("stdin dropped and waiting for child process stoped ...");
-        self.child.wait().expect("wait for child process")
+        trace!("stdin dropped and waiting for child process stoped ...");
+        self.child.wait().expect("wait for child process");
+
+        result
     }
 }
