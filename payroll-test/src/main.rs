@@ -14,7 +14,7 @@ fn main() {
 
     // skip program name
     for fp in env::args().skip(1) {
-        debug!("script file path: {}", fp);
+        info!("test: {}", fp);
         // OPEN: eprint
         eprint!("Running test {}\t ... ", fp);
 
