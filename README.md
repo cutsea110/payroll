@@ -98,6 +98,7 @@ $ cargo test
 ### Scenario test
 
 If you do scenario tests which are in ./scenario directory, you do as below.
+You should see [here](payroll-test/README.md) in detail.
 
 ```bash
 $ cargo run -p payroll-test -- ./scenario/test*.scr
