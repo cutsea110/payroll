@@ -11,7 +11,7 @@ The payroll app is described at the book above.
 ## Usage
 
 ```bash
-$ cargo run -- -h
+$ cargo run -p payroll-app -- -h
 
 Usage: target/debug/payroll-app [options] FILE
 
