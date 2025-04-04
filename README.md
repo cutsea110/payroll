@@ -1,7 +1,7 @@
 # payroll (Case Study of Uncle Bob)
 
 [![Rust](https://github.com/cutsea110/payroll/actions/workflows/rust.yml/badge.svg)](https://github.com/cutsea110/payroll/actions/workflows/rust.yml)
-![Docker Cloud Build Status](https://img.shields.io/docker/pulls/cutsea110/payroll-app)
+[![Docker Cloud Build Status](https://img.shields.io/docker/pulls/cutsea110/payroll-app)](https://hub.docker.com/repository/docker/cutsea110/payroll-app/general)
 
 ref.) [アジャイルソフトウェア開発の奥義 第2版](https://www.amazon.co.jp/dp/4797347783)
 
