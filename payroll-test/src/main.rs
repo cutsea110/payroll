@@ -22,13 +22,8 @@ fn main() {
         let result = runner.run(&fp);
 
         // CLOSE: eprintln
-        if result {
-            eprintln!("PASS");
-            debug!("test passed: {}", fp);
-        } else {
-            eprintln!("FAIL");
-            debug!("test failed: {}", fp);
-        }
+        eprintln!("{}", result);
+        debug!("test {}: {}", result, fp);
     }
 
     info!("main finished");

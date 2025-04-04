@@ -1,6 +1,6 @@
 use log::{debug, trace};
 use std::{
-    fs,
+    fmt, fs,
     io::{BufRead, BufReader, Write},
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
 };
@@ -9,6 +9,20 @@ mod model;
 mod parser;
 
 use model::{Paycheck, Verify};
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum TestResult {
+    Pass,
+    Fail,
+}
+impl fmt::Display for TestResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TestResult::Pass => write!(f, "PASS"),
+            TestResult::Fail => write!(f, "FAIL"),
+        }
+    }
+}
 
 pub struct TestRunner {
     child: Child,
@@ -70,19 +84,19 @@ impl TestRunner {
         // wait for the child process to exit
         self.child.wait().expect("wait for child process");
     }
-    pub fn run(mut self, fp: &str) -> bool {
+    pub fn run(mut self, fp: &str) -> TestResult {
         trace!("script file path: {}", fp);
         if !fs::exists(fp).unwrap_or(false) {
             debug!("script file not found: {}", fp);
             eprintln!("script file not found: {}", fp);
             // terminate child process
             self.shutdown();
-            return false;
+            return TestResult::Fail;
         }
 
         let text = fs::read_to_string(&fp).expect("read script file");
 
-        let mut result = true;
+        let mut result = TestResult::Pass;
 
         // execute commands
         for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
@@ -96,7 +110,7 @@ impl TestRunner {
                 let expect: Verify = match Verify::parse(i, line) {
                     Ok(v) => v,
                     Err(e) => {
-                        result = false;
+                        result = TestResult::Fail;
                         eprintln!("{}", e);
                         break;
                     }
