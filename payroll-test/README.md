@@ -11,7 +11,7 @@ sequenceDiagram
     loop REPL
         PayrollTest->>PayrollApp: Write Tx Command
         PayrollApp->>PayrollTest: Read Output
+        PayrollTest-->>PayrollTest: Verify previous Output
     end
-    PayrollTest-->>PayrollTest: Verify previous Output
     PayrollApp->>PayrollTest: Terminate
 ```
