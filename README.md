@@ -87,6 +87,22 @@ Options:
 
 ## For Developer
 
+### Unit test
+
+Do unit test as below.
+
+```bash
+$ cargo test
+```
+
+### Scenario test
+
+If you do scenario tests which are in ./scenario directory, you do as below.
+
+```bash
+$ cargo run -p payroll-test -- ./scenario/test*.scr
+```
+
 ### How to build Docker image
 
 You should specify the version 0.1.3, because the latest version is 0.1.2.
