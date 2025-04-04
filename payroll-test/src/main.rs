@@ -8,7 +8,7 @@ fn main() {
         .format_source_path(true)
         .format_line_number(true)
         .init();
-    let app_path = env::var("APP_PATH").unwrap_or("./target/debug/payroll-app".to_string());
+    let target_path = env::var("TARGET_PATH").unwrap_or("./target/debug/payroll-app".to_string());
 
     info!("main starting");
 
@@ -18,7 +18,7 @@ fn main() {
         // OPEN: eprint
         eprint!("Running test {}\t ... ", fp);
 
-        let runner = TestRunner::new(&app_path);
+        let runner = TestRunner::new(&target_path);
         let result = runner.run(&fp);
 
         // CLOSE: eprintln
