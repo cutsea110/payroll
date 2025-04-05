@@ -77,6 +77,7 @@ impl TestRunner {
         }
     }
     fn shutdown(mut self) {
+        trace!("shutdown called");
         // After all commands are executed, close the standard output
         // This will cause the child process to receive EOF and exit
         // If this is not done, the child process will not exit
