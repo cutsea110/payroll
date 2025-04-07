@@ -64,10 +64,10 @@ impl TestRunner {
     fn read_line(&mut self, buf: &mut String) {
         self.reader.read_line(buf).expect("read line");
         self.stdin.flush().expect("flush");
-        trace!("test <- app: {}", buf);
+        trace!("test <- app: {:?}", buf);
     }
     fn write_line(&mut self, line: &str) {
-        trace!("test -> app: {}", line);
+        trace!("test -> app: {:?}", line);
         writeln!(self.stdin, "{}", line).expect("write line");
     }
     fn assert(&self, output: &HashMap<u32, Paycheck>, expect: Verify) {
