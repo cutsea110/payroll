@@ -1,14 +1,17 @@
 use log::{debug, trace};
 use std::{
+    collections::HashMap,
     fmt, fs,
-    io::{BufRead, BufReader, Write},
+    io::{self, BufRead, BufReader, Write},
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
+    str,
 };
 
 mod model;
 mod parser;
 
 use model::{Paycheck, Verify};
+use parser::TxType;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TestResult {
@@ -28,6 +31,8 @@ pub struct TestRunner {
     child: Child,
     stdin: ChildStdin,
     reader: BufReader<ChildStdout>,
+    // hold latest Payday's Paychecks
+    output: HashMap<u32, Paycheck>,
 }
 impl TestRunner {
     pub fn new(app_path: &str) -> Self {
@@ -48,7 +53,13 @@ impl TestRunner {
             child,
             stdin,
             reader,
+            output: HashMap::new(),
         }
+    }
+    fn peek_line_ready(&mut self) -> io::Result<bool> {
+        let buffer = self.reader.fill_buf()?;
+        trace!("peeked: {:?}", str::from_utf8(buffer));
+        Ok(buffer.contains(&b'\n'))
     }
     fn read_line(&mut self, buf: &mut String) {
         self.reader.read_line(buf).expect("read line");
@@ -59,18 +70,24 @@ impl TestRunner {
         trace!("test -> app: {}", line);
         writeln!(self.stdin, "{}", line).expect("write line");
     }
-    fn assert(&self, actual: Paycheck, expect: Verify) {
-        trace!("expect: {:?}, actual: {:?}", expect, actual);
+    fn assert(&self, output: &HashMap<u32, Paycheck>, expect: Verify) {
+        trace!("expect: {:?}, output: {:?}", expect, output);
         match expect {
             Verify::GrossPay { emp_id, gross_pay } => {
+                assert!(output.contains_key(&emp_id));
+                let actual = output.get(&emp_id).expect("get paycheck");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.gross_pay, gross_pay);
             }
             Verify::Deductions { emp_id, deductions } => {
+                assert!(output.contains_key(&emp_id));
+                let actual = output.get(&emp_id).expect("get paycheck");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.deductions, deductions);
             }
             Verify::NetPay { emp_id, net_pay } => {
+                assert!(output.contains_key(&emp_id));
+                let actual = output.get(&emp_id).expect("get paycheck");
                 assert_eq!(actual.emp_id, emp_id);
                 assert_eq!(actual.net_pay, net_pay);
             }
@@ -102,27 +119,65 @@ impl TestRunner {
         // execute commands
         for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
             trace!("execute line {}: {}", i, line);
-            if Verify::is_verify(line) {
-                // capture stdout of Payday
-                let mut output_json = String::new();
-                self.read_line(&mut output_json);
-
-                // verify JSON
-                let expect: Verify = match Verify::parse(i, line) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        result = TestResult::Fail;
-                        eprintln!("{}", e);
-                        break;
-                    }
-                };
-                let actual: Paycheck = serde_json::from_str(&output_json).expect("parse JSON");
-                self.assert(actual, expect);
-            } else {
-                // capture Transaction or comment
-                self.write_line(line);
+            // read prompt if exists
+            if self.peek_line_ready().unwrap_or(false) {
                 let mut buff = String::new();
                 self.read_line(&mut buff);
+            }
+
+            match parser::tx_type(line) {
+                TxType::Payday => {
+                    trace!("Payday command");
+                    self.write_line(line);
+                    let mut buff = String::new();
+                    self.read_line(&mut buff);
+
+                    //  In case of Payday, collect outputs of Paycheck JSON data.
+                    while self.peek_line_ready().unwrap_or(false) {
+                        let mut buff = String::new();
+                        self.read_line(&mut buff);
+                        let paycheck: Paycheck = match serde_json::from_str(&buff) {
+                            Ok(p) => p,
+                            Err(e) => {
+                                debug!("not a valid Paycheck JSON: {}", e);
+                                continue;
+                            }
+                        };
+                        let emp_id = paycheck.emp_id;
+                        debug!("insert emp_id: {}, paycheck: {:?}", emp_id, paycheck);
+                        self.output.insert(emp_id, paycheck);
+                    }
+                    trace!("got {} Paychecks", self.output.len());
+                }
+                TxType::Verify => {
+                    trace!("Verify command");
+                    let expect: Verify = match Verify::parse(i, line) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            result = TestResult::Fail;
+                            eprintln!("{}", e);
+                            break;
+                        }
+                    };
+                    self.assert(&self.output, expect);
+                }
+                TxType::Other => {
+                    trace!("Other command");
+                    self.write_line(line);
+                    let mut buff = String::new();
+                    self.read_line(&mut buff);
+
+                    // There may be more outputs like as errors.
+                    while self.peek_line_ready().unwrap_or(false) {
+                        let mut buff = String::new();
+                        self.read_line(&mut buff);
+                    }
+                    // clear output
+                    if !self.output.is_empty() {
+                        debug!("clear output");
+                        self.output.clear();
+                    }
+                }
             }
         }
         // terminate child process

@@ -3,6 +3,33 @@ use parsec_rs::{float32, keyword, spaces, uint32, Parser};
 
 use crate::Verify;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TxType {
+    Payday,
+    Verify,
+    Other,
+}
+pub fn tx_type(line: &str) -> TxType {
+    trace!("tx_type called");
+    if is_verify(line) {
+        TxType::Verify
+    } else if is_payday(line) {
+        TxType::Payday
+    } else {
+        TxType::Other
+    }
+}
+
+pub fn is_verify(line: &str) -> bool {
+    trace!("is_verify called");
+    spaces().skip(keyword("Verify")).parse(line).is_ok()
+}
+
+pub fn is_payday(line: &str) -> bool {
+    trace!("is_payday called");
+    spaces().skip(keyword("Payday")).parse(line).is_ok()
+}
+
 pub fn read_verify(line_no: usize, line: &str) -> Result<Verify, String> {
     trace!("read_verify called");
     verify().parse(line).map(|(v, _)| v).map_err(|e| {
@@ -14,11 +41,6 @@ pub fn read_verify(line_no: usize, line: &str) -> Result<Verify, String> {
             e.expected().join(" or ") + " expected"
         )
     })
-}
-
-pub fn is_verify(line: &str) -> bool {
-    trace!("is_verify called");
-    spaces().skip(keyword("Verify")).parse(line).is_ok()
 }
 
 fn employee_id() -> impl Parser<Item = u32> {
