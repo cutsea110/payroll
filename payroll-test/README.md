@@ -1,5 +1,25 @@
 # Scenario Test for Payroll
 
+# How to use
+
+You shuold prepare for test scenario script, and run for it like as below.
+
+```bash
+$ cargo run -p payroll-test -- ./scenario/test1.scr
+```
+
+# Prerequisite
+
+The payroll-test require the program payroll-app at `target/debug` directory.
+As you must build the program payroll-app before using payroll-test.
+
+```bash
+$ cargo build --bin payroll-app
+```
+
+If you direct an another payroll-app version, you should set the program's path to `TARGET_PATH` environment variable.
+
+
 ## Architecture
 
 ```mermaid
