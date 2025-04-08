@@ -2,7 +2,7 @@ use log::{debug, trace};
 use std::{
     collections::HashMap,
     fmt, fs,
-    io::{self, BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Write},
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
     str,
 };
@@ -56,19 +56,58 @@ impl TestRunner {
             output: HashMap::new(),
         }
     }
-    fn peek_line_ready(&mut self) -> io::Result<bool> {
-        let buffer = self.reader.fill_buf()?;
+    fn ready(&mut self) -> bool {
+        let buffer = match self.reader.fill_buf() {
+            Ok(b) => b,
+            Err(e) => {
+                debug!("error reading from child process: {}", e);
+                return false;
+            }
+        };
         trace!("peeked: {:?}", str::from_utf8(buffer));
-        Ok(buffer.contains(&b'\n'))
+        buffer.contains(&b'\n')
     }
-    fn read_line(&mut self, buf: &mut String) {
-        self.reader.read_line(buf).expect("read line");
-        self.stdin.flush().expect("flush");
-        trace!("test <- app: {:?}", buf);
-    }
-    fn write_line(&mut self, line: &str) {
+    fn send(&mut self, line: &str) {
         trace!("test -> app: {:?}", line);
         writeln!(self.stdin, "{}", line).expect("write line");
+        // consume echo back
+        let _ = self.recv();
+    }
+    fn recv(&mut self) -> String {
+        let mut buf = String::new();
+        self.reader.read_line(&mut buf).expect("read line");
+        self.stdin.flush().expect("flush");
+        trace!("test <- app: {:?}", buf);
+
+        buf
+    }
+    fn try_consume(&mut self) {
+        while self.ready() {
+            let _ = self.recv();
+        }
+    }
+    fn clear(&mut self) {
+        // clear output
+        if !self.output.is_empty() {
+            debug!("clear output");
+            self.output.clear();
+        }
+    }
+    fn try_collect_paychecks(&mut self) {
+        while self.ready() {
+            let o = self.recv();
+            let paycheck: Paycheck = match serde_json::from_str(&o) {
+                Ok(p) => p,
+                Err(e) => {
+                    debug!("not a valid Paycheck JSON: {}", e);
+                    continue;
+                }
+            };
+            let emp_id = paycheck.emp_id;
+            debug!("insert emp_id: {}, paycheck: {:?}", emp_id, paycheck);
+            self.output.insert(emp_id, paycheck);
+        }
+        trace!("got {} Paychecks", self.output.len());
     }
     fn shutdown(mut self) {
         trace!("shutdown called");
@@ -96,35 +135,14 @@ impl TestRunner {
         // execute commands
         for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
             trace!("execute line {}: {}", i, line);
-            // read prompt if exists
-            if self.peek_line_ready().unwrap_or(false) {
-                let mut buff = String::new();
-                self.read_line(&mut buff);
-            }
+            self.try_consume();
 
             match parser::tx_type(line) {
                 TxType::Payday => {
                     trace!("Payday command");
-                    self.write_line(line);
-                    let mut buff = String::new();
-                    self.read_line(&mut buff);
-
+                    self.send(line);
                     //  In case of Payday, collect outputs of Paycheck JSON data.
-                    while self.peek_line_ready().unwrap_or(false) {
-                        let mut buff = String::new();
-                        self.read_line(&mut buff);
-                        let paycheck: Paycheck = match serde_json::from_str(&buff) {
-                            Ok(p) => p,
-                            Err(e) => {
-                                debug!("not a valid Paycheck JSON: {}", e);
-                                continue;
-                            }
-                        };
-                        let emp_id = paycheck.emp_id;
-                        debug!("insert emp_id: {}, paycheck: {:?}", emp_id, paycheck);
-                        self.output.insert(emp_id, paycheck);
-                    }
-                    trace!("got {} Paychecks", self.output.len());
+                    self.try_collect_paychecks();
                 }
                 TxType::Verify => {
                     trace!("Verify command");
@@ -140,20 +158,11 @@ impl TestRunner {
                 }
                 TxType::Other => {
                     trace!("Other command");
-                    self.write_line(line);
-                    let mut buff = String::new();
-                    self.read_line(&mut buff);
-
-                    // There may be more outputs like as errors.
-                    while self.peek_line_ready().unwrap_or(false) {
-                        let mut buff = String::new();
-                        self.read_line(&mut buff);
-                    }
+                    self.send(line);
+                    // In case of other commands, we need to consume the output
+                    self.try_consume();
                     // clear output
-                    if !self.output.is_empty() {
-                        debug!("clear output");
-                        self.output.clear();
-                    }
+                    self.clear();
                 }
             }
         }
