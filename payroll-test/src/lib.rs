@@ -70,30 +70,6 @@ impl TestRunner {
         trace!("test -> app: {:?}", line);
         writeln!(self.stdin, "{}", line).expect("write line");
     }
-    fn assert(&self, i: usize, line: &str, output: &HashMap<u32, Paycheck>, expect: Verify) {
-        trace!("expect: {:?}, output: {:?}", expect, output);
-        let info = format!("L{}: '{}'", i, line);
-        match expect {
-            Verify::GrossPay { emp_id, gross_pay } => {
-                assert!(output.contains_key(&emp_id), "emp_id not found {}", info);
-                let actual = output.get(&emp_id).expect("get paycheck");
-                assert_eq!(actual.emp_id, emp_id, "emp_id mismatch {}", info);
-                assert_eq!(actual.gross_pay, gross_pay, "gross_pay mismatch {}", info);
-            }
-            Verify::Deductions { emp_id, deductions } => {
-                assert!(output.contains_key(&emp_id), "emp_id not found {}", info);
-                let actual = output.get(&emp_id).expect("get paycheck");
-                assert_eq!(actual.emp_id, emp_id, "emp_id mismatch {}", info);
-                assert_eq!(actual.deductions, deductions, "deduction mismatch {}", info);
-            }
-            Verify::NetPay { emp_id, net_pay } => {
-                assert!(output.contains_key(&emp_id), "emp_id not found {}", info);
-                let actual = output.get(&emp_id).expect("get paycheck");
-                assert_eq!(actual.emp_id, emp_id, "emp_id mismatch {}", info);
-                assert_eq!(actual.net_pay, net_pay, "net_pay mismatch {}", info);
-            }
-        }
-    }
     fn shutdown(mut self) {
         trace!("shutdown called");
         // After all commands are executed, close the standard output
@@ -160,7 +136,7 @@ impl TestRunner {
                             break;
                         }
                     };
-                    self.assert(i, line, &self.output, expect);
+                    expect.verify(&self.output, i, line);
                 }
                 TxType::Other => {
                     trace!("Other command");
