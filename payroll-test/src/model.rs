@@ -59,7 +59,11 @@ impl Verify {
         }
     }
     pub fn verify(&self, outputs: &HashMap<u32, Paycheck>) -> bool {
-        assert!(outputs.contains_key(&self.emp_id()), "emp_id not found");
+        assert!(
+            outputs.contains_key(&self.emp_id()),
+            "not found emp_id: {}",
+            self.emp_id()
+        );
         let actual = outputs.get(&self.emp_id()).expect("get paycheck");
         let info = format!("L{}: '{}'", self.line_num(), self.line());
         match self {
