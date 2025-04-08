@@ -82,11 +82,13 @@ impl TestRunner {
         buf
     }
     fn try_consume(&mut self) {
+        trace!("try_consume called");
         while self.ready() {
             let _ = self.recv();
         }
     }
     fn clear(&mut self) {
+        trace!("clear called");
         // clear output
         if !self.output.is_empty() {
             debug!("clear output");
@@ -94,6 +96,7 @@ impl TestRunner {
         }
     }
     fn try_collect_paychecks(&mut self) {
+        trace!("try_collect_paychecks called");
         while self.ready() {
             let o = self.recv();
             let paycheck: Paycheck = match serde_json::from_str(&o) {
