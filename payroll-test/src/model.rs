@@ -11,11 +11,25 @@ pub struct Paycheck {
     pub net_pay: f32,
 }
 
+type Loc = (usize, String);
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Verify {
-    GrossPay { emp_id: u32, gross_pay: f32 },
-    Deductions { emp_id: u32, deductions: f32 },
-    NetPay { emp_id: u32, net_pay: f32 },
+    GrossPay {
+        emp_id: u32,
+        gross_pay: f32,
+        loc: Loc,
+    },
+    Deductions {
+        emp_id: u32,
+        deductions: f32,
+        loc: Loc,
+    },
+    NetPay {
+        emp_id: u32,
+        net_pay: f32,
+        loc: Loc,
+    },
 }
 impl Verify {
     pub fn parse(line_no: usize, line: &str) -> Result<Self, String> {
@@ -30,10 +44,24 @@ impl Verify {
             Verify::NetPay { emp_id, .. } => *emp_id,
         }
     }
-    pub fn verify(&self, outputs: &HashMap<u32, Paycheck>, line_num: usize, line: &str) -> bool {
+    fn line_num(&self) -> usize {
+        match self {
+            Verify::GrossPay { loc, .. } => loc.0,
+            Verify::Deductions { loc, .. } => loc.0,
+            Verify::NetPay { loc, .. } => loc.0,
+        }
+    }
+    fn line(&self) -> &str {
+        match self {
+            Verify::GrossPay { loc, .. } => &loc.1,
+            Verify::Deductions { loc, .. } => &loc.1,
+            Verify::NetPay { loc, .. } => &loc.1,
+        }
+    }
+    pub fn verify(&self, outputs: &HashMap<u32, Paycheck>) -> bool {
         assert!(outputs.contains_key(&self.emp_id()), "emp_id not found");
         let actual = outputs.get(&self.emp_id()).expect("get paycheck");
-        let info = format!("L{}: '{}'", line_num, line);
+        let info = format!("L{}: '{}'", self.line_num(), self.line());
         match self {
             Verify::GrossPay { gross_pay, .. } => {
                 assert_eq!(actual.gross_pay, *gross_pay, "gross_pay mismatch {}", info);

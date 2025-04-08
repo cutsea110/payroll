@@ -136,7 +136,7 @@ impl TestRunner {
                             break;
                         }
                     };
-                    expect.verify(&self.output, i, line);
+                    expect.verify(&self.output);
                 }
                 TxType::Other => {
                     trace!("Other command");
