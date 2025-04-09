@@ -136,8 +136,9 @@ impl TestRunner {
         let mut result = TestResult::Pass;
 
         // execute commands
-        for (i, line) in text.lines().enumerate().map(|(i, l)| (i + 1, l)) {
-            trace!("execute line {}: {}", i, line);
+        for (i, line) in text.lines().enumerate() {
+            let line_num = i + 1;
+            trace!("execute line {}: {}", line_num, line);
             self.try_consume();
 
             match parser::tx_type(line) {
@@ -149,7 +150,7 @@ impl TestRunner {
                 }
                 TxType::Verify => {
                     trace!("Verify command");
-                    let expect: Verify = match Verify::parse(i, line) {
+                    let expect: Verify = match Verify::parse(line_num, line) {
                         Ok(v) => v,
                         Err(e) => {
                             result = TestResult::Fail;
