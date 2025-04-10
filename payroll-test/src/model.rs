@@ -84,3 +84,79 @@ impl Verify {
         true
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn fail_for_empty_test() {
+        let verify = Verify::GrossPay {
+            emp_id: 1234,
+            gross_pay: 1000.0,
+            loc: (1, "L1".to_string()),
+        };
+        let outputs = HashMap::new();
+        assert_ne!(verify.verify(&outputs), false);
+    }
+
+    #[test]
+    fn test_verify_gross_pay() {
+        let verify = Verify::GrossPay {
+            emp_id: 1234,
+            gross_pay: 1000.0,
+            loc: (1, "L1".to_string()),
+        };
+        let mut outputs = HashMap::new();
+        outputs.insert(
+            1234,
+            Paycheck {
+                emp_id: 1234,
+                gross_pay: 1000.0,
+                deductions: 200.0,
+                net_pay: 800.0,
+            },
+        );
+        assert_eq!(verify.verify(&outputs), true);
+    }
+
+    #[test]
+    fn test_verify_deductions() {
+        let verify = Verify::Deductions {
+            emp_id: 1234,
+            deductions: 200.0,
+            loc: (1, "L1".to_string()),
+        };
+        let mut outputs = HashMap::new();
+        outputs.insert(
+            1234,
+            Paycheck {
+                emp_id: 1234,
+                gross_pay: 1000.0,
+                deductions: 200.0,
+                net_pay: 800.0,
+            },
+        );
+        assert_eq!(verify.verify(&outputs), true);
+    }
+
+    #[test]
+    fn test_verify_net_pay() {
+        let verify = Verify::NetPay {
+            emp_id: 1234,
+            net_pay: 800.0,
+            loc: (1, "L1".to_string()),
+        };
+        let mut outputs = HashMap::new();
+        outputs.insert(
+            1234,
+            Paycheck {
+                emp_id: 1234,
+                gross_pay: 1000.0,
+                deductions: 200.0,
+                net_pay: 800.0,
+            },
+        );
+        assert_eq!(verify.verify(&outputs), true);
+    }
+}
