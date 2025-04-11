@@ -41,6 +41,13 @@ sequenceDiagram
 You can use extra commands below in transaction script.
 payroll-test's test runner can handle these comamnds, and check the previous output from payroll-app.
 
+Note below:
+
+1. The test runner can hold Paycheck data as temporarily.
+2. When the test runner read `Paycheck` command, the runner write it to payroll-app then collect Paycheck data from payroll-app's output.
+3. When the test runner read `Verify` command, the runner verify the collected Paycheck data.
+4. When the test runner read the other commands or comments, the runner write it to payroll-app then clean up previously collected Paycheck data.
+
 - `<emp_id>` is unsigned integer as employee id.
 - `<amount>` is floating number as expected amount of `gross_pay` or `deductions` or `net_pay`.
 
