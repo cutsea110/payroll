@@ -11,24 +11,24 @@ pub struct Paycheck {
     pub net_pay: f32,
 }
 
-type Loc = (usize, String);
+type Location = (usize, String);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Verify {
     GrossPay {
         emp_id: u32,
         gross_pay: f32,
-        loc: Loc,
+        loc: Location,
     },
     Deductions {
         emp_id: u32,
         deductions: f32,
-        loc: Loc,
+        loc: Location,
     },
     NetPay {
         emp_id: u32,
         net_pay: f32,
-        loc: Loc,
+        loc: Location,
     },
 }
 impl Verify {
