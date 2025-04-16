@@ -106,7 +106,7 @@ $ cargo run -p payroll-test -- ./scenario/test*.scr
 
 ### How to build Docker image
 
-You should specify the version 0.1.4, because the latest version is 0.1.3.
+You should specify the version 0.1.4, because the latest version is 0.1.3.1.
 
 ```bash
 $ docker buildx build --load -t cutsea110/payroll-app:0.1.4 .
