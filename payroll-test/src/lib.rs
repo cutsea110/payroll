@@ -150,7 +150,7 @@ impl TestRunner {
                 }
                 TxType::Verify => {
                     trace!("Verify command");
-                    let expect: Verify = match Verify::parse(line_num, line) {
+                    let expect = match Verify::parse(line_num, line) {
                         Ok(v) => v,
                         Err(e) => {
                             result = TestResult::Fail;
