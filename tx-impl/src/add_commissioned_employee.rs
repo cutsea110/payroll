@@ -98,7 +98,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("AddCommissionedEmployeeTx::execute called");
+        trace!("execute called");
         AddEmployee::execute(self)
             .map(|_| Response::EmployeeId(self.id))
             .map_err(Into::into)

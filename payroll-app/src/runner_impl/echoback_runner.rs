@@ -5,7 +5,7 @@ use tx_app::{Response, Runner, Transaction};
 pub(super) struct TxEchoBackRunner;
 impl Runner for TxEchoBackRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
-        trace!("TxEchoBackRunner::run called");
+        trace!("run called");
         match tx.execute() {
             Ok(v) => {
                 // echo back the result of the transaction

@@ -12,12 +12,12 @@ impl AppChronograph {
 }
 impl Application for AppChronograph {
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        trace!("AppChronograph::run called");
+        trace!("run called");
         let start = std::time::Instant::now();
         self.app.run()?;
         let elapsed = start.elapsed();
-        debug!("AppChronograph: Elapsed={:?}", elapsed);
-        println!("AppChronograph: Elapsed={:?}", elapsed);
+        debug!("Elapsed={:?}", elapsed);
+        println!("Elapsed={:?}", elapsed);
         Ok(())
     }
 }

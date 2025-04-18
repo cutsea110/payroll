@@ -45,7 +45,7 @@ impl Affiliation for UnionAffiliation {
         self
     }
     fn calculate_deductions(&self, pc: &Paycheck) -> f32 {
-        trace!("UnionAffiliation::calculate_deductions called");
+        trace!("calculate_deductions called");
         let pay_period = pc.get_pay_period();
         debug!("pay_period: {} - {}", pay_period.start(), pay_period.end());
         let dues_amount = pay_period

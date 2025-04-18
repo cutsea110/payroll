@@ -48,7 +48,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("ChangeEmployeeNameTx::change called");
+        trace!("change called");
         emp.set_name(&self.new_name);
         Ok(())
     }
@@ -59,7 +59,7 @@ where
     T: EmployeeDao,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeEmployeeNameTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

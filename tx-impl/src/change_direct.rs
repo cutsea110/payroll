@@ -57,7 +57,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("ChangeDirectTx::change called");
+        trace!("change called");
         emp.set_method(
             self.payroll_factory
                 .mk_direct_method(&self.bank, &self.account),
@@ -73,7 +73,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeDirectTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

@@ -12,9 +12,9 @@ impl TxRunnerFailOpen {
 }
 impl Runner for TxRunnerFailOpen {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
-        trace!("TxRunnerFailOpen::run called");
+        trace!("run called");
         self.runner.run(tx).or_else(|e| {
-            error!("TxRunnerFailOpen: error={} occurred", e);
+            error!("error={} occurred", e);
             Ok(Response::Void)
         })
     }

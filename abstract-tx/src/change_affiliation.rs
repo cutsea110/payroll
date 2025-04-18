@@ -12,10 +12,10 @@ pub trait ChangeAffiliation: HaveEmployeeDao {
     fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
-        trace!("ChangeAffiliation::execute called");
+        trace!("execute called");
         self.dao()
             .run_tx(|mut ctx| {
-                trace!("ChangeAffiliation::run_tx called");
+                trace!("run_tx called");
                 let emp_id = self
                     .dao()
                     .find_union_member(self.get_member_id())

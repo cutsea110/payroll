@@ -111,7 +111,7 @@ where
     F: TxFactory,
 {
     fn get_tx_source(&mut self) -> Option<Box<dyn Transaction>> {
-        trace!("TextParserTxSource::get_tx_source called");
+        trace!("get_tx_source called");
         loop {
             let mut buf = String::new();
             let line = self.reader.read_line(&mut buf);

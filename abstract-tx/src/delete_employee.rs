@@ -10,12 +10,12 @@ pub trait DeleteEmployee: HaveEmployeeDao {
     fn get_id(&self) -> EmployeeId;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
-        trace!("DeleteEmployee::execute called");
+        trace!("execute called");
         self.dao()
             .run_tx(|mut ctx| {
-                trace!("DeleteEmployee::run_tx called");
+                trace!("run_tx called");
                 let emp_id = self.get_id();
-                debug!("DeleteEmployee::execute: emp_id={}", emp_id);
+                debug!("execute: emp_id={}", emp_id);
                 self.dao().delete(emp_id).run(&mut ctx)
             })
             .map(|_| ())

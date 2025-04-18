@@ -53,7 +53,7 @@ where
         self.member_id
     }
     fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError> {
-        trace!("AddServiceChargeTx::change called");
+        trace!("change called");
         aff.borrow_mut()
             .as_any_mut()
             .downcast_mut::<UnionAffiliation>()
@@ -69,7 +69,7 @@ where
     T: EmployeeDao,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("AddServiceChargeTx::execute called");
+        trace!("execute called");
         ChangeAffiliation::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

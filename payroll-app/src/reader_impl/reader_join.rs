@@ -37,15 +37,15 @@ impl BufRead for ReaderJoin {
         self.hd.read_until(byte, buf)
     }
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        trace!("ReaderJoin::read_line called");
+        trace!("read_line called");
         match self.hd.read_line(buf) {
             Ok(0) => {
-                debug!("ReaderJoin::read_line: current read_line return empty");
+                debug!("read_line: current read_line return empty");
                 if self.tl.is_empty() {
-                    debug!("ReaderJoin::read_line: no more reader to read");
+                    debug!("read_line: no more reader to read");
                     Ok(0)
                 } else {
-                    debug!("ReaderJoin::read_line: switch to next reader");
+                    debug!("read_line: switch to next reader");
                     self.hd = self.tl.remove(0);
                     self.read_line(buf)
                 }

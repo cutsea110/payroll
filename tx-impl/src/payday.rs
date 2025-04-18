@@ -49,7 +49,7 @@ where
     T: EmployeeDao,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("PaydayTx::execute called");
+        trace!("execute called");
         Payday::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

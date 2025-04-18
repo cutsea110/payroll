@@ -26,7 +26,7 @@ impl BufRead for EchoReader {
     }
     // read_line is the only method that needs to customize the behavior
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        trace!("EchoReader::read_line called");
+        trace!("read_line called");
         let line = self.reader.read_line(buf);
         debug!("read_line: buf={:?}", buf);
         println!("Read line: {}", buf.trim());

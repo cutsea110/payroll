@@ -24,7 +24,7 @@ impl PaymentMethod for HoldMethod {
         self
     }
     fn pay(&self, emp_id: EmployeeId, pc: &Paycheck) {
-        trace!("HoldMethod::pay called");
+        trace!("pay called");
         let hold_pay = HoldPay {
             emp_id: emp_id.into(),
 
@@ -33,7 +33,7 @@ impl PaymentMethod for HoldMethod {
             net_pay: pc.net_pay(),
         };
         let json = serde_json::to_string(&hold_pay).expect("serialize HoldPay as JSON");
-        debug!("HoldMethod::pay: {}", json);
+        debug!("pay: {}", json);
         println!("{}", json);
     }
 }

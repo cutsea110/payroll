@@ -38,7 +38,7 @@ impl PaymentMethod for DirectMethod {
         self
     }
     fn pay(&self, emp_id: EmployeeId, pc: &Paycheck) {
-        trace!("DirectMethod::pay called");
+        trace!("pay called");
         let direct_pay = DirectPay {
             emp_id: emp_id.into(),
 
@@ -50,7 +50,7 @@ impl PaymentMethod for DirectMethod {
             net_pay: pc.net_pay(),
         };
         let json = serde_json::to_string(&direct_pay).expect("serialize DirectPay as JSON");
-        debug!("DirectMethod::pay: {}", json);
+        debug!("pay: {}", json);
         println!("{}", json);
     }
 }

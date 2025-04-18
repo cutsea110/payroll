@@ -52,7 +52,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("AddSalesReceiptTx::change called");
+        trace!("change called");
         emp.classification()
             .borrow_mut()
             .as_any_mut()
@@ -71,7 +71,7 @@ where
     T: EmployeeDao,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("AddSalesReceiptTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

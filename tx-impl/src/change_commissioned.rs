@@ -63,7 +63,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("ChangeCommissionedTx::change called");
+        trace!("change called");
         emp.set_classification(
             self.payroll_factory
                 .mk_commissioned_classification(self.salary, self.commission_rate),
@@ -81,7 +81,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeCommissionedTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

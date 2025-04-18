@@ -12,11 +12,11 @@ impl AppSoftLanding {
 }
 impl Application for AppSoftLanding {
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        trace!("AppSoftLanding::run called");
+        trace!("run called");
         let result = self.app.run();
         if let Err(e) = result {
-            error!("AppSoftLanding: Error={:?}", e);
-            eprintln!("AppSoftLanding: Error={:?}", e);
+            error!("Error={:?}", e);
+            eprintln!("Error={:?}", e);
             return Ok(());
         }
         result

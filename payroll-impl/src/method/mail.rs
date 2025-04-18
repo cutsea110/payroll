@@ -35,7 +35,7 @@ impl PaymentMethod for MailMethod {
         self
     }
     fn pay(&self, emp_id: EmployeeId, pc: &Paycheck) {
-        trace!("MailMethod::pay called");
+        trace!("pay called");
         let mail_pay = MailPay {
             emp_id: emp_id.into(),
 
@@ -46,7 +46,7 @@ impl PaymentMethod for MailMethod {
             net_pay: pc.net_pay(),
         };
         let json = serde_json::to_string(&mail_pay).expect("serialize MailPay as JSON");
-        debug!("MailMethod::pay: {}", json);
+        debug!("pay: {}", json);
         println!("{}", json);
     }
 }

@@ -55,7 +55,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("ChangeMailTx::change called");
+        trace!("change called");
         emp.set_method(self.payroll_factory.mk_mail_method(&self.address));
         debug!("method changed: {:?}", emp.method());
         Ok(())
@@ -68,7 +68,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeMailTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

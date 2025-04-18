@@ -28,7 +28,7 @@ impl BufRead for StdinReader {
     }
     // read_line is the only method that needs to customize the behavior
     fn read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        trace!("StdinReader::read_line called");
+        trace!("read_line called");
         print!("> ");
         stdout().flush().expect("flush stdout");
         self.stdin.read_line(buf)

@@ -55,7 +55,7 @@ where
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
-        trace!("ChangeSalariedTx::change called");
+        trace!("change called");
         emp.set_classification(self.payroll_factory.mk_salaried_classification(self.salary));
         debug!("classification changed: {:?}", emp.classification());
         emp.set_schedule(self.payroll_factory.mk_monthly_schedule());
@@ -70,7 +70,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeSalariedTx::execute called");
+        trace!("execute called");
         ChangeEmployee::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

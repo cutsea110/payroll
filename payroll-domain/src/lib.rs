@@ -85,7 +85,7 @@ impl Employee {
         self.schedule.borrow().get_pay_period(pay_date)
     }
     pub fn payday(&self, pc: &mut Paycheck) {
-        trace!("Employee::payday");
+        trace!("payday called");
         let gross_pay = self.classification.borrow().calculate_pay(pc);
         debug!("gross_pay: {}", gross_pay);
         let deductions = self.affiliation.borrow().calculate_deductions(pc);

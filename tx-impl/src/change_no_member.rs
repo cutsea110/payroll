@@ -82,7 +82,7 @@ where
     F: PayrollFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
-        trace!("ChangeNoMemberTx::execute called");
+        trace!("execute called");
         ChangeMember::execute(self)
             .map(|_| Response::Void)
             .map_err(Into::into)

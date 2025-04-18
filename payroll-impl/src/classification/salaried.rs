@@ -20,7 +20,7 @@ impl PaymentClassification for SalariedClassification {
         self
     }
     fn calculate_pay(&self, pc: &Paycheck) -> f32 {
-        trace!("SalariedClassification::calculate_pay called");
+        trace!("calculate_pay called");
         let pay_period = pc.get_pay_period();
         debug!("pay_period: {} - {}", pay_period.start(), pay_period.end());
         self.salary

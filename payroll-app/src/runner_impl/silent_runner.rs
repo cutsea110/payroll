@@ -5,7 +5,7 @@ use tx_app::{Response, Runner, Transaction};
 pub(super) struct TxSilentRunner;
 impl Runner for TxSilentRunner {
     fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
-        trace!("TxSilentRunner::run called");
+        trace!("run called");
         tx.execute()
     }
 }

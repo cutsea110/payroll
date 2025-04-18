@@ -45,7 +45,7 @@ where
         address: &str,
         hourly_rate: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_hourly_employee_tx called");
+        trace!("mk_add_hourly_employee_tx called");
         Box::new(AddHourlyEmployeeTx::new(
             id,
             name,
@@ -62,7 +62,7 @@ where
         address: &str,
         salary: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_salaried_employee_tx called");
+        trace!("mk_add_salaried_employee_tx called");
         Box::new(AddSalariedEmployeeTx::new(
             id,
             name,
@@ -80,7 +80,7 @@ where
         salary: f32,
         commission_rate: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_commissioned_employee_tx called");
+        trace!("mk_add_commissioned_employee_tx called");
         Box::new(AddCommissionedEmployeeTx::new(
             id,
             name,
@@ -92,7 +92,7 @@ where
         ))
     }
     fn mk_delete_employee_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_delete_employee_tx called");
+        trace!("mk_delete_employee_tx called");
         Box::new(DeleteEmployeeTx::new(id, self.dao.clone()))
     }
     fn mk_add_timecard_tx(
@@ -101,7 +101,7 @@ where
         date: NaiveDate,
         hours: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_timecard_tx called");
+        trace!("mk_add_timecard_tx called");
         Box::new(AddTimeCardTx::new(id, date, hours, self.dao.clone()))
     }
     fn mk_add_sales_receipt_tx(
@@ -110,7 +110,7 @@ where
         date: NaiveDate,
         amount: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_sales_receipt_tx called");
+        trace!("mk_add_sales_receipt_tx called");
         Box::new(AddSalesReceiptTx::new(id, date, amount, self.dao.clone()))
     }
     fn mk_add_service_charge_tx(
@@ -119,11 +119,11 @@ where
         date: NaiveDate,
         amount: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_add_service_charge_tx called");
+        trace!("mk_add_service_charge_tx called");
         Box::new(AddServiceChargeTx::new(id, date, amount, self.dao.clone()))
     }
     fn mk_change_employee_name_tx(&self, id: EmployeeId, new_name: &str) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_name_tx called");
+        trace!("mk_change_name_tx called");
         Box::new(ChangeEmployeeNameTx::new(id, new_name, self.dao.clone()))
     }
     fn mk_change_employee_address_tx(
@@ -131,7 +131,7 @@ where
         id: EmployeeId,
         new_address: &str,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_address_tx called");
+        trace!("mk_change_address_tx called");
         Box::new(ChangeEmployeeAddressTx::new(
             id,
             new_address,
@@ -143,7 +143,7 @@ where
         id: EmployeeId,
         hourly_rate: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_hourly_tx called");
+        trace!("mk_change_employee_hourly_tx called");
         Box::new(ChangeHourlyTx::new(
             id,
             hourly_rate,
@@ -152,7 +152,7 @@ where
         ))
     }
     fn mk_change_employee_salaried_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_salaried_tx called");
+        trace!("mk_change_employee_salaried_tx called");
         Box::new(ChangeSalariedTx::new(
             id,
             salary,
@@ -166,7 +166,7 @@ where
         salary: f32,
         commission_rate: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_commissioned_tx called");
+        trace!("mk_change_employee_commissioned_tx called");
         Box::new(ChangeCommissionedTx::new(
             id,
             salary,
@@ -176,7 +176,7 @@ where
         ))
     }
     fn mk_change_employee_hold_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_hold_tx called");
+        trace!("mk_change_employee_hold_tx called");
         Box::new(ChangeHoldTx::new(
             id,
             self.dao.clone(),
@@ -189,7 +189,7 @@ where
         bank: &str,
         account: &str,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_direct_tx called");
+        trace!("mk_change_employee_direct_tx called");
         Box::new(ChangeDirectTx::new(
             id,
             bank,
@@ -199,7 +199,7 @@ where
         ))
     }
     fn mk_change_employee_mail_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_mail_tx called");
+        trace!("mk_change_employee_mail_tx called");
         Box::new(ChangeMailTx::new(
             id,
             address,
@@ -213,7 +213,7 @@ where
         member_id: MemberId,
         dues: f32,
     ) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_member_tx called");
+        trace!("mk_change_employee_member_tx called");
         Box::new(ChangeMemberTx::new(
             member_id,
             emp_id,
@@ -223,7 +223,7 @@ where
         ))
     }
     fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_change_employee_no_member_tx called");
+        trace!("mk_change_employee_no_member_tx called");
         Box::new(ChangeNoMemberTx::new(
             id,
             self.dao.clone(),
@@ -231,7 +231,7 @@ where
         ))
     }
     fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
-        trace!("TxFactoryImpl::mk_payday_tx called");
+        trace!("mk_payday_tx called");
         Box::new(PaydayTx::new(date, self.dao.clone()))
     }
 }

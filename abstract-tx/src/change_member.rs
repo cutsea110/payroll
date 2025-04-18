@@ -13,10 +13,10 @@ pub trait ChangeMember: HaveEmployeeDao {
     fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
-        trace!("ChangeMember::execute called");
+        trace!("execute called");
         self.dao()
             .run_tx(|mut ctx| {
-                trace!("ChangeMember::run_tx called");
+                trace!("run_tx called");
                 self.record_membership(&mut ctx)?;
 
                 let mut emp = self.dao().fetch(self.get_emp_id()).run(&mut ctx)?;

@@ -11,10 +11,10 @@ pub trait ChangeEmployee: HaveEmployeeDao {
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
-        trace!("ChangeEmployeeName::execute called");
+        trace!("execute called");
         self.dao()
             .run_tx(|mut ctx| {
-                trace!("ChangeEmployee::run_tx called");
+                trace!("run_tx called");
                 let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
                 debug!("changing emp={:?}", emp);
                 self.change(&mut emp)?;

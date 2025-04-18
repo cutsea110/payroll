@@ -19,10 +19,10 @@ pub trait AddEmployee: HaveEmployeeDao {
     fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
-        trace!("AddEmployee::execute called");
+        trace!("execute called");
         self.dao()
             .run_tx(|mut ctx| {
-                trace!("AddEmployee::run_tx called");
+                trace!("run_tx called");
                 let emp = Employee::new(
                     self.get_id(),
                     self.get_name(),
@@ -32,7 +32,7 @@ pub trait AddEmployee: HaveEmployeeDao {
                     self.get_method(),
                     self.get_affiliation(),
                 );
-                debug!("AddEmployee::execute: emp={:?}", emp);
+                debug!("execute: emp={:?}", emp);
                 self.dao().add(emp).run(&mut ctx)
             })
             .map(|_| ())

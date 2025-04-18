@@ -41,7 +41,7 @@ impl EmployeeDao for HashDB {
     where
         F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
     {
-        trace!("HashDB::run_tx called");
+        trace!("run_tx called");
         // RefCell の borrow_mut が RDB におけるトランザクションに相当
         f(self.payroll_db.borrow_mut())
     }
@@ -50,14 +50,10 @@ impl EmployeeDao for HashDB {
         &self,
         emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
-        trace!("HashDB::add called");
+        trace!("add called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();
-            trace!(
-                "HashDB::add::with_tx called: emp_id={},emp={:?}",
-                emp_id,
-                emp
-            );
+            trace!("add::with_tx called: emp_id={},emp={:?}", emp_id, emp);
             if tx.employees.contains_key(&emp_id) {
                 return Err(DaoError::EmployeeAlreadyExists(emp_id));
             }
@@ -69,9 +65,9 @@ impl EmployeeDao for HashDB {
         &self,
         id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::delete called");
+        trace!("delete called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!("HashDB::delete::with_tx called: id={}", id);
+            trace!("delete::with_tx called: id={}", id);
             if tx.employees.remove(&id).is_some() {
                 return Ok(());
             }
@@ -82,9 +78,9 @@ impl EmployeeDao for HashDB {
         &self,
         id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Employee, Err = DaoError> {
-        trace!("HashDB::fetch called");
+        trace!("fetch called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!("HashDB::fetch::with_tx called: id={}", id);
+            trace!("fetch::with_tx called: id={}", id);
             tx.employees
                 .get(&id)
                 .cloned()
@@ -94,9 +90,9 @@ impl EmployeeDao for HashDB {
     fn fetch_all<'a>(
         &self,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Vec<(EmployeeId, Employee)>, Err = DaoError> {
-        trace!("HashDB::fetch_all called");
+        trace!("fetch_all called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!("HashDB::fetch_all::with_tx called");
+            trace!("fetch_all::with_tx called");
             Ok(tx.employees.iter().map(|(k, v)| (*k, v.clone())).collect())
         })
     }
@@ -104,14 +100,10 @@ impl EmployeeDao for HashDB {
         &self,
         emp: Employee,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::save called");
+        trace!("save called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             let emp_id = emp.id();
-            trace!(
-                "HashDB::save::with_tx called: emp_id={},emp={:?}",
-                emp_id,
-                emp
-            );
+            trace!("save::with_tx called: emp_id={},emp={:?}", emp_id, emp);
             if tx.employees.contains_key(&emp_id) {
                 tx.employees.insert(emp_id, emp);
                 return Ok(());
@@ -124,10 +116,10 @@ impl EmployeeDao for HashDB {
         member_id: MemberId,
         emp_id: EmployeeId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::add_union_member called");
+        trace!("add_union_member called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::add_union_member::with_tx called: member_id={},emp_id={}",
+                "add_union_member::with_tx called: member_id={},emp_id={}",
                 member_id,
                 emp_id
             );
@@ -142,10 +134,10 @@ impl EmployeeDao for HashDB {
         &self,
         member_id: MemberId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::delete_union_member called");
+        trace!("delete_union_member called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::delete_union_member::with_tx called: member_id={}",
+                "delete_union_member::with_tx called: member_id={}",
                 member_id
             );
             if tx.union_members.remove(&member_id).is_none() {
@@ -158,10 +150,10 @@ impl EmployeeDao for HashDB {
         &self,
         member_id: MemberId,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
-        trace!("HashDB::find_union_members called");
+        trace!("find_union_members called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::find_union_members::with_tx called: member_id={}",
+                "find_union_members::with_tx called: member_id={}",
                 member_id
             );
             tx.union_members
@@ -175,10 +167,10 @@ impl EmployeeDao for HashDB {
         emp_id: EmployeeId,
         pc: Paycheck,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
-        trace!("HashDB::record_paycheck called");
+        trace!("record_paycheck called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::record_paycheck::with_tx called: emp_id={},paycheck={:?}",
+                "record_paycheck::with_tx called: emp_id={},paycheck={:?}",
                 emp_id,
                 pc
             );
@@ -191,10 +183,10 @@ impl EmployeeDao for HashDB {
         emp_id: EmployeeId,
         pay_date: NaiveDate,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError> {
-        trace!("HashDB::find_paycheck called");
+        trace!("find_paycheck called");
         tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
             trace!(
-                "HashDB::find_paycheck::with_tx called: emp_id={},pay_date={:?}",
+                "find_paycheck::with_tx called: emp_id={},pay_date={:?}",
                 emp_id,
                 pay_date
             );
