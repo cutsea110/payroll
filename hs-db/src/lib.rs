@@ -1,5 +1,4 @@
 // dao の具体的な実装
-use chrono::NaiveDate;
 use log::trace;
 use std::{
     cell::{RefCell, RefMut},
@@ -176,29 +175,6 @@ impl EmployeeDao for HashDB {
             );
             tx.paychecks.entry(emp_id).or_insert_with(Vec::new).push(pc);
             Ok(())
-        })
-    }
-    fn find_paycheck<'a>(
-        &self,
-        emp_id: EmployeeId,
-        pay_date: NaiveDate,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError> {
-        trace!("find_paycheck called");
-        tx_rs::with_tx(move |tx: &mut Self::Ctx<'a>| {
-            trace!(
-                "find_paycheck::with_tx called: emp_id={},pay_date={:?}",
-                emp_id,
-                pay_date
-            );
-            let paychecks = tx
-                .paychecks
-                .get(&emp_id)
-                .ok_or(DaoError::EmployeeNotFound(emp_id))?;
-            paychecks
-                .iter()
-                .find(|pc| pc.is_pay_date(pay_date))
-                .cloned()
-                .ok_or(DaoError::PaycheckNotFound(emp_id, pay_date))
         })
     }
 }

@@ -61,11 +61,6 @@ pub trait EmployeeDao {
         emp_id: EmployeeId,
         paycheck: Paycheck,
     ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError>;
-    fn find_paycheck<'a>(
-        &self,
-        emp_id: EmployeeId,
-        pay_date: NaiveDate,
-    ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError>;
 }
 
 pub trait HaveEmployeeDao {

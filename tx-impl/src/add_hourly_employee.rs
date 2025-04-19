@@ -105,7 +105,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
 
     use dao::{DaoError, EmployeeDao};
     use payroll_domain::{
@@ -271,14 +270,6 @@ mod tests {
             _paycheck: Paycheck,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
             tx_rs::with_tx(move |_ctx| unreachable!("record_paycheck method should not be called"))
-        }
-
-        fn find_paycheck<'a>(
-            &self,
-            _emp_id: EmployeeId,
-            _pay_date: NaiveDate,
-        ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Paycheck, Err = DaoError> {
-            tx_rs::with_tx(move |_ctx| unreachable!("find_paycheck method should not be called"))
         }
     }
     impl PayrollFactory for Tester {
