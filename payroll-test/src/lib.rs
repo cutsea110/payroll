@@ -7,11 +7,11 @@ use std::{
     str,
 };
 
-mod model;
 mod parser;
+mod tester;
 
-use model::{Paycheck, Verify};
 use parser::TxType;
+use tester::{Paycheck, Verifier};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TestResult {
@@ -150,7 +150,7 @@ impl TestRunner {
                 }
                 TxType::Verify => {
                     trace!("Verify command");
-                    let expect = match Verify::parse(line_num, line) {
+                    let expect = match Verifier::parse(line_num, line) {
                         Ok(v) => v,
                         Err(e) => {
                             result = TestResult::Fail;

@@ -1,7 +1,7 @@
 use log::{debug, trace};
 use parsec_rs::{float32, keyword, spaces, uint32, Parser};
 
-use crate::Verify;
+use crate::Verifier;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TxType {
@@ -66,7 +66,7 @@ mod is_payday_test {
     }
 }
 
-pub fn read_verify(line_num: usize, line: &str) -> Result<Verify, String> {
+pub fn read_verify(line_num: usize, line: &str) -> Result<Verifier, String> {
     trace!("read_verify called");
     verify(line_num, line.to_string())
         .parse(line)
@@ -93,7 +93,7 @@ mod read_verify_test {
         let verify = result.unwrap();
         assert_eq!(
             verify,
-            Verify::GrossPay {
+            Verifier::GrossPay {
                 emp_id: 123,
                 gross_pay: 1000.0,
                 loc: (1, line.to_string())
@@ -160,7 +160,7 @@ mod amount_test {
     }
 }
 
-fn verify(line_num: usize, line: String) -> impl Parser<Item = Verify> {
+fn verify(line_num: usize, line: String) -> impl Parser<Item = Verifier> {
     let verify = keyword("Verify").with(spaces()).label("Verify".into());
     let paycheck = keyword("Paycheck").with(spaces()).label("Paycheck".into());
     let empid = keyword("EmpId").with(spaces()).label("EmpId".into());
@@ -178,17 +178,17 @@ fn verify(line_num: usize, line: String) -> impl Parser<Item = Verify> {
         .map(move |((emp_id, key), amount)| {
             debug!("key: {}, emp_id: {}, amount: {}", key, emp_id, amount);
             match key {
-                "GrossPay" => Verify::GrossPay {
+                "GrossPay" => Verifier::GrossPay {
                     emp_id,
                     gross_pay: amount,
                     loc: (line_num, line),
                 },
-                "Deductions" => Verify::Deductions {
+                "Deductions" => Verifier::Deductions {
                     emp_id,
                     deductions: amount,
                     loc: (line_num, line),
                 },
-                "NetPay" => Verify::NetPay {
+                "NetPay" => Verifier::NetPay {
                     emp_id,
                     net_pay: amount,
                     loc: (line_num, line),
@@ -209,7 +209,7 @@ mod verify_test {
         let (verify, _) = result.unwrap();
         assert_eq!(
             verify,
-            Verify::GrossPay {
+            Verifier::GrossPay {
                 emp_id: 123,
                 gross_pay: 1000.0,
                 loc: (1, line.to_string())
