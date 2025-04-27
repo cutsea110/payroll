@@ -10,7 +10,11 @@ fn main() {
         .init();
 
     // Expect payroll-app is in the target/debug directory and that built before running this test
-    let target_path = env::var("TARGET_PATH").unwrap_or("./target/debug/payroll-app".to_string());
+    let target_dir = env::var("CARGO_TARGET_DIR").unwrap_or("target".to_string());
+    let profile = env::var("PROFILE").unwrap_or("debug".to_string());
+    let app_path =
+        env::var("APP_PATH").unwrap_or(format!("{}/{}/payroll-app", target_dir, profile));
+    debug!("payroll-app path: {}", app_path);
 
     info!("main starting");
 
@@ -20,7 +24,7 @@ fn main() {
         // OPEN: eprint
         eprint!("Running test {}\t ... ", fp);
 
-        let runner = TestRunner::new(&target_path);
+        let runner = TestRunner::new(&app_path);
         let result = runner.run(&fp);
 
         // CLOSE: eprintln
