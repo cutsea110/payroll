@@ -108,7 +108,7 @@ impl AppConfig {
         self.opts.usage(&brief)
     }
 
-    // TODO: remove db argument
+    // db is expected to setup or initialized specially for the application or the test case.
     pub fn build_tx_app(&self, db: HashDB) -> Box<dyn Application> {
         trace!("build_tx_app called");
         let mut tx_app: Box<dyn Application> =
