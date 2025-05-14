@@ -1,6 +1,15 @@
 use getopts::Options;
-use log::{error, trace};
+use log::{debug, error, trace};
 use std::{env, fmt};
+
+use app::Application;
+use hs_db::HashDB;
+use payroll_impl::PayrollFactoryImpl;
+use text_parser_tx_source::TextParserTxSource;
+use tx_app::{Runner, TxApp, TxSource};
+use tx_impl::TxFactoryImpl;
+
+use crate::{app_impl, reader_impl, runner_impl};
 
 pub struct AppConfig {
     help: bool,
@@ -97,5 +106,72 @@ impl AppConfig {
         trace!("help_message called");
         let brief = format!("Usage: {} [options] FILE", self.program);
         self.opts.usage(&brief)
+    }
+
+    // TODO: remove db argument
+    pub fn build_tx_app(&self, db: HashDB) -> Box<dyn Application> {
+        trace!("build_tx_app called");
+        let mut tx_app: Box<dyn Application> =
+            Box::new(TxApp::new(self.make_tx_source(db), self.make_tx_runner()));
+
+        if self.should_soft_land() {
+            debug!("build_tx_app: should soft landing, using with_soft_landing");
+            tx_app = app_impl::with_soft_landing(tx_app);
+        }
+        if self.should_enable_chronograph() {
+            debug!("build_tx_app: should enable chronograph, using with_chronograph");
+            tx_app = app_impl::with_chronograph(tx_app);
+        }
+
+        tx_app
+    }
+
+    fn make_tx_runner(&self) -> Box<dyn Runner> {
+        trace!("make_tx_runner called");
+        let mut tx_runner = if self.should_run_quietly() {
+            debug!("make_tx_runner: should run quietly, using silent_runner");
+            runner_impl::silent_runner()
+        } else {
+            debug!("make_tx_runner: shouldn't run quietly, using echoback_runner");
+            runner_impl::echoback_runner()
+        };
+
+        if self.transaction_failopen() {
+            debug!("make_tx_runner: transaction failopen, using with_failopen");
+            tx_runner = runner_impl::with_failopen(tx_runner);
+        }
+
+        if self.should_enable_chronograph() {
+            debug!("make_tx_runner: should enable chronograph, using with_chronograph");
+            tx_runner = runner_impl::with_chronograph(tx_runner);
+        }
+
+        tx_runner
+    }
+
+    fn make_tx_source(&self, db: HashDB) -> Box<dyn TxSource> {
+        trace!("make_tx_source called");
+
+        let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+
+        if let Some(file) = self.script_file() {
+            debug!("make_tx_source: with file={}, using file_reader", file);
+            let mut reader = reader_impl::file_reader(file);
+            if !self.should_run_quietly() {
+                debug!("make_tx_source: shouldn't run quietly, using echoback_reader");
+                reader = reader_impl::with_echo(reader);
+            }
+            if self.should_dive_into_repl() {
+                debug!("make_tx_source: should dive into REPL, using interact_reader");
+                reader = reader_impl::join(reader, reader_impl::interact_reader());
+            }
+            return Box::new(TextParserTxSource::new(tx_factory, reader));
+        }
+
+        debug!("make_tx_source: file is None, using stdin");
+        Box::new(TextParserTxSource::new(
+            tx_factory,
+            reader_impl::interact_reader(),
+        ))
     }
 }
