@@ -19,6 +19,7 @@ fn main() {
     info!("main starting");
 
     // This 1 means to skip program name
+    // These are expected to be test scenarios
     for fp in env::args().skip(1) {
         info!("test: {}", fp);
         // OPEN: eprint
