@@ -40,8 +40,9 @@ fn main() -> Result<(), anyhow::Error> {
 
     let db = HashDB::new();
 
-    trace!("main: TxApp running");
+    trace!("main: TxApp building");
     let mut tx_app = app_conf.build_tx_app(db.clone());
+    trace!("main: TxApp running");
     tx_app.run()?;
     trace!("main: TxApp finished");
 
@@ -50,7 +51,7 @@ fn main() -> Result<(), anyhow::Error> {
         // this is just for developer
         println!("{:#?}", db);
     }
-    info!("main finished");
 
+    info!("main finished");
     Ok(())
 }
