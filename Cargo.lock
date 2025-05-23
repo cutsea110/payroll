@@ -363,6 +363,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "payroll-http"
+version = "0.1.0"
+
+[[package]]
 name = "payroll-impl"
 version = "0.1.0"
 dependencies = [
