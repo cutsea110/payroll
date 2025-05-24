@@ -1,7 +1,8 @@
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use std::{
     io::prelude::*,
     net::{TcpListener, TcpStream},
+    str,
     sync::Arc,
 };
 
@@ -10,11 +11,25 @@ use threadpool::ThreadPool;
 struct Handler;
 impl Handler {
     fn handle_connection(&self, mut stream: TcpStream) {
+        trace!("Handling connection from {}", stream.peer_addr().unwrap());
         let mut buffer = [0; 1024];
         stream.read(&mut buffer).expect("read from stream");
+        // TODO: check Content-Length header for larger requests
+        let text = match str::from_utf8(&buffer) {
+            Ok(v) => v.trim_end_matches('\0'),
+            Err(e) => {
+                error!("Invalid UTF-8 sequence: {}", e);
+                return;
+            }
+        };
+        let mut split = text.splitn(2, "\r\n\r\n");
+
+        let header = split.next().unwrap_or("");
+        debug!("Received header:{:?}", header);
+        let body = split.next().unwrap_or("");
+        debug!("Received body:{}", body);
 
         let response = b"HTTP/1.1 200 OK\r\n\r\n";
-
         stream.write(response).expect("write to stream");
         stream.flush().expect("flush stream");
     }
@@ -38,7 +53,6 @@ fn main() -> Result<(), anyhow::Error> {
         let handler = Arc::clone(&handler);
 
         pool.execute(move || {
-            debug!("Handling connection");
             handler.handle_connection(stream);
         });
     }
