@@ -7,4 +7,17 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
+anyhow.workspace = true
+env_logger.workspace = true
+getopts.workspace = true
+log.workspace = true
+
 threadpool = { path = "../threadpool" }
+
+[lib]
+name = "payroll_http"
+path = "src/lib.rs"
+
+[[bin]]
+name = "payroll-http"
+path = "src/main.rs"

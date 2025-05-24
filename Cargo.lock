@@ -366,6 +366,10 @@ dependencies = [
 name = "payroll-http"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "env_logger",
+ "getopts",
+ "log",
  "threadpool",
 ]
 
@@ -553,6 +557,9 @@ dependencies = [
 [[package]]
 name = "threadpool"
 version = "0.1.0"
+dependencies = [
+ "log",
+]
 
 [[package]]
 name = "tx-app"

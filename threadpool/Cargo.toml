@@ -7,3 +7,4 @@ documentation.workspace = true
 edition.workspace = true
 
 [dependencies]
+log.workspace = true
