@@ -11,12 +11,12 @@ struct Handler;
 impl Handler {
     fn handle_connection(&self, mut stream: TcpStream) {
         let mut buffer = [0; 1024];
-        stream.read(&mut buffer).unwrap();
+        stream.read(&mut buffer).expect("read from stream");
 
         let response = b"HTTP/1.1 200 OK\r\n\r\n";
 
-        stream.write(response).unwrap();
-        stream.flush().unwrap();
+        stream.write(response).expect("write to stream");
+        stream.flush().expect("flush stream");
     }
 }
 

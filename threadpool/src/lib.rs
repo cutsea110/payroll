@@ -85,7 +85,11 @@ impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let thread = thread::spawn(move || loop {
             trace!("thread spawned");
-            let message = receiver.lock().unwrap().recv().unwrap();
+            let message = receiver
+                .lock()
+                .expect("lock receiver")
+                .recv()
+                .expect("Receive message");
             trace!("thread got message");
             match message {
                 Message::NewJob(job) => {
