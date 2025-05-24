@@ -25,9 +25,9 @@ impl Handler {
         let mut split = text.splitn(2, "\r\n\r\n");
 
         let header = split.next().unwrap_or("");
-        debug!("Received header:{:?}", header);
+        debug!("Received header:\n{}", header);
         let body = split.next().unwrap_or("");
-        debug!("Received body:{}", body);
+        debug!("Received body:\n{}", body);
 
         let response = b"HTTP/1.1 200 OK\r\n\r\n";
         stream.write(response).expect("write to stream");
