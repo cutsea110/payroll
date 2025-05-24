@@ -1,9 +1,8 @@
 // dao の具体的な実装
 use log::trace;
 use std::{
-    cell::{RefCell, RefMut},
     collections::HashMap,
-    rc::Rc,
+    sync::{Arc, Mutex, MutexGuard},
 };
 
 use dao::{DaoError, EmployeeDao};
@@ -12,7 +11,7 @@ use payroll_domain::{Employee, EmployeeId, MemberId, Paycheck};
 #[derive(Debug, Clone)]
 pub struct HashDB {
     // HashDB を DBMS として PayrollDb が DB(テーブルの集合) を表現
-    payroll_db: Rc<RefCell<PayrollDb>>,
+    payroll_db: Arc<Mutex<PayrollDb>>,
 }
 impl HashDB {
     pub fn new() -> Self {
@@ -22,7 +21,7 @@ impl HashDB {
             paychecks: HashMap::new(),
         };
         Self {
-            payroll_db: Rc::new(RefCell::new(db)),
+            payroll_db: Arc::new(Mutex::new(db)),
         }
     }
 }
@@ -34,15 +33,16 @@ pub struct PayrollDb {
 }
 // DB の実装ごとに EmployeeDao トレイトを実装する
 impl EmployeeDao for HashDB {
-    type Ctx<'a> = RefMut<'a, PayrollDb>;
+    type Ctx<'a> = MutexGuard<'a, PayrollDb>;
 
     fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, DaoError>
     where
         F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>,
     {
         trace!("run_tx called");
-        // RefCell の borrow_mut が RDB におけるトランザクションに相当
-        f(self.payroll_db.borrow_mut())
+        // Mutex の lock が RDB におけるトランザクションに相当
+        let locked = self.payroll_db.lock().unwrap();
+        f(locked)
     }
 
     fn add<'a>(
