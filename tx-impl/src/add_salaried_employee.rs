@@ -1,6 +1,6 @@
 use anyhow;
 use log::trace;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 use abstract_tx::AddEmployee;
 use dao::{EmployeeDao, HaveEmployeeDao};
@@ -74,16 +74,16 @@ where
     fn get_address(&self) -> &str {
         &self.address
     }
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
+    fn get_classification(&self) -> Arc<Mutex<dyn PaymentClassification>> {
         self.payroll_factory.mk_salaried_classification(self.salary)
     }
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+    fn get_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         self.payroll_factory.mk_monthly_schedule()
     }
-    fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
+    fn get_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
         self.payroll_factory.mk_hold_method()
     }
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+    fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
         self.payroll_factory.mk_no_affiliation()
     }
 }
@@ -104,6 +104,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Arc, Mutex};
 
     use dao::{DaoError, EmployeeDao};
     use payroll_domain::{
@@ -116,74 +117,92 @@ mod tests {
     #[derive(Debug, Clone)]
     struct Tester {
         expect: Vec<Employee>,
-        actual: Rc<RefCell<Vec<Employee>>>,
+        actual: Arc<Mutex<Vec<Employee>>>,
     }
     impl Tester {
         fn assert(&self) {
-            let borrowed = self.actual.borrow();
-            assert_eq!(borrowed.len(), self.expect.len());
-            for (e, a) in self.expect.iter().zip(borrowed.iter()) {
+            let locked = self.actual.lock().unwrap();
+            assert_eq!(locked.len(), self.expect.len());
+            for (e, a) in self.expect.iter().zip(locked.iter()) {
                 assert_eq!(a.id(), e.id());
                 assert_eq!(a.name(), e.name());
                 assert_eq!(a.address(), e.address());
                 assert!(a
                     .classification()
-                    .borrow()
+                    .lock()
+                    .unwrap()
                     .as_any()
                     .downcast_ref::<SalariedClassification>()
                     .is_some());
                 assert_eq!(
                     a.classification()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<SalariedClassification>(),
                     e.classification()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<SalariedClassification>(),
                 );
                 assert!(a
                     .schedule()
-                    .borrow()
+                    .lock()
+                    .unwrap()
                     .as_any()
                     .downcast_ref::<MonthlySchedule>()
                     .is_some());
                 // 今の MonthlySchedule は特にフィールドがないのでこのテストは不要ではある
                 assert_eq!(
                     a.schedule()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<MonthlySchedule>(),
                     e.schedule()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<MonthlySchedule>()
                 );
                 assert!(a
                     .method()
-                    .borrow()
+                    .lock()
+                    .unwrap()
                     .as_any()
                     .downcast_ref::<HoldMethod>()
                     .is_some());
                 // 今の HoldMethod は特にフィールドがないのでこのテストは不要ではある
                 assert_eq!(
-                    a.method().borrow().as_any().downcast_ref::<HoldMethod>(),
-                    e.method().borrow().as_any().downcast_ref::<HoldMethod>()
+                    a.method()
+                        .lock()
+                        .unwrap()
+                        .as_any()
+                        .downcast_ref::<HoldMethod>(),
+                    e.method()
+                        .lock()
+                        .unwrap()
+                        .as_any()
+                        .downcast_ref::<HoldMethod>()
                 );
                 assert!(a
                     .affiliation()
-                    .borrow()
+                    .lock()
+                    .unwrap()
                     .as_any()
                     .downcast_ref::<NoAffiliation>()
                     .is_some());
                 // 今の NoAffiliation は特にフィールドがないのでこのテストは不要ではある
                 assert_eq!(
                     a.affiliation()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<NoAffiliation>(),
                     e.affiliation()
-                        .borrow()
+                        .lock()
+                        .unwrap()
                         .as_any()
                         .downcast_ref::<NoAffiliation>()
                 );
@@ -205,7 +224,7 @@ mod tests {
             emp: Employee,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = EmployeeId, Err = DaoError> {
             tx_rs::with_tx(move |_ctx| {
-                self.actual.borrow_mut().push(emp);
+                self.actual.lock().unwrap().push(emp);
                 Ok(1.into()) // no care
             })
         }
@@ -272,44 +291,41 @@ mod tests {
         }
     }
     impl PayrollFactory for Tester {
-        fn mk_salaried_classification(
-            &self,
-            salary: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
-            Rc::new(RefCell::new(SalariedClassification::new(salary)))
+        fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+            Arc::new(Mutex::new(SalariedClassification::new(salary)))
         }
         fn mk_hourly_classification(
             &self,
             _hourly_rate: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
+        ) -> Arc<Mutex<dyn PaymentClassification>> {
             unimplemented!("mk_hourly_classification is not implemented")
         }
         fn mk_commissioned_classification(
             &self,
             _salary: f32,
             _commission_rate: f32,
-        ) -> Rc<RefCell<dyn PaymentClassification>> {
+        ) -> Arc<Mutex<dyn PaymentClassification>> {
             unimplemented!("mk_commissioned_classification is not implemented")
         }
 
-        fn mk_weekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
             unimplemented!("mk_weekly_schedule is not implemented")
         }
-        fn mk_monthly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-            Rc::new(RefCell::new(MonthlySchedule))
+        fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+            Arc::new(Mutex::new(MonthlySchedule))
         }
-        fn mk_biweekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
+        fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
             unimplemented!("mk_biweekly_schedule is not implemented")
         }
 
-        fn mk_hold_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-            Rc::new(RefCell::new(HoldMethod))
+        fn mk_hold_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
+            Arc::new(Mutex::new(HoldMethod))
         }
 
-        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Rc<RefCell<dyn PaymentMethod>> {
+        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
             unimplemented!("mk_direct_method is not implemented")
         }
-        fn mk_mail_method(&self, _address: &str) -> Rc<RefCell<dyn PaymentMethod>> {
+        fn mk_mail_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
             unimplemented!("mk_mail_method is not implemented")
         }
 
@@ -317,11 +333,11 @@ mod tests {
             &self,
             _member_id: MemberId,
             _dues: f32,
-        ) -> Rc<RefCell<dyn Affiliation>> {
+        ) -> Arc<Mutex<dyn Affiliation>> {
             unimplemented!("mk_union_affiliation is not implemented")
         }
-        fn mk_no_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-            Rc::new(RefCell::new(NoAffiliation))
+        fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+            Arc::new(Mutex::new(NoAffiliation))
         }
     }
 
@@ -332,12 +348,12 @@ mod tests {
                 1.into(),
                 "Bob",
                 "Home",
-                Rc::new(RefCell::new(SalariedClassification::new(123.0))),
-                Rc::new(RefCell::new(MonthlySchedule)),
-                Rc::new(RefCell::new(HoldMethod)),
-                Rc::new(RefCell::new(NoAffiliation)),
+                Arc::new(Mutex::new(SalariedClassification::new(123.0))),
+                Arc::new(Mutex::new(MonthlySchedule)),
+                Arc::new(Mutex::new(HoldMethod)),
+                Arc::new(Mutex::new(NoAffiliation)),
             )],
-            actual: Rc::new(RefCell::new(vec![])),
+            actual: Arc::new(Mutex::new(vec![])),
         };
 
         let tx: Box<dyn tx_app::Transaction> = Box::new(AddSalariedEmployeeTx::new(

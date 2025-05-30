@@ -1,5 +1,5 @@
 use log::{debug, trace};
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use tx_rs::Tx;
 
 use crate::UsecaseError;
@@ -9,7 +9,7 @@ use payroll_domain::{Affiliation, MemberId};
 // ユースケース: ChangeAffiliation トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeAffiliation: HaveEmployeeDao {
     fn get_member_id(&self) -> MemberId;
-    fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError>;
+    fn change(&self, aff: Arc<Mutex<dyn Affiliation>>) -> Result<(), DaoError>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("execute called");

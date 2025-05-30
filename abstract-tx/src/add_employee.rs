@@ -1,5 +1,5 @@
 use log::{debug, trace};
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use tx_rs::Tx;
 
 use crate::UsecaseError;
@@ -13,10 +13,10 @@ pub trait AddEmployee: HaveEmployeeDao {
     fn get_id(&self) -> EmployeeId;
     fn get_name(&self) -> &str;
     fn get_address(&self) -> &str;
-    fn get_classification(&self) -> Rc<RefCell<dyn PaymentClassification>>;
-    fn get_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>>;
-    fn get_method(&self) -> Rc<RefCell<dyn PaymentMethod>>;
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>>;
+    fn get_classification(&self) -> Arc<Mutex<dyn PaymentClassification>>;
+    fn get_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;
+    fn get_method(&self) -> Arc<Mutex<dyn PaymentMethod>>;
+    fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>>;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("execute called");

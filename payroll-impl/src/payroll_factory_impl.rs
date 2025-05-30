@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 use crate::{
     affiliation::UnionAffiliation,
@@ -15,44 +15,44 @@ use payroll_factory::PayrollFactory;
 pub struct PayrollFactoryImpl;
 
 impl PayrollFactory for PayrollFactoryImpl {
-    fn mk_hourly_classification(&self, hourly_rate: f32) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(HourlyClassification::new(hourly_rate)))
+    fn mk_hourly_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+        Arc::new(Mutex::new(HourlyClassification::new(hourly_rate)))
     }
-    fn mk_salaried_classification(&self, salary: f32) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(SalariedClassification::new(salary)))
+    fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+        Arc::new(Mutex::new(SalariedClassification::new(salary)))
     }
     fn mk_commissioned_classification(
         &self,
         salary: f32,
         commission_rate: f32,
-    ) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::new(RefCell::new(CommissionedClassification::new(
+    ) -> Arc<Mutex<dyn PaymentClassification>> {
+        Arc::new(Mutex::new(CommissionedClassification::new(
             salary,
             commission_rate,
         )))
     }
-    fn mk_weekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(WeeklySchedule))
+    fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        Arc::new(Mutex::new(WeeklySchedule))
     }
-    fn mk_monthly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(MonthlySchedule))
+    fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        Arc::new(Mutex::new(MonthlySchedule))
     }
-    fn mk_biweekly_schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::new(RefCell::new(BiweeklySchedule))
+    fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        Arc::new(Mutex::new(BiweeklySchedule))
     }
-    fn mk_hold_method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(HoldMethod))
+    fn mk_hold_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
+        Arc::new(Mutex::new(HoldMethod))
     }
-    fn mk_direct_method(&self, bank: &str, account: &str) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(DirectMethod::new(bank, account)))
+    fn mk_direct_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+        Arc::new(Mutex::new(DirectMethod::new(bank, account)))
     }
-    fn mk_mail_method(&self, address: &str) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::new(RefCell::new(MailMethod::new(address)))
+    fn mk_mail_method(&self, address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+        Arc::new(Mutex::new(MailMethod::new(address)))
     }
-    fn mk_union_affiliation(&self, member_id: MemberId, dues: f32) -> Rc<RefCell<dyn Affiliation>> {
-        Rc::new(RefCell::new(UnionAffiliation::new(member_id, dues)))
+    fn mk_union_affiliation(&self, member_id: MemberId, dues: f32) -> Arc<Mutex<dyn Affiliation>> {
+        Arc::new(Mutex::new(UnionAffiliation::new(member_id, dues)))
     }
-    fn mk_no_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-        Rc::new(RefCell::new(NoAffiliation))
+    fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+        Arc::new(Mutex::new(NoAffiliation))
     }
 }

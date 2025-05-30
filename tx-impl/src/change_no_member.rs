@@ -1,6 +1,6 @@
 use anyhow;
 use log::{debug, trace};
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use tx_rs::Tx;
 
 use abstract_tx::ChangeMember;
@@ -55,7 +55,7 @@ where
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
-    fn get_affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
+    fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
         self.payroll_factory.mk_no_affiliation()
     }
     fn record_membership<'a>(
@@ -66,7 +66,8 @@ where
         let emp = self.dao().fetch(self.emp_id).run(ctx)?;
         let member_id = emp
             .affiliation()
-            .borrow()
+            .lock()
+            .unwrap()
             .as_any()
             .downcast_ref::<UnionAffiliation>()
             .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?

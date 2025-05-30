@@ -1,7 +1,7 @@
 use anyhow;
 use chrono::NaiveDate;
 use log::{debug, trace};
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 use abstract_tx::ChangeAffiliation;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
@@ -52,14 +52,15 @@ where
     fn get_member_id(&self) -> MemberId {
         self.member_id
     }
-    fn change(&self, aff: Rc<RefCell<dyn Affiliation>>) -> Result<(), DaoError> {
+    fn change(&self, aff: Arc<Mutex<dyn Affiliation>>) -> Result<(), DaoError> {
         trace!("change called");
-        aff.borrow_mut()
+        aff.lock()
+            .unwrap()
             .as_any_mut()
             .downcast_mut::<UnionAffiliation>()
             .ok_or(DaoError::UnexpectedError("didn't union affiliation".into()))?
             .add_service_charge(self.date, self.amount);
-        debug!("service charge added: {:?}", aff.borrow());
+        debug!("service charge added: {:?}", aff.lock().unwrap());
         Ok(())
     }
 }

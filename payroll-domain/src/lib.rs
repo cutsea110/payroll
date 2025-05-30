@@ -1,7 +1,12 @@
 use chrono::NaiveDate;
 use dyn_clone::DynClone;
 use log::{debug, trace};
-use std::{any::Any, cell::RefCell, fmt::Debug, ops::RangeInclusive, rc::Rc};
+use std::{
+    any::Any,
+    fmt::Debug,
+    ops::RangeInclusive,
+    sync::{Arc, Mutex},
+};
 
 mod types;
 pub use types::*;
@@ -12,10 +17,10 @@ pub struct Employee {
     name: String,
     address: String,
 
-    classification: Rc<RefCell<dyn PaymentClassification>>,
-    schedule: Rc<RefCell<dyn PaymentSchedule>>,
-    method: Rc<RefCell<dyn PaymentMethod>>,
-    affiliation: Rc<RefCell<dyn Affiliation>>,
+    classification: Arc<Mutex<dyn PaymentClassification>>,
+    schedule: Arc<Mutex<dyn PaymentSchedule>>,
+    method: Arc<Mutex<dyn PaymentMethod>>,
+    affiliation: Arc<Mutex<dyn Affiliation>>,
 }
 
 impl Employee {
@@ -23,10 +28,10 @@ impl Employee {
         id: EmployeeId,
         name: &str,
         address: &str,
-        classification: Rc<RefCell<dyn PaymentClassification>>,
-        schedule: Rc<RefCell<dyn PaymentSchedule>>,
-        method: Rc<RefCell<dyn PaymentMethod>>,
-        affiliation: Rc<RefCell<dyn Affiliation>>,
+        classification: Arc<Mutex<dyn PaymentClassification>>,
+        schedule: Arc<Mutex<dyn PaymentSchedule>>,
+        method: Arc<Mutex<dyn PaymentMethod>>,
+        affiliation: Arc<Mutex<dyn Affiliation>>,
     ) -> Self {
         Self {
             id,
@@ -48,17 +53,17 @@ impl Employee {
     pub fn address(&self) -> &str {
         &self.address
     }
-    pub fn classification(&self) -> Rc<RefCell<dyn PaymentClassification>> {
-        Rc::clone(&self.classification)
+    pub fn classification(&self) -> Arc<Mutex<dyn PaymentClassification>> {
+        Arc::clone(&self.classification)
     }
-    pub fn schedule(&self) -> Rc<RefCell<dyn PaymentSchedule>> {
-        Rc::clone(&self.schedule)
+    pub fn schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        Arc::clone(&self.schedule)
     }
-    pub fn method(&self) -> Rc<RefCell<dyn PaymentMethod>> {
-        Rc::clone(&self.method)
+    pub fn method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
+        Arc::clone(&self.method)
     }
-    pub fn affiliation(&self) -> Rc<RefCell<dyn Affiliation>> {
-        Rc::clone(&self.affiliation)
+    pub fn affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+        Arc::clone(&self.affiliation)
     }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
@@ -66,29 +71,29 @@ impl Employee {
     pub fn set_address(&mut self, address: &str) {
         self.address = address.to_string();
     }
-    pub fn set_classification(&mut self, classification: Rc<RefCell<dyn PaymentClassification>>) {
+    pub fn set_classification(&mut self, classification: Arc<Mutex<dyn PaymentClassification>>) {
         self.classification = classification;
     }
-    pub fn set_schedule(&mut self, schedule: Rc<RefCell<dyn PaymentSchedule>>) {
+    pub fn set_schedule(&mut self, schedule: Arc<Mutex<dyn PaymentSchedule>>) {
         self.schedule = schedule;
     }
-    pub fn set_method(&mut self, method: Rc<RefCell<dyn PaymentMethod>>) {
+    pub fn set_method(&mut self, method: Arc<Mutex<dyn PaymentMethod>>) {
         self.method = method;
     }
-    pub fn set_affiliation(&mut self, affiliation: Rc<RefCell<dyn Affiliation>>) {
+    pub fn set_affiliation(&mut self, affiliation: Arc<Mutex<dyn Affiliation>>) {
         self.affiliation = affiliation;
     }
     pub fn is_pay_date(&self, date: NaiveDate) -> bool {
-        self.schedule.borrow().is_pay_date(date)
+        self.schedule.lock().unwrap().is_pay_date(date)
     }
     pub fn get_pay_period(&self, pay_date: NaiveDate) -> RangeInclusive<NaiveDate> {
-        self.schedule.borrow().get_pay_period(pay_date)
+        self.schedule.lock().unwrap().get_pay_period(pay_date)
     }
     pub fn payday(&self, pc: &mut Paycheck) {
         trace!("payday called");
-        let gross_pay = self.classification.borrow().calculate_pay(pc);
+        let gross_pay = self.classification.lock().unwrap().calculate_pay(pc);
         debug!("gross_pay: {}", gross_pay);
-        let deductions = self.affiliation.borrow().calculate_deductions(pc);
+        let deductions = self.affiliation.lock().unwrap().calculate_deductions(pc);
         debug!("deductions: {}", deductions);
         let net_pay = gross_pay - deductions;
         debug!("net_pay: {}", net_pay);
@@ -96,7 +101,7 @@ impl Employee {
         pc.set_deductions(deductions);
         pc.set_net_pay(net_pay);
         debug!("updated paycheck: {:?}", pc);
-        self.method.borrow().pay(self.id, pc);
+        self.method.lock().unwrap().pay(self.id, pc);
     }
 }
 

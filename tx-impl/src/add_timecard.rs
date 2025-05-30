@@ -54,7 +54,8 @@ where
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         trace!("change called");
         emp.classification()
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .as_any_mut()
             .downcast_mut::<HourlyClassification>()
             .ok_or(DaoError::UnexpectedError(
@@ -82,7 +83,7 @@ where
 mod tests {
     use super::*;
     use chrono::NaiveDate;
-    use std::{cell::RefCell, rc::Rc};
+    use std::sync::{Arc, Mutex};
 
     use dao::{DaoError, EmployeeDao};
     use payroll_domain::{Employee, EmployeeId, MemberId, NoAffiliation, Paycheck};
@@ -97,16 +98,16 @@ mod tests {
     #[derive(Debug, Clone)]
     struct Tester {
         expect: Vec<Call>,
-        actual: Rc<RefCell<Vec<Call>>>,
+        actual: Arc<Mutex<Vec<Call>>>,
 
-        fetched: Rc<RefCell<Vec<Result<Employee, DaoError>>>>,
-        updated: Rc<RefCell<Vec<Result<(), DaoError>>>>,
+        fetched: Arc<Mutex<Vec<Result<Employee, DaoError>>>>,
+        updated: Arc<Mutex<Vec<Result<(), DaoError>>>>,
     }
     impl Tester {
         fn assert(&self) {
-            let borrowed = self.actual.borrow();
-            assert_eq!(borrowed.len(), self.expect.len());
-            for (e, a) in self.expect.iter().zip(borrowed.iter()) {
+            let locked = self.actual.lock().unwrap();
+            assert_eq!(locked.len(), self.expect.len());
+            for (e, a) in self.expect.iter().zip(locked.iter()) {
                 match e {
                     Call::Fetch(e) => {
                         if let Call::Fetch(a) = a {
@@ -122,56 +123,73 @@ mod tests {
                             assert_eq!(a.address(), e.address());
                             assert_eq!(
                                 a.classification()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<HourlyClassification>(),
                                 e.classification()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<HourlyClassification>(),
                             );
                             assert!(a
                                 .schedule()
-                                .borrow()
+                                .lock()
+                                .unwrap()
                                 .as_any()
                                 .downcast_ref::<WeeklySchedule>()
                                 .is_some());
                             // 今の WeeklySchedule は特にフィールドがないのでこのテストは不要ではある
                             assert_eq!(
                                 a.schedule()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<WeeklySchedule>(),
                                 e.schedule()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<WeeklySchedule>()
                             );
                             assert!(a
                                 .method()
-                                .borrow()
+                                .lock()
+                                .unwrap()
                                 .as_any()
                                 .downcast_ref::<HoldMethod>()
                                 .is_some());
                             // 今の HoldMethod は特にフィールドがないのでこのテストは不要ではある
                             assert_eq!(
-                                a.method().borrow().as_any().downcast_ref::<HoldMethod>(),
-                                e.method().borrow().as_any().downcast_ref::<HoldMethod>()
+                                a.method()
+                                    .lock()
+                                    .unwrap()
+                                    .as_any()
+                                    .downcast_ref::<HoldMethod>(),
+                                e.method()
+                                    .lock()
+                                    .unwrap()
+                                    .as_any()
+                                    .downcast_ref::<HoldMethod>()
                             );
                             assert!(a
                                 .affiliation()
-                                .borrow()
+                                .lock()
+                                .unwrap()
                                 .as_any()
                                 .downcast_ref::<NoAffiliation>()
                                 .is_some());
                             // 今の NoAffiliation は特にフィールドがないのでこのテストは不要ではある
                             assert_eq!(
                                 a.affiliation()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<NoAffiliation>(),
                                 e.affiliation()
-                                    .borrow()
+                                    .lock()
+                                    .unwrap()
                                     .as_any()
                                     .downcast_ref::<NoAffiliation>()
                             );
@@ -211,8 +229,8 @@ mod tests {
             id: EmployeeId,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = Employee, Err = DaoError> {
             tx_rs::with_tx(move |_ctx| {
-                self.actual.borrow_mut().push(Call::Fetch(id));
-                self.fetched.borrow_mut().pop().unwrap()
+                self.actual.lock().unwrap().push(Call::Fetch(id));
+                self.fetched.lock().unwrap().pop().unwrap()
             })
         }
 
@@ -228,8 +246,8 @@ mod tests {
             emp: Employee,
         ) -> impl tx_rs::Tx<Self::Ctx<'a>, Item = (), Err = DaoError> {
             tx_rs::with_tx(move |_ctx| {
-                self.actual.borrow_mut().push(Call::Update(emp));
-                self.updated.borrow_mut().pop().unwrap()
+                self.actual.lock().unwrap().push(Call::Update(emp));
+                self.updated.lock().unwrap().pop().unwrap()
             })
         }
 
@@ -279,24 +297,24 @@ mod tests {
                     1.into(),
                     "Bob",
                     "Home",
-                    Rc::new(RefCell::new(hc)),
-                    Rc::new(RefCell::new(WeeklySchedule)),
-                    Rc::new(RefCell::new(HoldMethod)),
-                    Rc::new(RefCell::new(NoAffiliation)),
+                    Arc::new(Mutex::new(hc)),
+                    Arc::new(Mutex::new(WeeklySchedule)),
+                    Arc::new(Mutex::new(HoldMethod)),
+                    Arc::new(Mutex::new(NoAffiliation)),
                 )),
             ],
-            actual: Rc::new(RefCell::new(vec![])),
+            actual: Arc::new(Mutex::new(vec![])),
 
-            fetched: Rc::new(RefCell::new(vec![Ok(Employee::new(
+            fetched: Arc::new(Mutex::new(vec![Ok(Employee::new(
                 1.into(),
                 "Bob",
                 "Home",
-                Rc::new(RefCell::new(HourlyClassification::new(12.0))),
-                Rc::new(RefCell::new(WeeklySchedule)),
-                Rc::new(RefCell::new(HoldMethod)),
-                Rc::new(RefCell::new(NoAffiliation)),
+                Arc::new(Mutex::new(HourlyClassification::new(12.0))),
+                Arc::new(Mutex::new(WeeklySchedule)),
+                Arc::new(Mutex::new(HoldMethod)),
+                Arc::new(Mutex::new(NoAffiliation)),
             ))])),
-            updated: Rc::new(RefCell::new(vec![Ok(())])),
+            updated: Arc::new(Mutex::new(vec![Ok(())])),
         };
 
         let tx: Box<dyn tx_app::Transaction> = Box::new(AddTimeCardTx::new(
