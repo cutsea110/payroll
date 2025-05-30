@@ -12,7 +12,13 @@ env_logger.workspace = true
 getopts.workspace = true
 log.workspace = true
 
+app = { path = "../app" }
+hs-db = { path = "../hs-db" }
+payroll-impl = { path = "../payroll-impl" }
+text-parser-tx-source = { path = "../text-parser-tx-source" }
 threadpool = { path = "../threadpool" }
+tx-app = { path = "../tx-app" }
+tx-impl = { path = "../tx-impl" }
 
 [lib]
 name = "payroll_http"

@@ -148,14 +148,14 @@ impl Paycheck {
     }
 }
 
-pub trait PaymentClassification: Debug + DynClone {
+pub trait PaymentClassification: Debug + DynClone + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn calculate_pay(&self, pc: &Paycheck) -> f32;
 }
 dyn_clone::clone_trait_object!(PaymentClassification);
 
-pub trait PaymentSchedule: Debug + DynClone {
+pub trait PaymentSchedule: Debug + DynClone + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn is_pay_date(&self, date: NaiveDate) -> bool;
@@ -163,7 +163,7 @@ pub trait PaymentSchedule: Debug + DynClone {
 }
 dyn_clone::clone_trait_object!(PaymentSchedule);
 
-pub trait PaymentMethod: Debug + DynClone {
+pub trait PaymentMethod: Debug + DynClone + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     // TODO: return type
@@ -171,7 +171,7 @@ pub trait PaymentMethod: Debug + DynClone {
 }
 dyn_clone::clone_trait_object!(PaymentMethod);
 
-pub trait Affiliation: Debug + DynClone {
+pub trait Affiliation: Debug + DynClone + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn calculate_deductions(&self, pc: &Paycheck) -> f32;

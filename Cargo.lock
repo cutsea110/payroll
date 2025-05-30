@@ -367,10 +367,16 @@ name = "payroll-http"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "app",
  "env_logger",
  "getopts",
+ "hs-db",
  "log",
+ "payroll-impl",
+ "text-parser-tx-source",
  "threadpool",
+ "tx-app",
+ "tx-impl",
 ]
 
 [[package]]
