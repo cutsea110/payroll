@@ -1,7 +1,7 @@
 # payroll (Case Study of Uncle Bob)
 
 [![Rust](https://github.com/cutsea110/payroll/actions/workflows/rust.yml/badge.svg)](https://github.com/cutsea110/payroll/actions/workflows/rust.yml)
-[![Docker Cloud Build Status](https://img.shields.io/docker/pulls/cutsea110/payroll-app)](https://hub.docker.com/repository/docker/cutsea110/payroll-app/general)
+[![Docker Cloud Build Status](https://img.shields.io/docker/pulls/cutsea110/payroll-cli)](https://hub.docker.com/repository/docker/cutsea110/payroll-cli/general)
 
 ref.) [アジャイルソフトウェア開発の奥義 第2版](https://www.amazon.co.jp/dp/4797347783)
 
@@ -11,9 +11,9 @@ The payroll app is described at the book above.
 ## Usage
 
 ```bash
-$ cargo run -p payroll-app -- -h
+$ cargo run -p payroll-cli -- -h
 
-Usage: target/debug/payroll-app [options] FILE
+Usage: target/debug/payroll-cli [options] FILE
 
 Options:
     -h, --help          Print this help menu
@@ -74,11 +74,11 @@ graph TD
 
 ## Run on docker
 
-See [Dockerhub cutsea110/payroll-app](https://hub.docker.com/repository/docker/cutsea110/payroll-app/general).
+See [Dockerhub cutsea110/payroll-cli](https://hub.docker.com/repository/docker/cutsea110/payroll-cli).
 
 ```bash
-$ docker run -v ./:/work -it --rm cutsea110/payroll-app:0.1.3 payroll-app -h
-Usage: payroll-app [options] FILE
+$ docker run -v ./:/work -it --rm cutsea110/payroll-cli:0.2.0 payroll-cli -h
+Usage: payroll-cli [options] FILE
 
 Options:
     -h, --help          Print this help menu
@@ -110,24 +110,24 @@ $ cargo run -p payroll-test -- ./scenario/test*.scr
 
 ### How to build Docker image
 
-You should specify the version 0.1.4, because the latest version is 0.1.3.1.
+You should specify the version 0.2.1, because the latest version is 0.2.0.
 
 ```bash
-$ docker buildx build --load -t cutsea110/payroll-app:0.1.4 .
+$ docker buildx build --load -t cutsea110/payroll-cli:0.2.1 -f ./dockerfiles/Dockerfile.cli .
 ```
 ### How to run on Docker image
 
-I suppose that you have some test programs for payroll-app in `${PWD}/scenario` directory.
+I suppose that you have some test programs for payroll-cli in `${PWD}/scenario` directory.
 
 ```bash
-$ docker run -v ${PWD}/scenario:/work -it --rm cutsea110/payroll-app:0.1.4 payroll-app /work/test1.scr
+$ docker run -v ${PWD}/scenario:/work -it --rm cutsea110/payroll-cli:0.2.1 payroll-cli /work/test1.scr
 ```
 
 ### Share Dockerhub
 
 ```bash
 $ docker login
-$ docker push cutsea110/payroll-app:0.1.4
+$ docker push cutsea110/payroll-cli:0.2.1
 ```
 
 ### Update This README

@@ -7,5 +7,5 @@ RUN cargo build --release
 
 FROM debian:sid-slim
 
-COPY --from=builder /work/target/release/payroll-app /usr/bin/payroll-app
-CMD ["payroll-app", "-h"]
+COPY --from=builder /work/target/release/payroll-cli /usr/bin/payroll-cli
+CMD ["payroll-cli", "-h"]
