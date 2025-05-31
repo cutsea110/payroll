@@ -59,12 +59,16 @@ graph TD
 
   hs-db --> payroll-domain
   hs-db --> dao
+  
+  tx-app-impl --> tx-app
+  tx-app-impl --> app
 
   payroll-app --> hs-db
   payroll-app --> payroll-impl
   payroll-app --> tx-impl
   payroll-app --> text-parser-tx-source
   payroll-app --> tx-app
+  payroll-app --> tx-app-impl
   payroll-app --> app
 ```
 
