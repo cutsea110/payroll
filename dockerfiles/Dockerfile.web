@@ -1,0 +1,11 @@
+FROM rust:latest AS builder
+
+WORKDIR /work/
+COPY . /work/
+RUN cargo update
+RUN cargo build --release
+
+FROM debian:sid-slim
+
+COPY --from=builder /work/target/release/payroll-web /usr/bin/payroll-web
+CMD ["payroll-web", "-h"]

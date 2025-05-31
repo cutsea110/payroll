@@ -64,7 +64,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server...");
 
-    let listener = TcpListener::bind("127.0.0.1:7878").expect("Bind to 127.0.0.1:7878");
+    let listener = TcpListener::bind("0.0.0.0:7878").expect("Bind to 0.0.0.0:7878");
     let pool = ThreadPool::new(4);
     let db = HashDB::new();
     let handler = Arc::new(Handler::new(db.clone()));
