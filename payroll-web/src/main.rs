@@ -6,14 +6,9 @@ use std::{
     sync::Arc,
 };
 
-use app::Application;
 use hs_db::HashDB;
-use payroll_impl::PayrollFactoryImpl;
-use text_parser_tx_source::TextParserTxSource;
+use payroll_web::AppConfig;
 use threadpool::ThreadPool;
-use tx_app::TxApp;
-use tx_app_impl::{reader_impl, runner_impl};
-use tx_impl::TxFactoryImpl;
 
 #[derive(Debug, Clone)]
 struct Handler {
@@ -37,19 +32,20 @@ impl Handler {
         };
         let mut split = text.splitn(2, "\r\n\r\n");
 
-        let header = split.next().unwrap_or("");
+        let header = split.next().unwrap_or_default();
         debug!("Received header:\n{}", header);
-        let body = split.next().unwrap_or("");
+        let body = split.next().unwrap_or_default();
         debug!("Received body:\n{}", body);
 
-        let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
-        let tx_source =
-            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
-        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(
-            Box::new(tx_source),
-            runner_impl::silent_runner(),
-        ));
+        let app_conf = match AppConfig::new(body) {
+            Ok(conf) => conf,
+            Err(e) => {
+                error!("Failed to create AppConfig: {}", e);
+                return;
+            }
+        };
 
+        let mut tx_app = app_conf.build_tx_app(self.db.clone());
         tx_app.run().unwrap_or_else(|e| {
             error!("Error running transaction app: {}", e);
         });
