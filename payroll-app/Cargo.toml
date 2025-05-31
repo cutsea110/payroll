@@ -17,6 +17,7 @@ hs-db = { path = "../hs-db" }
 payroll-impl = { path = "../payroll-impl" }
 text-parser-tx-source = { path = "../text-parser-tx-source" }
 tx-app = { path = "../tx-app" }
+tx-app-impl = { path = "../tx-app-impl" }
 tx-impl = { path = "../tx-impl" }
 
 [lib]

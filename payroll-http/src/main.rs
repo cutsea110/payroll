@@ -8,11 +8,11 @@ use std::{
 
 use app::Application;
 use hs_db::HashDB;
-use payroll_app::{reader_impl, runner_impl};
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
 use threadpool::ThreadPool;
 use tx_app::TxApp;
+use tx_app_impl::{reader_impl, runner_impl};
 use tx_impl::TxFactoryImpl;
 
 #[derive(Debug, Clone)]

@@ -14,11 +14,11 @@ log.workspace = true
 
 app = { path = "../app" }
 hs-db = { path = "../hs-db" }
-payroll-app = { path = "../payroll-app" }
 payroll-impl = { path = "../payroll-impl" }
 text-parser-tx-source = { path = "../text-parser-tx-source" }
 threadpool = { path = "../threadpool" }
 tx-app = { path = "../tx-app" }
+tx-app-impl = { path = "../tx-app-impl" }
 tx-impl = { path = "../tx-impl" }
 
 [lib]

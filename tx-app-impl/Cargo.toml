@@ -1,0 +1,14 @@
+[package]
+name = "tx-app-impl"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+log.workspace = true
+
+app = { path = "../app" }
+tx-app = { path = "../tx-app" }

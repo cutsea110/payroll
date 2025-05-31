@@ -7,9 +7,8 @@ use hs_db::HashDB;
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
 use tx_app::{Runner, TxApp, TxSource};
+use tx_app_impl::{app_impl, reader_impl, runner_impl};
 use tx_impl::TxFactoryImpl;
-
-use crate::{app_impl, reader_impl, runner_impl};
 
 pub struct AppConfig {
     help: bool,

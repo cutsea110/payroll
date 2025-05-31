@@ -343,6 +343,7 @@ dependencies = [
  "payroll-impl",
  "text-parser-tx-source",
  "tx-app",
+ "tx-app-impl",
  "tx-impl",
 ]
 
@@ -372,11 +373,11 @@ dependencies = [
  "getopts",
  "hs-db",
  "log",
- "payroll-app",
  "payroll-impl",
  "text-parser-tx-source",
  "threadpool",
  "tx-app",
+ "tx-app-impl",
  "tx-impl",
 ]
 
@@ -577,6 +578,16 @@ dependencies = [
  "chrono",
  "log",
  "payroll-domain",
+]
+
+[[package]]
+name = "tx-app-impl"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "app",
+ "log",
+ "tx-app",
 ]
 
 [[package]]
