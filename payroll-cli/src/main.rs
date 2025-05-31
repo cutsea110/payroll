@@ -1,7 +1,7 @@
 use log::{debug, info, trace};
 
 use hs_db::HashDB;
-use payroll_app::app_config;
+use payroll_cli::app_config;
 
 fn print_header(_app_conf: &app_config::AppConfig) {
     trace!("print_header called");

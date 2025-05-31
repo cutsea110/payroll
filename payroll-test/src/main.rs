@@ -13,8 +13,8 @@ fn main() {
     let target_dir = env::var("CARGO_TARGET_DIR").unwrap_or("target".to_string());
     let profile = env::var("PROFILE").unwrap_or("debug".to_string());
     let app_path =
-        env::var("APP_PATH").unwrap_or(format!("{}/{}/payroll-app", target_dir, profile));
-    debug!("payroll-app path: {}", app_path);
+        env::var("APP_PATH").unwrap_or(format!("{}/{}/payroll-cli", target_dir, profile));
+    debug!("payroll-cli path: {}", app_path);
 
     info!("main starting");
 

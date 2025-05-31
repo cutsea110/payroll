@@ -1,5 +1,5 @@
 [package]
-name = "payroll-app"
+name = "payroll-cli"
 version.workspace = true
 authors.workspace = true
 description.workspace = true
@@ -21,9 +21,9 @@ tx-app-impl = { path = "../tx-app-impl" }
 tx-impl = { path = "../tx-impl" }
 
 [lib]
-name = "payroll_app"
+name = "payroll_cli"
 path = "src/lib.rs"
 
 [[bin]]
-name = "payroll-app"
+name = "payroll-cli"
 path = "src/main.rs"
