@@ -63,13 +63,13 @@ graph TD
   tx-app-impl --> tx-app
   tx-app-impl --> app
 
-  payroll-app --> hs-db
-  payroll-app --> payroll-impl
-  payroll-app --> tx-impl
-  payroll-app --> text-parser-tx-source
-  payroll-app --> tx-app
-  payroll-app --> tx-app-impl
-  payroll-app --> app
+  payroll-cli --> hs-db
+  payroll-cli --> payroll-impl
+  payroll-cli --> tx-impl
+  payroll-cli --> text-parser-tx-source
+  payroll-cli --> tx-app
+  payroll-cli --> tx-app-impl
+  payroll-cli --> app
 ```
 
 ## Run on docker
