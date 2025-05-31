@@ -1,6 +1,6 @@
 use log::{debug, error, info, trace};
 use std::{
-    io::{prelude::*, BufRead, BufReader, Cursor},
+    io::prelude::*,
     net::{TcpListener, TcpStream},
     str,
     sync::Arc,
@@ -8,24 +8,12 @@ use std::{
 
 use app::Application;
 use hs_db::HashDB;
+use payroll_app::{reader_impl, runner_impl};
 use payroll_impl::PayrollFactoryImpl;
 use text_parser_tx_source::TextParserTxSource;
 use threadpool::ThreadPool;
-use tx_app::{Response, Runner, Transaction, TxApp};
+use tx_app::TxApp;
 use tx_impl::TxFactoryImpl;
-
-pub fn string_reader(text: String) -> Box<dyn BufRead> {
-    let cursor = Cursor::new(text.into_bytes());
-    Box::new(BufReader::new(cursor))
-}
-
-struct TxSilentRunner;
-impl Runner for TxSilentRunner {
-    fn run(&self, tx: Box<dyn Transaction>) -> Result<Response, anyhow::Error> {
-        trace!("run called");
-        tx.execute()
-    }
-}
 
 #[derive(Debug, Clone)]
 struct Handler {
@@ -55,9 +43,12 @@ impl Handler {
         debug!("Received body:\n{}", body);
 
         let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
-        let tx_source = TextParserTxSource::new(tx_factory, string_reader(body.to_string()));
-        let mut tx_app: Box<dyn Application> =
-            Box::new(TxApp::new(Box::new(tx_source), Box::new(TxSilentRunner)));
+        let tx_source =
+            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
+        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(
+            Box::new(tx_source),
+            runner_impl::silent_runner(),
+        ));
 
         tx_app.run().unwrap_or_else(|e| {
             error!("Error running transaction app: {}", e);

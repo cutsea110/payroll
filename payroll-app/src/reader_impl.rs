@@ -1,8 +1,13 @@
 use log::trace;
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Cursor},
 };
+
+pub fn string_reader(text: String) -> Box<dyn BufRead> {
+    let cursor = Cursor::new(text.into_bytes());
+    Box::new(BufReader::new(cursor))
+}
 
 pub fn file_reader(file: &str) -> Box<dyn BufRead> {
     trace!("file_reader called");

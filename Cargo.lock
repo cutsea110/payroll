@@ -372,6 +372,7 @@ dependencies = [
  "getopts",
  "hs-db",
  "log",
+ "payroll-app",
  "payroll-impl",
  "text-parser-tx-source",
  "threadpool",
