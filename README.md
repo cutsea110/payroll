@@ -98,8 +98,8 @@ Options:
 See [Dockerhub cutsea110/payroll-web](https://hub.docker.com/repository/docker/cutsea110/payroll-web).
 
 ```
-$ docker run -it --rm cutsea110/payroll-web:0.1.0 payroll-web -?
-Usage: payroll-web [options] FILE
+$ docker run -it --rm cutsea110/payroll-web:0.1.1 payroll-web -?
+Usage: payroll-web [options]
 
 Options:
     -?, --help          Print this help menu
@@ -152,17 +152,17 @@ $ docker push cutsea110/payroll-cli:0.2.2
 
 ### How to build Docker image (payroll-web)
 
-You should specify the version 0.1.1, because the latest version is 0.1.0.
+You should specify the version 0.1.2, because the latest version is 0.1.1.
 
 ```bash
-$ docker buildx build --load -t cutsea110/payroll-web:0.1.1 -f ./dockerfiles/Dockerfile.web .
+$ docker buildx build --load -t cutsea110/payroll-web:0.1.2 -f ./dockerfiles/Dockerfile.web .
 ```
 ### How to run on Docker image (payroll-web)
 
 I suppose that you have some test for payroll-web for manually.
 
 ```bash
-$ docker run -e RUST_LOG=trace -p 3000:3000 -it --rm cutsea110/payroll-web:0.1.1
+$ docker run -e RUST_LOG=trace -p 3000:3000 -it --rm cutsea110/payroll-web:0.1.2
 ```
 
 Then, you should open an another terminal and do curl like below:
@@ -177,7 +177,7 @@ curl -X POST \
 If you start payroll-web as below:
 
 ```bash
-$ docker run -e RUST_LOG=trace -p 7878:3000 -it --rm cutsea110/payroll-web:0.1.1
+$ docker run -e RUST_LOG=trace -p 7878:3000 -it --rm cutsea110/payroll-web:0.1.2
 ```
 
 Then, you can request to the port 7878.
@@ -192,7 +192,7 @@ curl -X POST \
 Or, you let payroll-web bind to the port 7878 in docker and the docker can handle requests on the port 3000.
 
 ```bash
-$ docker run -e RUST_LOG=trace -p 3000:7878 -it --rm cutsea110/payroll-web:0.1.1 payroll-web -h 0.0.0.0 -p 7878
+$ docker run -e RUST_LOG=trace -p 3000:7878 -it --rm cutsea110/payroll-web:0.1.2 payroll-web -h 0.0.0.0 -p 7878
 ```
 
 Note that you need to direct the host as 0.0.0.0, too.
@@ -202,7 +202,7 @@ Note that you need to direct the host as 0.0.0.0, too.
 
 ```bash
 $ docker login
-$ docker push cutsea110/payroll-web:0.1.1
+$ docker push cutsea110/payroll-web:0.1.2
 ```
 
 ### Update This README
