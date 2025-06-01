@@ -12,4 +12,4 @@ RUN apt update && apt install -y tini
 COPY --from=builder /work/target/release/payroll-web /usr/bin/payroll-web
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["payroll-web"]
+CMD ["payroll-web", "-h", "0.0.0.0", "-p", "3000"]

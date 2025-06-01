@@ -11,12 +11,12 @@ The payroll app is described at the book above.
 ## Usage
 
 ```bash
-$ cargo run -p payroll-cli -- -h
+$ cargo run -p payroll-cli -- -?
 
 Usage: target/debug/payroll-cli [options] FILE
 
 Options:
-    -h, --help          Print this help menu
+    -?, --help          Print this help menu
     -q, --quiet         Don't output unnecessary information
     -f, --failopen-tx   Transaction failopen
     -s, --soft-landing  Soft landing application
@@ -77,11 +77,11 @@ graph TD
 See [Dockerhub cutsea110/payroll-cli](https://hub.docker.com/repository/docker/cutsea110/payroll-cli).
 
 ```bash
-$ docker run -v ./:/work -it --rm cutsea110/payroll-cli:0.2.0 payroll-cli -h
+$ docker run -v ./:/work -it --rm cutsea110/payroll-cli:0.2.0 payroll-cli -?
 Usage: payroll-cli [options] FILE
 
 Options:
-    -h, --help          Print this help menu
+    -?, --help          Print this help menu
     -q, --quiet         Don't output unnecessary information
     -f, --failopen-tx   Transaction failopen
     -s, --soft-landing  Soft landing application

@@ -42,7 +42,7 @@ impl AppConfig {
         let args: Vec<String> = env::args().collect();
         let program = args.get(0).expect("program name");
         let mut opts = Options::new();
-        opts.optflag("h", "help", "Print this help menu");
+        opts.optflag("?", "help", "Print this help menu");
         opts.optflag("q", "quiet", "Don't output unnecessary information");
         opts.optflag("f", "failopen-tx", "Transaction failopen");
         opts.optflag("s", "soft-landing", "Soft landing application");
@@ -62,7 +62,7 @@ impl AppConfig {
         };
 
         Ok(AppConfig {
-            help: matches.opt_present("h"),
+            help: matches.opt_present("?"),
             quiet: matches.opt_present("q"),
             transaction_failopen: matches.opt_present("f"),
             soft_landing: matches.opt_present("s"),
