@@ -181,7 +181,9 @@ $ docker buildx build --load -t cutsea110/payroll-cli:0.2.2 -f ./dockerfiles/Doc
 I suppose that you have some test programs for payroll-cli in `${PWD}/scenario` directory.
 
 ```bash
-$ docker run -v ${PWD}/scenario:/work -it --rm cutsea110/payroll-cli:0.2.2 payroll-cli /work/test1.scr
+$ docker run -v ${PWD}/scenario:/work \
+             -it --rm cutsea110/payroll-cli:0.2.2 \
+             payroll-cli /work/test1.scr
 ```
 
 ### Share Dockerhub (payroll-cli)
@@ -211,8 +213,8 @@ Then, you should open an another terminal and do curl like below:
 ```bash
 curl -X POST \
      -H 'Content-Type: text/plain' \
-	 -d $'AddEmp 1429 "Bob" "Wall St." S 3988.92\nPayday 2025-02-28' \
-	 http://localhost:3000
+     -d $'AddEmp 1429 "Bob" "Wall St." S 3988.92\nPayday 2025-02-28' \
+     http://localhost:3000
 ```
 
 If you start payroll-web as below:
@@ -226,14 +228,17 @@ Then, you can request to the port 7878.
 ```bash
 curl -X POST \
      -H 'Content-Type: text/plain' \
-	 -d $'AddEmp 1429 "Bob" "Wall St." S 3988.92\nPayday 2025-02-28' \
-	 http://localhost:7878
+     -d $'AddEmp 1429 "Bob" "Wall St." S 3988.92\nPayday 2025-02-28' \
+     http://localhost:7878
 ```
 
 Or, you let payroll-web bind to the port 7878 in docker and the docker can handle requests on the port 3000.
 
 ```bash
-$ docker run -e RUST_LOG=trace -p 3000:7878 -it --rm cutsea110/payroll-web:0.1.2 payroll-web -h 0.0.0.0 -p 7878
+$ docker run -e RUST_LOG=trace \
+             -p 3000:7878 \
+             -it --rm cutsea110/payroll-web:0.1.2 \
+             payroll-web -h 0.0.0.0 -p 7878
 ```
 
 Note that you need to direct the host as 0.0.0.0, too.
