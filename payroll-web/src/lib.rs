@@ -69,11 +69,8 @@ impl AppConfig {
         let brief = format!("Usage: {} [options]", self.program);
         self.opts.usage(&brief)
     }
-    pub fn host(&self) -> &str {
-        &self.host
-    }
-    pub fn port(&self) -> u16 {
-        self.port
+    pub fn sock_addr(&self) -> String {
+        format!("{}:{}", self.host, self.port)
     }
     pub fn threads(&self) -> usize {
         self.threads

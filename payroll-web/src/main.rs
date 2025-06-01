@@ -63,11 +63,10 @@ fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    let bind_to = format!("{}:{}", app_conf.host(), app_conf.port());
-    let listener = TcpListener::bind(&bind_to).expect(&format!("Bind to {}", bind_to));
     let pool = ThreadPool::new(app_conf.threads());
-    let db = HashDB::new();
-    let handler = Arc::new(Handler::new(db.clone()));
+    let handler = Arc::new(Handler::new(HashDB::new()));
+    let listener = TcpListener::bind(&app_conf.sock_addr())
+        .expect(&format!("Bind to {}", app_conf.sock_addr()));
 
     for stream in listener.incoming() {
         trace!("Incoming connection");
