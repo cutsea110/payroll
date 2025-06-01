@@ -7,5 +7,9 @@ RUN cargo build --release
 
 FROM debian:sid-slim
 
+RUN apt update && apt install -y tini
+
 COPY --from=builder /work/target/release/payroll-web /usr/bin/payroll-web
-CMD ["payroll-web", "-h"]
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["payroll-web"]
