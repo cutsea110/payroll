@@ -66,7 +66,7 @@ impl AppConfig {
     }
     pub fn help_message(&self) -> String {
         trace!("help_message called");
-        let brief = format!("Usage: {} [options] FILE", self.program);
+        let brief = format!("Usage: {} [options]", self.program);
         self.opts.usage(&brief)
     }
     pub fn host(&self) -> &str {
