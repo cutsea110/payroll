@@ -37,12 +37,18 @@ impl Handler {
         debug!("Received body:\n{}", body);
 
         let mut tx_app = payroll_web::build_tx_app(self.db.clone(), body);
-        tx_app.run().unwrap_or_else(|e| {
-            error!("Error running transaction app: {}", e);
-        });
+        let response = match tx_app.run() {
+            Ok(_) => {
+                trace!("Transaction app ran successfully");
+                "HTTP/1.1 200 OK\r\n\r\n"
+            }
+            Err(e) => {
+                error!("Error running transaction app: {}", e);
+                "HTTP/1.1 500 Server Error\r\n\r\n"
+            }
+        };
 
-        let response = b"HTTP/1.1 200 OK\r\n\r\n";
-        stream.write(response).expect("write to stream");
+        stream.write(response.as_bytes()).expect("write to stream");
         stream.flush().expect("flush stream");
     }
 }
