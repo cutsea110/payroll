@@ -76,6 +76,8 @@ graph TD
 
 ## Run on docker
 
+### payroll-cli
+
 See [Dockerhub cutsea110/payroll-cli](https://hub.docker.com/repository/docker/cutsea110/payroll-cli).
 
 ```bash
@@ -89,6 +91,22 @@ Options:
     -s, --soft-landing  Soft landing application
     -c, --chronograph   Print the time taken to execute each transaction
     -r, --repl          Run into REPL mode
+```
+
+### payroll-web
+
+See [Dockerhub cutsea110/payroll-web](https://hub.docker.com/repository/docker/cutsea110/payroll-web).
+
+```
+$ docker run -it --rm cutsea110/payroll-web:0.1.0 payroll-web -?
+Usage: payroll-web [options] FILE
+
+Options:
+    -?, --help          Print this help menu
+    -h, --host HOST     hostname or Ip address to connect to
+    -p, --port PORT     port to connect to
+    -t, --threads THREADS
+                        number of threadpool size
 ```
 
 ## For Developer
