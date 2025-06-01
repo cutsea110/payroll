@@ -94,7 +94,7 @@ graph TD
 - commands
   - `/payroll-cli`: application as command line interface
   - `/payroll-web`:  application as web server
-  - `/payroll-test`: scenario test runner
+  - `/payroll-test`: scenario test runner, this depends on `payroll-cli` executable binary
 
 - libraries
   - `/abstract-tx`: abstract transaction
