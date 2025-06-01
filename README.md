@@ -64,13 +64,14 @@ graph TD
   tx-app-impl --> tx-app
   tx-app-impl --> app
 
-  payroll-cli --> hs-db
-  payroll-cli --> payroll-impl
-  payroll-cli --> tx-impl
-  payroll-cli --> text-parser-tx-source
-  payroll-cli --> tx-app
-  payroll-cli --> tx-app-impl
-  payroll-cli --> app
+  payroll-web/cli --> hs-db
+  payroll-web/cli --> payroll-impl
+  payroll-web/cli --> tx-impl
+  payroll-web/cli --> text-parser-tx-source
+  payroll-web/cli --> tx-app
+  payroll-web/cli --> tx-app-impl
+  payroll-web/cli --> app
+  payroll-web/cli -- only payroll-web --> threadpool
 ```
 
 ## Run on docker
