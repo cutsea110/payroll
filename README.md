@@ -11,9 +11,10 @@ The payroll app is described at the book above.
 
 ## Usage
 
+* CLI (Command Line Interface)
+
 ```bash
 $ cargo run -p payroll-cli -- -?
-
 Usage: target/debug/payroll-cli [options] FILE
 
 Options:
@@ -23,6 +24,20 @@ Options:
     -s, --soft-landing  Soft landing application
     -c, --chronograph   Print the time taken to execute each transaction
     -r, --repl          Run into REPL mode
+```
+
+* Web server
+
+```bash
+$ cargo run -p payroll-web -- -?
+Usage: target/debug/payroll-web [options]
+
+Options:
+    -?, --help          Print this help menu
+    -h, --host HOST     hostname or Ip address to connect to
+    -p, --port PORT     port to connect to
+    -t, --threads THREADS
+                        number of threadpool size
 ```
 
 ## Architecture (Dependent Relationship of crates)
