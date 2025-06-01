@@ -55,8 +55,17 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server...");
 
-    let listener = TcpListener::bind("0.0.0.0:7878").expect("Bind to 0.0.0.0:7878");
-    let pool = ThreadPool::new(4);
+    let app_conf = payroll_web::AppConfig::new()?;
+    debug!("main: app_conf={:#?}", app_conf);
+    if app_conf.should_show_help() {
+        debug!("main: should show help");
+        println!("{}", app_conf.help_message());
+        return Ok(());
+    }
+
+    let bind_to = format!("{}:{}", app_conf.host(), app_conf.port());
+    let listener = TcpListener::bind(&bind_to).expect(&format!("Bind to {}", bind_to));
+    let pool = ThreadPool::new(app_conf.threads());
     let db = HashDB::new();
     let handler = Arc::new(Handler::new(db.clone()));
 
