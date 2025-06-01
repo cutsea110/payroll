@@ -7,7 +7,6 @@ use std::{
 };
 
 use hs_db::HashDB;
-use payroll_web::AppConfig;
 use threadpool::ThreadPool;
 
 #[derive(Debug, Clone)]
@@ -37,15 +36,7 @@ impl Handler {
         let body = split.next().unwrap_or_default();
         debug!("Received body:\n{}", body);
 
-        let app_conf = match AppConfig::new(body) {
-            Ok(conf) => conf,
-            Err(e) => {
-                error!("Failed to create AppConfig: {}", e);
-                return;
-            }
-        };
-
-        let mut tx_app = app_conf.build_tx_app(self.db.clone());
+        let mut tx_app = payroll_web::build_tx_app(self.db.clone(), body);
         tx_app.run().unwrap_or_else(|e| {
             error!("Error running transaction app: {}", e);
         });
