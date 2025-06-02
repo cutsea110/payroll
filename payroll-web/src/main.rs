@@ -12,7 +12,7 @@ use payroll_web::AppConfig;
 use text_parser_tx_source::TextParserTxSource;
 use threadpool::ThreadPool;
 use tx_app::TxApp;
-use tx_app_impl::{reader_impl, runner_impl};
+use tx_app_impl::{app_impl, reader_impl, runner_impl};
 use tx_impl::TxFactoryImpl;
 
 #[derive(Debug, Clone)]
@@ -82,8 +82,13 @@ impl Handler {
             trace!("Chronograph mode enabled");
             tx_runner = runner_impl::with_chronograph(tx_runner);
         };
+        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(Box::new(tx_source), tx_runner));
+        if self.chronograph {
+            trace!("Adding fail-open mode");
+            tx_app = app_impl::with_chronograph(tx_app);
+        }
 
-        Box::new(TxApp::new(Box::new(tx_source), tx_runner))
+        tx_app
     }
 }
 
