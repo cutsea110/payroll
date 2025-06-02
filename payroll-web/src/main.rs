@@ -6,16 +6,30 @@ use std::{
     sync::Arc,
 };
 
+use app::Application;
 use hs_db::HashDB;
+use payroll_impl::PayrollFactoryImpl;
+use payroll_web::AppConfig;
+use text_parser_tx_source::TextParserTxSource;
 use threadpool::ThreadPool;
+use tx_app::TxApp;
+use tx_app_impl::{reader_impl, runner_impl};
+use tx_impl::TxFactoryImpl;
 
 #[derive(Debug, Clone)]
 struct Handler {
     db: HashDB,
+
+    quiet: bool,
+    chronograph: bool,
 }
 impl Handler {
-    fn new(db: HashDB) -> Self {
-        Self { db }
+    fn new(db: HashDB, app_conf: &AppConfig) -> Self {
+        Self {
+            db,
+            quiet: app_conf.is_quiet(),
+            chronograph: app_conf.chronograph(),
+        }
     }
     fn handle_connection(self: Arc<Self>, mut stream: TcpStream) {
         trace!("Handling connection from {}", stream.peer_addr().unwrap());
@@ -36,7 +50,7 @@ impl Handler {
         let body = split.next().unwrap_or_default();
         debug!("Received body:\n{}", body);
 
-        let mut tx_app = payroll_web::build_tx_app(self.db.clone(), body);
+        let mut tx_app = self.build_tx_app(self.db.clone(), body);
         let response = match tx_app.run() {
             Ok(_) => {
                 trace!("Transaction app ran successfully");
@@ -50,6 +64,27 @@ impl Handler {
 
         stream.write(response.as_bytes()).expect("write to stream");
         stream.flush().expect("flush stream");
+    }
+
+    fn build_tx_app(&self, db: HashDB, request_body: &str) -> Box<dyn Application> {
+        trace!("build_tx_app called");
+
+        let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
+        let tx_source = TextParserTxSource::new(
+            tx_factory,
+            reader_impl::string_reader(request_body.to_string()),
+        );
+        let mut tx_runner = if self.quiet {
+            runner_impl::silent_runner()
+        } else {
+            runner_impl::echoback_runner()
+        };
+        if self.chronograph {
+            trace!("Chronograph mode enabled");
+            tx_runner = runner_impl::with_chronograph(tx_runner);
+        };
+
+        Box::new(TxApp::new(Box::new(tx_source), tx_runner))
     }
 }
 
@@ -70,7 +105,7 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     let pool = ThreadPool::new(app_conf.threads());
-    let handler = Arc::new(Handler::new(HashDB::new()));
+    let handler = Arc::new(Handler::new(HashDB::new(), &app_conf));
     let listener = TcpListener::bind(&app_conf.sock_addr())
         .expect(&format!("Bind to {}", app_conf.sock_addr()));
 

@@ -2,19 +2,13 @@ use getopts::Options;
 use log::{error, trace};
 use std::{env, fmt};
 
-use app::Application;
-use hs_db::HashDB;
-use payroll_impl::PayrollFactoryImpl;
-use text_parser_tx_source::TextParserTxSource;
-use tx_app::TxApp;
-use tx_app_impl::{reader_impl, runner_impl};
-use tx_impl::TxFactoryImpl;
-
 pub struct AppConfig {
     help: bool,
+    quiet: bool,
     host: String,
     port: u16,
     threads: usize,
+    chronograph: bool,
     program: String,
     opts: Options,
 }
@@ -22,9 +16,11 @@ impl fmt::Debug for AppConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("AppConfig")
             .field("help", &self.help)
+            .field("quiet", &self.quiet)
             .field("host", &self.host)
             .field("port", &self.port)
             .field("threads", &self.threads)
+            .field("chronograph", &self.chronograph)
             .field("program", &self.program)
             .finish()
     }
@@ -36,8 +32,10 @@ impl AppConfig {
         let mut opts = Options::new();
         opts.optflag("?", "help", "Print this help menu");
         opts.optopt("h", "host", "hostname or Ip address to connect to", "HOST");
+        opts.optflag("q", "quiet", "run in quiet mode, non verbose");
         opts.optopt("p", "port", "port to connect to", "PORT");
         opts.optopt("t", "threads", "number of threadpool size", "THREADS");
+        opts.optflag("c", "chronograph", "enable chronograph mode");
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
             Err(e) => {
@@ -49,6 +47,7 @@ impl AppConfig {
         Ok(Self {
             help: matches.opt_present("?"),
             host: matches.opt_str("h").unwrap_or("127.0.0.1".to_string()),
+            quiet: matches.opt_present("q"),
             port: matches
                 .opt_str("p")
                 .and_then(|s| s.parse().ok())
@@ -57,6 +56,7 @@ impl AppConfig {
                 .opt_str("t")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(4),
+            chronograph: matches.opt_present("c"),
             program: program.to_string(),
             opts,
         })
@@ -69,26 +69,16 @@ impl AppConfig {
         let brief = format!("Usage: {} [options]", self.program);
         self.opts.usage(&brief)
     }
+    pub fn is_quiet(&self) -> bool {
+        self.quiet
+    }
     pub fn sock_addr(&self) -> String {
         format!("{}:{}", self.host, self.port)
     }
     pub fn threads(&self) -> usize {
         self.threads
     }
-}
-
-pub fn build_tx_app(db: HashDB, request_body: &str) -> Box<dyn Application> {
-    trace!("build_tx_app called");
-
-    let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-    let tx_source = TextParserTxSource::new(
-        tx_factory,
-        reader_impl::string_reader(request_body.to_string()),
-    );
-    let tx_app: Box<dyn Application> = Box::new(TxApp::new(
-        Box::new(tx_source),
-        runner_impl::silent_runner(),
-    ));
-
-    tx_app
+    pub fn chronograph(&self) -> bool {
+        self.chronograph
+    }
 }
