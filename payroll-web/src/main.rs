@@ -3,7 +3,6 @@ use std::{
     io::prelude::*,
     net::{TcpListener, TcpStream},
     str,
-    sync::Arc,
 };
 
 use app::Application;
@@ -31,7 +30,7 @@ impl Handler {
             chronograph: app_conf.chronograph(),
         }
     }
-    fn handle_connection(self: Arc<Self>, mut stream: TcpStream) {
+    fn handle_connection(&self, mut stream: TcpStream) {
         trace!("Handling connection from {}", stream.peer_addr().unwrap());
         let mut buffer = [0; 1024];
         stream.read(&mut buffer).expect("read from stream");
@@ -105,14 +104,14 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     let pool = ThreadPool::new(app_conf.threads());
-    let handler = Arc::new(Handler::new(HashDB::new(), &app_conf));
+    let handler = Handler::new(HashDB::new(), &app_conf);
     let listener = TcpListener::bind(&app_conf.sock_addr())
         .expect(&format!("Bind to {}", app_conf.sock_addr()));
 
     for stream in listener.incoming() {
         trace!("Incoming connection");
         let stream = stream.expect("accept connection");
-        let handler = Arc::clone(&handler);
+        let handler = handler.clone();
 
         pool.execute(move || {
             handler.handle_connection(stream);
