@@ -74,17 +74,19 @@ impl Handler {
             reader_impl::string_reader(request_body.to_string()),
         );
         let mut tx_runner = if self.quiet {
+            debug!("Quiet mode enabled");
             runner_impl::silent_runner()
         } else {
+            debug!("Echoback mode enabled");
             runner_impl::echoback_runner()
         };
         if self.chronograph {
-            trace!("Chronograph mode enabled");
+            debug!("Chronograph mode enabled");
             tx_runner = runner_impl::with_chronograph(tx_runner);
         };
         let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(Box::new(tx_source), tx_runner));
         if self.chronograph {
-            trace!("Adding fail-open mode");
+            debug!("Adding fail-open mode");
             tx_app = app_impl::with_chronograph(tx_app);
         }
 
