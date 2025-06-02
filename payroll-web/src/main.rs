@@ -11,7 +11,7 @@ use payroll_impl::PayrollFactoryImpl;
 use payroll_web::AppConfig;
 use text_parser_tx_source::TextParserTxSource;
 use threadpool::ThreadPool;
-use tx_app::TxApp;
+use tx_app::{Runner, TxApp, TxSource};
 use tx_app_impl::{app_impl, reader_impl, runner_impl};
 use tx_impl::TxFactoryImpl;
 
@@ -49,7 +49,7 @@ impl Handler {
         let body = split.next().unwrap_or_default();
         debug!("Received body:\n{}", body);
 
-        let mut tx_app = self.build_tx_app(self.db.clone(), body);
+        let mut tx_app = self.build_tx_app(body);
         let response = match tx_app.run() {
             Ok(_) => {
                 trace!("Transaction app ran successfully");
@@ -65,14 +65,23 @@ impl Handler {
         stream.flush().expect("flush stream");
     }
 
-    fn build_tx_app(&self, db: HashDB, request_body: &str) -> Box<dyn Application> {
+    fn build_tx_app(&self, request_body: &str) -> Box<dyn Application> {
         trace!("build_tx_app called");
 
-        let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
-        let tx_source = TextParserTxSource::new(
-            tx_factory,
-            reader_impl::string_reader(request_body.to_string()),
-        );
+        let tx_source = self.make_tx_source(request_body);
+        let tx_runner = self.make_tx_runner();
+
+        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(tx_source, tx_runner));
+        if self.chronograph {
+            debug!("Adding fail-open mode");
+            tx_app = app_impl::with_chronograph(tx_app);
+        }
+
+        tx_app
+    }
+    fn make_tx_runner(&self) -> Box<dyn Runner> {
+        trace!("make_tx_runner called");
+
         let mut tx_runner = if self.quiet {
             debug!("Quiet mode enabled");
             runner_impl::silent_runner()
@@ -84,13 +93,17 @@ impl Handler {
             debug!("Chronograph mode enabled");
             tx_runner = runner_impl::with_chronograph(tx_runner);
         };
-        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(Box::new(tx_source), tx_runner));
-        if self.chronograph {
-            debug!("Adding fail-open mode");
-            tx_app = app_impl::with_chronograph(tx_app);
-        }
 
-        tx_app
+        tx_runner
+    }
+    fn make_tx_source(&self, body: &str) -> Box<dyn TxSource> {
+        trace!("make_tx_source called");
+
+        let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
+        let tx_source =
+            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
+
+        Box::new(tx_source)
     }
 }
 
