@@ -16,8 +16,8 @@ impl Application for AppChronograph {
         let start = std::time::Instant::now();
         self.app.run()?;
         let elapsed = start.elapsed();
-        debug!("Elapsed={:?}", elapsed);
-        println!("Elapsed={:?}", elapsed);
+        debug!("app elapsed={:?}", elapsed);
+        println!("app elapsed={:?}", elapsed);
         Ok(())
     }
 }

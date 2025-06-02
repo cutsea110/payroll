@@ -17,7 +17,7 @@ impl Runner for TxRunnerChronograph {
         let start = Instant::now();
         let res = self.runner.run(tx);
         let elapsed = start.elapsed();
-        println!("elapsed={:?}", elapsed);
+        println!("runner elapsed={:?}", elapsed);
         res
     }
 }
