@@ -91,12 +91,13 @@ impl AppConfig {
     }
     pub fn build_handler(&self, db: HashDB) -> Arc<dyn Handler + Send + Sync> {
         trace!("build_handler called");
+
         let mut handler: Arc<dyn Handler + Send + Sync> = Arc::new(TcpHandler::new(db, self));
         if self.chronograph {
-            debug!("Adding chronograph to handler");
+            debug!("adding chronograph to handler");
             handler = with_chronograph(handler);
         };
-        debug!("Handler built");
+        trace!("handler built");
 
         handler
     }
@@ -206,6 +207,7 @@ impl Handler for TcpHandler {
                 "HTTP/1.1 500 Server Error\r\n\r\n"
             }
         };
+        trace!("sent response: {}", response);
 
         stream.write(response.as_bytes()).expect("write to stream");
         stream.flush().expect("flush stream");
