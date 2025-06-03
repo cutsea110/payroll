@@ -1,4 +1,3 @@
-use hs_db::HashDB;
 use log::{debug, error, trace};
 use std::{io::prelude::*, net::TcpStream, str, sync::Arc};
 
@@ -13,10 +12,8 @@ pub struct TcpHandler {
     builder: TxAppBuilder,
 }
 impl TcpHandler {
-    pub fn new(db: HashDB, quiet: bool, chronograph: bool) -> Self {
-        Self {
-            builder: TxAppBuilder::new(db, quiet, chronograph),
-        }
+    pub fn new(builder: TxAppBuilder) -> Self {
+        Self { builder }
     }
 }
 impl Handler for TcpHandler {
