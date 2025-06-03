@@ -141,7 +141,7 @@ Options:
 See [Dockerhub cutsea110/payroll-web](https://hub.docker.com/repository/docker/cutsea110/payroll-web).
 
 ```
-$ docker run -it --rm cutsea110/payroll-web:0.1.1 payroll-web -?
+$ docker run -it --rm cutsea110/payroll-web:0.1.2 payroll-web -?
 Usage: target/debug/payroll-web [options]
 
 Options:
