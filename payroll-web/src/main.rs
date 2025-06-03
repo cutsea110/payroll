@@ -34,7 +34,7 @@ fn main() -> Result<(), anyhow::Error> {
         println!("{}", app_conf.help_message());
         return Ok(());
     }
-    if !app_conf.is_quiet() {
+    if !app_conf.should_run_quietly() {
         debug!("main: shouldn't run quietly");
         print_header(&app_conf);
     }

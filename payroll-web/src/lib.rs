@@ -76,7 +76,7 @@ impl AppConfig {
         let brief = format!("Usage: {} [options]", self.program);
         self.opts.usage(&brief)
     }
-    pub fn is_quiet(&self) -> bool {
+    pub fn should_run_quietly(&self) -> bool {
         self.quiet
     }
     pub fn sock_addr(&self) -> String {
@@ -91,8 +91,11 @@ impl AppConfig {
     pub fn build_handler(&self, db: HashDB) -> Arc<dyn Handler + Send + Sync> {
         trace!("build_handler called");
 
-        let mut handler: Arc<dyn Handler + Send + Sync> =
-            Arc::new(TcpHandler::new(db, self.is_quiet(), self.chronograph()));
+        let mut handler: Arc<dyn Handler + Send + Sync> = Arc::new(TcpHandler::new(
+            db,
+            self.should_run_quietly(),
+            self.chronograph(),
+        ));
         if self.chronograph {
             debug!("adding chronograph to handler");
             handler = with_chronograph(handler);
