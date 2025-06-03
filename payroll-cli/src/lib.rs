@@ -125,32 +125,8 @@ impl AppConfig {
         tx_app
     }
 
-    fn make_tx_runner(&self) -> Box<dyn Runner> {
-        trace!("make_tx_runner called");
-        let mut tx_runner = if self.should_run_quietly() {
-            debug!("make_tx_runner: should run quietly, using silent_runner");
-            runner_impl::silent_runner()
-        } else {
-            debug!("make_tx_runner: shouldn't run quietly, using echoback_runner");
-            runner_impl::echoback_runner()
-        };
-
-        if self.transaction_failopen() {
-            debug!("make_tx_runner: transaction failopen, using with_failopen");
-            tx_runner = runner_impl::with_failopen(tx_runner);
-        }
-
-        if self.should_enable_chronograph() {
-            debug!("make_tx_runner: should enable chronograph, using with_chronograph");
-            tx_runner = runner_impl::with_chronograph(tx_runner);
-        }
-
-        tx_runner
-    }
-
     fn make_tx_source(&self, db: HashDB) -> Box<dyn TxSource> {
         trace!("make_tx_source called");
-
         let tx_factory = TxFactoryImpl::new(db, PayrollFactoryImpl);
 
         if let Some(file) = self.script_file() {
@@ -172,5 +148,28 @@ impl AppConfig {
             tx_factory,
             reader_impl::interact_reader(),
         ))
+    }
+
+    fn make_tx_runner(&self) -> Box<dyn Runner> {
+        trace!("make_tx_runner called");
+        let mut tx_runner = if self.should_run_quietly() {
+            debug!("make_tx_runner: should run quietly, using silent_runner");
+            runner_impl::silent_runner()
+        } else {
+            debug!("make_tx_runner: shouldn't run quietly, using echoback_runner");
+            runner_impl::echoback_runner()
+        };
+
+        if self.transaction_failopen() {
+            debug!("make_tx_runner: transaction failopen, using with_failopen");
+            tx_runner = runner_impl::with_failopen(tx_runner);
+        }
+
+        if self.should_enable_chronograph() {
+            debug!("make_tx_runner: should enable chronograph, using with_chronograph");
+            tx_runner = runner_impl::with_chronograph(tx_runner);
+        }
+
+        tx_runner
     }
 }

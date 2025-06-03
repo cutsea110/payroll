@@ -90,14 +90,13 @@ impl AppConfig {
     }
     pub fn build_handler(&self, db: HashDB) -> Arc<dyn Handler + Send + Sync> {
         trace!("build_handler called");
-
         let builder = tx_app_builder::TxAppBuilder::new(db.clone(), self.quiet, self.chronograph);
+
         let mut handler: Arc<dyn Handler + Send + Sync> = Arc::new(TcpHandler::new(builder));
         if self.chronograph {
             debug!("adding chronograph to handler");
             handler = with_chronograph(handler);
         };
-        trace!("handler built");
 
         handler
     }

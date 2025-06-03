@@ -39,6 +39,17 @@ impl TxAppBuilder {
 
         tx_app
     }
+
+    fn make_tx_source(&self, body: &str) -> Box<dyn TxSource> {
+        trace!("make_tx_source called");
+
+        let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
+        let tx_source =
+            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
+
+        Box::new(tx_source)
+    }
+
     fn make_tx_runner(&self) -> Box<dyn Runner> {
         trace!("make_tx_runner called");
 
@@ -55,14 +66,5 @@ impl TxAppBuilder {
         };
 
         tx_runner
-    }
-    fn make_tx_source(&self, body: &str) -> Box<dyn TxSource> {
-        trace!("make_tx_source called");
-
-        let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
-        let tx_source =
-            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
-
-        Box::new(tx_source)
     }
 }
