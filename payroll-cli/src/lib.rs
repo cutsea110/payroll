@@ -42,16 +42,12 @@ impl AppConfig {
         let args: Vec<String> = env::args().collect();
         let program = args.get(0).expect("program name");
         let mut opts = Options::new();
-        opts.optflag("?", "help", "Print this help menu");
-        opts.optflag("q", "quiet", "Don't output unnecessary information");
-        opts.optflag("f", "failopen-tx", "Transaction failopen");
-        opts.optflag("s", "soft-landing", "Soft landing application");
-        opts.optflag(
-            "c",
-            "chronograph",
-            "Print the time taken to execute each transaction",
-        );
-        opts.optflag("r", "repl", "Run into REPL mode");
+        opts.optflag("?", "help", "Print this help menu")
+            .optflag("q", "quiet", "Don't output unnecessary information")
+            .optflag("f", "failopen-tx", "Transaction failopen")
+            .optflag("s", "soft-landing", "Soft landing application")
+            .optflag("c", "chronograph", "Enable chronograph for the application")
+            .optflag("r", "repl", "Run into REPL mode");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,

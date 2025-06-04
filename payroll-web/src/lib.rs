@@ -37,12 +37,12 @@ impl AppConfig {
         let args: Vec<String> = env::args().collect();
         let program = args.get(0).expect("program name");
         let mut opts = Options::new();
-        opts.optflag("?", "help", "Print this help menu");
-        opts.optopt("h", "host", "hostname or Ip address to connect to", "HOST");
-        opts.optflag("q", "quiet", "run in quiet mode, non verbose");
-        opts.optopt("p", "port", "port to connect to", "PORT");
-        opts.optopt("t", "threads", "number of threadpool size", "THREADS");
-        opts.optflag("c", "chronograph", "enable chronograph mode");
+        opts.optflag("?", "help", "Print this help menu")
+            .optopt("h", "host", "hostname or Ip address to connect to", "HOST")
+            .optflag("q", "quiet", "run in quiet mode, non verbose")
+            .optopt("p", "port", "port to connect to", "PORT")
+            .optopt("t", "threads", "number of threadpool size", "THREADS")
+            .optflag("c", "chronograph", "enable chronograph mode");
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
             Err(e) => {
