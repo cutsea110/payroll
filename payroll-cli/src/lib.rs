@@ -113,11 +113,11 @@ impl AppConfig {
         let mut tx_app: Box<dyn Application> =
             Box::new(TxApp::new(self.make_tx_source(db), self.make_tx_runner()));
 
-        if self.should_soft_land() {
+        if self.soft_landing {
             debug!("build_tx_app: should soft landing, using with_soft_landing");
             tx_app = app_impl::with_soft_landing(tx_app);
         }
-        if self.should_enable_chronograph() {
+        if self.chronograph {
             debug!("build_tx_app: should enable chronograph, using with_chronograph");
             tx_app = app_impl::with_chronograph(tx_app);
         }
@@ -132,11 +132,11 @@ impl AppConfig {
         if let Some(file) = self.script_file() {
             debug!("make_tx_source: with file={}, using file_reader", file);
             let mut reader = reader_impl::file_reader(file);
-            if !self.should_run_quietly() {
+            if !self.quiet {
                 debug!("make_tx_source: shouldn't run quietly, using echoback_reader");
                 reader = reader_impl::with_echo(reader);
             }
-            if self.should_dive_into_repl() {
+            if self.repl {
                 debug!("make_tx_source: should dive into REPL, using interact_reader");
                 reader = reader_impl::join(reader, reader_impl::interact_reader());
             }
@@ -152,7 +152,7 @@ impl AppConfig {
 
     fn make_tx_runner(&self) -> Box<dyn Runner> {
         trace!("make_tx_runner called");
-        let mut tx_runner = if self.should_run_quietly() {
+        let mut tx_runner = if self.quiet {
             debug!("make_tx_runner: should run quietly, using silent_runner");
             runner_impl::silent_runner()
         } else {
@@ -160,12 +160,12 @@ impl AppConfig {
             runner_impl::echoback_runner()
         };
 
-        if self.transaction_failopen() {
+        if self.transaction_failopen {
             debug!("make_tx_runner: transaction failopen, using with_failopen");
             tx_runner = runner_impl::with_failopen(tx_runner);
         }
 
-        if self.should_enable_chronograph() {
+        if self.chronograph {
             debug!("make_tx_runner: should enable chronograph, using with_chronograph");
             tx_runner = runner_impl::with_chronograph(tx_runner);
         }

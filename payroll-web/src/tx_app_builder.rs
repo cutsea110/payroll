@@ -27,11 +27,10 @@ impl TxAppBuilder {
 
     pub fn build(&self, request_body: &str) -> Box<dyn Application> {
         trace!("build_tx_app called");
-
-        let tx_source = self.make_tx_source(request_body);
-        let tx_runner = self.make_tx_runner();
-
-        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(tx_source, tx_runner));
+        let mut tx_app: Box<dyn Application> = Box::new(TxApp::new(
+            self.make_tx_source(request_body),
+            self.make_tx_runner(),
+        ));
         if self.chronograph {
             debug!("Adding fail-open mode");
             tx_app = app_impl::with_chronograph(tx_app);
@@ -42,12 +41,12 @@ impl TxAppBuilder {
 
     fn make_tx_source(&self, body: &str) -> Box<dyn TxSource> {
         trace!("make_tx_source called");
-
         let tx_factory = TxFactoryImpl::new(self.db.clone(), PayrollFactoryImpl);
-        let tx_source =
-            TextParserTxSource::new(tx_factory, reader_impl::string_reader(body.to_string()));
 
-        Box::new(tx_source)
+        Box::new(TextParserTxSource::new(
+            tx_factory,
+            reader_impl::string_reader(body.to_string()),
+        ))
     }
 
     fn make_tx_runner(&self) -> Box<dyn Runner> {
