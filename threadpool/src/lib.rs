@@ -12,25 +12,20 @@ pub struct ThreadPool {
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         trace!("Sending terminate message to all workers.");
-
         for _ in &mut self.workers {
             self.sender
                 .send(Message::Terminate)
                 .expect("Send terminate message to worker");
         }
-
         debug!("Shutting down all workers.");
-
         for worker in &mut self.workers {
             debug!("Shutting down worker {}", worker.id);
-
             if let Some(thread) = worker.thread.take() {
-                thread.join().expect("join thread");
+                thread.join().expect(&format!("join thread: {}", worker.id));
             }
         }
     }
 }
-
 impl ThreadPool {
     pub fn new(size: usize) -> Self {
         assert!(size > 0);
@@ -70,12 +65,12 @@ impl<F: FnOnce()> FnBox for F {
     }
 }
 
+type Job = Box<dyn FnBox + Send + 'static>;
+
 enum Message {
     NewJob(Job),
     Terminate,
 }
-
-type Job = Box<dyn FnBox + Send + 'static>;
 
 struct Worker {
     id: usize,
