@@ -2,6 +2,7 @@ use log::{debug, info, trace};
 use std::net::TcpListener;
 
 use hs_db::HashDB;
+use payroll_web::AppConfig;
 use threadpool::ThreadPool;
 
 fn print_header(_app_conf: &payroll_web::AppConfig) {
@@ -27,7 +28,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     info!("Starting server...");
 
-    let app_conf = payroll_web::AppConfig::new()?;
+    let app_conf = AppConfig::new()?;
     debug!("main: app_conf={:#?}", app_conf);
     if app_conf.should_show_help() {
         debug!("main: should show help");
