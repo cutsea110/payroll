@@ -89,7 +89,7 @@ impl Worker {
                 .lock()
                 .expect("lock receiver")
                 .recv()
-                .expect("Receive message");
+                .expect("receive message");
             trace!("thread got message");
             match message {
                 Message::NewJob(job) => {
