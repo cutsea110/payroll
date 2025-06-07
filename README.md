@@ -178,7 +178,7 @@ $ cargo run -p payroll-test -- ./scenario/test*.scr
 You should specify the version 0.2.2, because the latest version is 0.2.1.
 
 ```bash
-$ docker buildx build --load -t cutsea110/payroll-cli:0.2.2 -f ./dockerfiles/Dockerfile.cli .
+$ docker buildx build --rm --load -t cutsea110/payroll-cli:0.2.2 -f ./dockerfiles/Dockerfile.cli .
 ```
 ### How to run on Docker image (payroll-cli)
 
@@ -202,7 +202,7 @@ $ docker push cutsea110/payroll-cli:0.2.2
 You should specify the version 0.1.3, because the latest version is 0.1.2.
 
 ```bash
-$ docker buildx build --load -t cutsea110/payroll-web:0.1.3 -f ./dockerfiles/Dockerfile.web .
+$ docker buildx build --rm --load -t cutsea110/payroll-web:0.1.3 -f ./dockerfiles/Dockerfile.web .
 ```
 ### How to run on Docker image (payroll-web)
 
