@@ -15,7 +15,6 @@ use tx_app::{Response, Transaction};
 pub struct AddCommissionedEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     id: EmployeeId,
     name: String,
@@ -29,7 +28,6 @@ where
 impl<T, F> AddCommissionedEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     pub fn new(
         id: EmployeeId,
@@ -55,7 +53,6 @@ where
 impl<T, F> HaveEmployeeDao for AddCommissionedEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 

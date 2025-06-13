@@ -12,7 +12,6 @@ use tx_app::{Response, Transaction};
 pub struct ChangeDirectTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     id: EmployeeId,
     bank: String,
@@ -24,7 +23,6 @@ where
 impl<T, F> ChangeDirectTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     pub fn new(id: EmployeeId, bank: &str, account: &str, dao: T, payroll_factory: F) -> Self {
         Self {
@@ -40,7 +38,6 @@ where
 impl<T, F> HaveEmployeeDao for ChangeDirectTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     type Ctx<'a> = T::Ctx<'a>;
 
