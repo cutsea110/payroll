@@ -16,7 +16,6 @@ use tx_factory::TxFactory;
 pub struct TxFactoryImpl<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     dao: T,
     payroll_factory: F,
@@ -24,7 +23,6 @@ where
 impl<T, F> TxFactoryImpl<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
 {
     pub fn new(dao: T, payroll_factory: F) -> Self {
         Self {
