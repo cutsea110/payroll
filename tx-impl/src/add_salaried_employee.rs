@@ -108,7 +108,9 @@ mod tests {
         Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
         PaymentClassification, PaymentMethod, PaymentSchedule,
     };
-    use payroll_factory::{PayrollFactory, SalariedClassificationFactory};
+    use payroll_factory::{
+        HourlyClassificationFactory, PayrollFactory, SalariedClassificationFactory,
+    };
     use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
 
     #[derive(Debug, Clone)]
@@ -292,13 +294,12 @@ mod tests {
             Arc::new(Mutex::new(SalariedClassification::new(salary)))
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_hourly_classification(
-            &self,
-            _hourly_rate: f32,
-        ) -> Arc<Mutex<dyn PaymentClassification>> {
-            unimplemented!("mk_hourly_classification is not implemented")
+    impl HourlyClassificationFactory for Tester {
+        fn mk_classification(&self, _hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+            unimplemented!("mk_classification is not implemented")
         }
+    }
+    impl PayrollFactory for Tester {
         fn mk_commissioned_classification(
             &self,
             _salary: f32,

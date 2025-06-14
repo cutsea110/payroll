@@ -7,12 +7,17 @@ use payroll_domain::{
 pub trait SalariedClassificationFactory {
     fn mk_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>>;
 }
+pub trait HourlyClassificationFactory {
+    fn mk_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>>;
+}
 
-pub trait PayrollFactory: SalariedClassificationFactory {
+pub trait PayrollFactory: SalariedClassificationFactory + HourlyClassificationFactory {
     fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
         SalariedClassificationFactory::mk_classification(self, salary)
     }
-    fn mk_hourly_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>>;
+    fn mk_hourly_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+        HourlyClassificationFactory::mk_classification(self, hourly_rate)
+    }
     fn mk_commissioned_classification(
         &self,
         salary: f32,
