@@ -3,7 +3,7 @@ use chrono::NaiveDate;
 use log::{debug, trace};
 use std::sync::{Arc, Mutex};
 
-use abstract_tx::ChangeAffiliation;
+use abstract_tx::{ChangeAffiliation, UsecaseError};
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Affiliation, MemberId};
 use payroll_impl::UnionAffiliation;
@@ -49,6 +49,17 @@ impl<T> ChangeAffiliation for AddServiceChargeTx<T>
 where
     T: EmployeeDao,
 {
+    fn run_tx<'a, G, R>(&'a self, f: G) -> Result<R, UsecaseError>
+    where
+        G: FnOnce(Self::Ctx<'a>) -> Result<R, DaoError>,
+    {
+        trace!("run_tx called");
+        // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        self.dao()
+            .run_tx(f)
+            .map_err(UsecaseError::AddEmployeeFailed)
+    }
+
     fn get_member_id(&self) -> MemberId {
         self.member_id
     }
