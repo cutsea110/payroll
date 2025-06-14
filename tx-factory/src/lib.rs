@@ -68,6 +68,9 @@ pub trait ChangeEmployeeMemberTxFactory {
 pub trait ChangeEmployeeNoMemberTxFactory {
     fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
 }
+pub trait PaydayTxFactory {
+    fn mk_tx(&self, date: NaiveDate) -> Box<dyn Transaction>;
+}
 
 pub trait TxFactory:
     AddSalariedEmployeeTxFactory
@@ -87,6 +90,7 @@ pub trait TxFactory:
     + ChangeEmployeeMailTxFactory
     + ChangeEmployeeMemberTxFactory
     + ChangeEmployeeNoMemberTxFactory
+    + PaydayTxFactory
 {
     fn mk_add_hourly_employee_tx(
         &self,
@@ -196,5 +200,7 @@ pub trait TxFactory:
     fn mk_change_employee_no_member_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         ChangeEmployeeNoMemberTxFactory::mk_tx(self, id)
     }
-    fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction>;
+    fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
+        PaydayTxFactory::mk_tx(self, date)
+    }
 }

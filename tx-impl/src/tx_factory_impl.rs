@@ -18,7 +18,7 @@ use tx_factory::{
     ChangeEmployeeDirectTxFactory, ChangeEmployeeHoldTxFactory, ChangeEmployeeHourlyTxFactory,
     ChangeEmployeeMailTxFactory, ChangeEmployeeMemberTxFactory, ChangeEmployeeNameTxFactory,
     ChangeEmployeeNoMemberTxFactory, ChangeEmployeeSalariedTxFactory, DeleteEmployeeTxFactory,
-    TxFactory,
+    PaydayTxFactory, TxFactory,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -300,14 +300,20 @@ where
         ))
     }
 }
+impl<T, F> PaydayTxFactory for TxFactoryImpl<T, F>
+where
+    T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
+{
+    fn mk_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
+        trace!("mk_payday_tx called");
+        Box::new(PaydayTx::new(date, self.dao.clone()))
+    }
+}
 
 impl<T, F> TxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
     F: PayrollFactory + Clone + 'static,
 {
-    fn mk_payday_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
-        trace!("mk_payday_tx called");
-        Box::new(PaydayTx::new(date, self.dao.clone()))
-    }
 }
