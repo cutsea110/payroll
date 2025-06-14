@@ -8,6 +8,11 @@ use payroll_domain::{Affiliation, EmployeeId};
 
 // ユースケース: ChangeMember トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeMember: HaveEmployeeDao {
+    // サービスレベルトランザクション
+    fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, UsecaseError>
+    where
+        F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
+
     fn get_emp_id(&self) -> EmployeeId;
     fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>>;
     fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError>;

@@ -3,7 +3,7 @@ use log::{debug, trace};
 use std::sync::{Arc, Mutex};
 use tx_rs::Tx;
 
-use abstract_tx::ChangeMember;
+use abstract_tx::{ChangeMember, UsecaseError};
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Affiliation, EmployeeId};
 use payroll_factory::NoAffiliationFactory;
@@ -49,6 +49,17 @@ where
     T: EmployeeDao,
     F: NoAffiliationFactory,
 {
+    fn run_tx<'a, G, R>(&'a self, f: G) -> Result<R, UsecaseError>
+    where
+        G: FnOnce(Self::Ctx<'a>) -> Result<R, DaoError>,
+    {
+        trace!("run_tx called");
+        // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        self.dao()
+            .run_tx(f)
+            .map_err(UsecaseError::AddEmployeeFailed)
+    }
+
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
