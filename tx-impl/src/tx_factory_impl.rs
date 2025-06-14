@@ -15,7 +15,7 @@ use tx_factory::{
     AddCommissionedEmployeeTxFactory, AddHourlyEmployeeTxFactory, AddSalariedEmployeeTxFactory,
     AddSalesReceiptTxFactory, AddServiceChargeTxFactory, AddTimecardTxFactory,
     ChangeEmployeeAddressTxFactory, ChangeEmployeeHourlyTxFactory, ChangeEmployeeNameTxFactory,
-    DeleteEmployeeTxFactory, TxFactory,
+    ChangeEmployeeSalariedTxFactory, DeleteEmployeeTxFactory, TxFactory,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -176,6 +176,21 @@ where
         ))
     }
 }
+impl<T, F> ChangeEmployeeSalariedTxFactory for TxFactoryImpl<T, F>
+where
+    T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
+{
+    fn mk_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
+        trace!("mk_tx called for ChangeEmployeeSalariedTx");
+        Box::new(ChangeSalariedTx::new(
+            id,
+            salary,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
+    }
+}
 impl<T, F> ChangeEmployeeHourlyTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
@@ -197,15 +212,6 @@ where
     T: EmployeeDao + Clone + 'static,
     F: PayrollFactory + Clone + 'static,
 {
-    fn mk_change_employee_salaried_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
-        trace!("mk_change_employee_salaried_tx called");
-        Box::new(ChangeSalariedTx::new(
-            id,
-            salary,
-            self.dao.clone(),
-            self.payroll_factory.clone(),
-        ))
-    }
     fn mk_change_employee_commissioned_tx(
         &self,
         id: EmployeeId,
