@@ -111,7 +111,7 @@ mod tests {
     };
     use payroll_factory::{
         CommissionedClassificationFactory, HourlyClassificationFactory, PayrollFactory,
-        SalariedClassificationFactory,
+        SalariedClassificationFactory, WeeklyScheduleFactory,
     };
     use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
 
@@ -310,10 +310,12 @@ mod tests {
             unimplemented!("mk_classification is not implemented")
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+    impl WeeklyScheduleFactory for Tester {
+        fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
             Arc::new(Mutex::new(WeeklySchedule))
         }
+    }
+    impl PayrollFactory for Tester {
         fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
             unimplemented!("mk_monthly_schedule is not implemented")
         }
