@@ -59,6 +59,9 @@ pub trait ChangeEmployeeHoldTxFactory {
 pub trait ChangeEmployeeDirectTxFactory {
     fn mk_tx(&self, id: EmployeeId, bank: &str, account: &str) -> Box<dyn Transaction>;
 }
+pub trait ChangeEmployeeMailTxFactory {
+    fn mk_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction>;
+}
 
 pub trait TxFactory:
     AddSalariedEmployeeTxFactory
@@ -75,6 +78,7 @@ pub trait TxFactory:
     + ChangeEmployeeCommissionedTxFactory
     + ChangeEmployeeHoldTxFactory
     + ChangeEmployeeDirectTxFactory
+    + ChangeEmployeeMailTxFactory
 {
     fn mk_add_hourly_employee_tx(
         &self,
@@ -170,7 +174,9 @@ pub trait TxFactory:
     ) -> Box<dyn Transaction> {
         ChangeEmployeeDirectTxFactory::mk_tx(self, id, bank, account)
     }
-    fn mk_change_employee_mail_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction>;
+    fn mk_change_employee_mail_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction> {
+        ChangeEmployeeMailTxFactory::mk_tx(self, id, address)
+    }
     fn mk_change_employee_member_tx(
         &self,
         id: EmployeeId,
