@@ -7,7 +7,9 @@ use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{
     Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
-use payroll_factory::PayrollFactory;
+use payroll_factory::{
+    HoldMethodFactory, HourlyClassificationFactory, NoAffiliationFactory, WeeklyScheduleFactory,
+};
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddHourlyEmployee トランザクションの実装 (struct)
@@ -60,7 +62,10 @@ where
 impl<T, F> AddEmployee for AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HourlyClassificationFactory
+        + WeeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
@@ -72,24 +77,26 @@ where
         &self.address
     }
     fn get_classification(&self) -> Arc<Mutex<dyn PaymentClassification>> {
-        self.payroll_factory
-            .mk_hourly_classification(self.hourly_rate)
+        self.payroll_factory.mk_classification(self.hourly_rate)
     }
     fn get_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-        self.payroll_factory.mk_weekly_schedule()
+        self.payroll_factory.mk_schedule()
     }
     fn get_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
-        self.payroll_factory.mk_hold_method()
+        self.payroll_factory.mk_method()
     }
     fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
-        self.payroll_factory.mk_no_affiliation()
+        self.payroll_factory.mk_affiliation()
     }
 }
 // 共通インターフェースの実装
 impl<T, F> Transaction for AddHourlyEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HourlyClassificationFactory
+        + WeeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");
@@ -110,10 +117,7 @@ mod tests {
         PaymentClassification, PaymentMethod, PaymentSchedule,
     };
     use payroll_factory::{
-        BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
-        HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
-        NoAffiliationFactory, PayrollFactory, SalariedClassificationFactory,
-        UnionAffiliationFactory, WeeklyScheduleFactory,
+        HoldMethodFactory, HourlyClassificationFactory, NoAffiliationFactory, WeeklyScheduleFactory,
     };
     use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
 
@@ -293,28 +297,9 @@ mod tests {
             tx_rs::with_tx(move |_ctx| unreachable!("record_paycheck method should not be called"))
         }
     }
-    impl SalariedClassificationFactory for Tester {
-        fn mk_classification(&self, _salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
-            unimplemented!("mk_classification is not implemented")
-        }
-    }
     impl HourlyClassificationFactory for Tester {
         fn mk_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>> {
             Arc::new(Mutex::new(HourlyClassification::new(hourly_rate)))
-        }
-    }
-    impl CommissionedClassificationFactory for Tester {
-        fn mk_classification(
-            &self,
-            _salary: f32,
-            _commission_rate: f32,
-        ) -> Arc<Mutex<dyn PaymentClassification>> {
-            unimplemented!("mk_classification is not implemented")
-        }
-    }
-    impl MonthlyScheduleFactory for Tester {
-        fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-            unimplemented!("mk_schedule is not implemented")
         }
     }
     impl WeeklyScheduleFactory for Tester {
@@ -322,29 +307,9 @@ mod tests {
             Arc::new(Mutex::new(WeeklySchedule))
         }
     }
-    impl BiweeklyScheduleFactory for Tester {
-        fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-            unimplemented!("mk_schedule is not implemented")
-        }
-    }
     impl HoldMethodFactory for Tester {
         fn mk_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
             Arc::new(Mutex::new(HoldMethod))
-        }
-    }
-    impl DirectMethodFactory for Tester {
-        fn mk_method(&self, _bank: &str, _account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
-            unimplemented!("mk_method is not implemented")
-        }
-    }
-    impl MailMethodFactory for Tester {
-        fn mk_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
-            unimplemented!("mk_method is not implemented")
-        }
-    }
-    impl UnionAffiliationFactory for Tester {
-        fn mk_affiliation(&self, _member_id: MemberId, _dues: f32) -> Arc<Mutex<dyn Affiliation>> {
-            unimplemented!("mk_affiliation is not implemented")
         }
     }
     impl NoAffiliationFactory for Tester {
@@ -352,7 +317,6 @@ mod tests {
             Arc::new(Mutex::new(NoAffiliation))
         }
     }
-    impl PayrollFactory for Tester {}
 
     #[test]
     fn test_add_emp() {
