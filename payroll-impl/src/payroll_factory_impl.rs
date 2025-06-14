@@ -10,8 +10,8 @@ use payroll_domain::{
     Affiliation, MemberId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
 use payroll_factory::{
-    CommissionedClassificationFactory, HourlyClassificationFactory, PayrollFactory,
-    SalariedClassificationFactory, WeeklyScheduleFactory,
+    CommissionedClassificationFactory, HourlyClassificationFactory, MonthlyScheduleFactory,
+    PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -39,6 +39,11 @@ impl CommissionedClassificationFactory for PayrollFactoryImpl {
         )))
     }
 }
+impl MonthlyScheduleFactory for PayrollFactoryImpl {
+    fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        Arc::new(Mutex::new(MonthlySchedule))
+    }
+}
 impl WeeklyScheduleFactory for PayrollFactoryImpl {
     fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         Arc::new(Mutex::new(WeeklySchedule))
@@ -46,9 +51,6 @@ impl WeeklyScheduleFactory for PayrollFactoryImpl {
 }
 
 impl PayrollFactory for PayrollFactoryImpl {
-    fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-        Arc::new(Mutex::new(MonthlySchedule))
-    }
     fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         Arc::new(Mutex::new(BiweeklySchedule))
     }
