@@ -7,15 +7,26 @@ pub trait AddSalariedEmployeeTxFactory {
     fn mk_tx(&self, id: EmployeeId, name: &str, address: &str, salary: f32)
         -> Box<dyn Transaction>;
 }
-
-pub trait TxFactory: AddSalariedEmployeeTxFactory {
-    fn mk_add_hourly_employee_tx(
+pub trait AddHourlyEmployeeTxFactory {
+    fn mk_tx(
         &self,
         id: EmployeeId,
         name: &str,
         address: &str,
         hourly_rate: f32,
     ) -> Box<dyn Transaction>;
+}
+
+pub trait TxFactory: AddSalariedEmployeeTxFactory + AddHourlyEmployeeTxFactory {
+    fn mk_add_hourly_employee_tx(
+        &self,
+        id: EmployeeId,
+        name: &str,
+        address: &str,
+        hourly_rate: f32,
+    ) -> Box<dyn Transaction> {
+        AddHourlyEmployeeTxFactory::mk_tx(self, id, name, address, hourly_rate)
+    }
     fn mk_add_salaried_employee_tx(
         &self,
         id: EmployeeId,
