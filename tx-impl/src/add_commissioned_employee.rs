@@ -7,7 +7,10 @@ use dao::{EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{
     Affiliation, EmployeeId, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
-use payroll_factory::PayrollFactory;
+use payroll_factory::{
+    BiweeklyScheduleFactory, CommissionedClassificationFactory, HoldMethodFactory,
+    NoAffiliationFactory,
+};
 use tx_app::{Response, Transaction};
 
 // ユースケース: AddCommissionedEmployee トランザクションの実装 (struct)
@@ -63,7 +66,10 @@ where
 impl<T, F> AddEmployee for AddCommissionedEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: CommissionedClassificationFactory
+        + BiweeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
@@ -76,23 +82,26 @@ where
     }
     fn get_classification(&self) -> Arc<Mutex<dyn PaymentClassification>> {
         self.payroll_factory
-            .mk_commissioned_classification(self.salary, self.commission_rate)
+            .mk_classification(self.salary, self.commission_rate)
     }
     fn get_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-        self.payroll_factory.mk_biweekly_schedule()
+        self.payroll_factory.mk_schedule()
     }
     fn get_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
-        self.payroll_factory.mk_hold_method()
+        self.payroll_factory.mk_method()
     }
     fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
-        self.payroll_factory.mk_no_affiliation()
+        self.payroll_factory.mk_affiliation()
     }
 }
 // 共通インターフェースの実装
 impl<T, F> Transaction for AddCommissionedEmployeeTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: CommissionedClassificationFactory
+        + BiweeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");
@@ -112,7 +121,10 @@ mod tests {
         Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
         PaymentClassification, PaymentMethod, PaymentSchedule,
     };
-    use payroll_factory::PayrollFactory;
+    use payroll_factory::{
+        BiweeklyScheduleFactory, CommissionedClassificationFactory, HoldMethodFactory,
+        NoAffiliationFactory,
+    };
     use payroll_impl::{BiweeklySchedule, CommissionedClassification, HoldMethod};
 
     #[derive(Debug, Clone)]
@@ -291,20 +303,8 @@ mod tests {
             tx_rs::with_tx(move |_ctx| unreachable!("record_paycheck method should not be called"))
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_salaried_classification(
-            &self,
-            _salary: f32,
-        ) -> Arc<Mutex<dyn PaymentClassification>> {
-            unimplemented!("mk_salaried_classification is not implemented")
-        }
-        fn mk_hourly_classification(
-            &self,
-            _hourly_rate: f32,
-        ) -> Arc<Mutex<dyn PaymentClassification>> {
-            unimplemented!("mk_hourly_classification is not implemented")
-        }
-        fn mk_commissioned_classification(
+    impl CommissionedClassificationFactory for Tester {
+        fn mk_classification(
             &self,
             salary: f32,
             commission_rate: f32,
@@ -314,36 +314,19 @@ mod tests {
                 commission_rate,
             )))
         }
-
-        fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-            unimplemented!("mk_weekly_schedule is not implemented")
-        }
-        fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
-            unimplemented!("mk_monthly_schedule is not implemented")
-        }
-        fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+    }
+    impl BiweeklyScheduleFactory for Tester {
+        fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
             Arc::new(Mutex::new(BiweeklySchedule))
         }
-
-        fn mk_hold_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
+    }
+    impl HoldMethodFactory for Tester {
+        fn mk_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
             Arc::new(Mutex::new(HoldMethod))
         }
-
-        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
-            unimplemented!("mk_direct_method is not implemented")
-        }
-        fn mk_mail_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
-            unimplemented!("mk_mail_method is not implemented")
-        }
-
-        fn mk_union_affiliation(
-            &self,
-            _member_id: MemberId,
-            _dues: f32,
-        ) -> Arc<Mutex<dyn Affiliation>> {
-            unimplemented!("mk_union_affiliation is not implemented")
-        }
-        fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+    }
+    impl NoAffiliationFactory for Tester {
+        fn mk_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
             Arc::new(Mutex::new(NoAffiliation))
         }
     }
