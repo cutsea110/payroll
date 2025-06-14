@@ -10,8 +10,17 @@ pub trait SalariedClassificationFactory {
 pub trait HourlyClassificationFactory {
     fn mk_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>>;
 }
+pub trait CommissionedClassificationFactory {
+    fn mk_classification(
+        &self,
+        salary: f32,
+        commission_rate: f32,
+    ) -> Arc<Mutex<dyn PaymentClassification>>;
+}
 
-pub trait PayrollFactory: SalariedClassificationFactory + HourlyClassificationFactory {
+pub trait PayrollFactory:
+    SalariedClassificationFactory + HourlyClassificationFactory + CommissionedClassificationFactory
+{
     fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
         SalariedClassificationFactory::mk_classification(self, salary)
     }
@@ -22,7 +31,9 @@ pub trait PayrollFactory: SalariedClassificationFactory + HourlyClassificationFa
         &self,
         salary: f32,
         commission_rate: f32,
-    ) -> Arc<Mutex<dyn PaymentClassification>>;
+    ) -> Arc<Mutex<dyn PaymentClassification>> {
+        CommissionedClassificationFactory::mk_classification(self, salary, commission_rate)
+    }
 
     fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;
     fn mk_monthly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;

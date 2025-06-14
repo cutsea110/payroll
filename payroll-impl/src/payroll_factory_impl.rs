@@ -9,7 +9,10 @@ use crate::{
 use payroll_domain::{
     Affiliation, MemberId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
-use payroll_factory::{HourlyClassificationFactory, PayrollFactory, SalariedClassificationFactory};
+use payroll_factory::{
+    CommissionedClassificationFactory, HourlyClassificationFactory, PayrollFactory,
+    SalariedClassificationFactory,
+};
 
 #[derive(Debug, Clone)]
 pub struct PayrollFactoryImpl;
@@ -24,9 +27,8 @@ impl HourlyClassificationFactory for PayrollFactoryImpl {
         Arc::new(Mutex::new(HourlyClassification::new(hourly_rate)))
     }
 }
-
-impl PayrollFactory for PayrollFactoryImpl {
-    fn mk_commissioned_classification(
+impl CommissionedClassificationFactory for PayrollFactoryImpl {
+    fn mk_classification(
         &self,
         salary: f32,
         commission_rate: f32,
@@ -36,6 +38,9 @@ impl PayrollFactory for PayrollFactoryImpl {
             commission_rate,
         )))
     }
+}
+
+impl PayrollFactory for PayrollFactoryImpl {
     fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         Arc::new(Mutex::new(WeeklySchedule))
     }
