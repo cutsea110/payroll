@@ -4,7 +4,7 @@ use log::{debug, trace};
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::MailMethodFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeMail トランザクションの実装 (struct)
@@ -46,14 +46,14 @@ where
 impl<T, F> ChangeEmployee for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: MailMethodFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         trace!("change called");
-        emp.set_method(self.payroll_factory.mk_mail_method(&self.address));
+        emp.set_method(self.payroll_factory.mk_method(&self.address));
         debug!("method changed: {:?}", emp.method());
         Ok(())
     }
@@ -62,7 +62,7 @@ where
 impl<T, F> Transaction for ChangeMailTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: MailMethodFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

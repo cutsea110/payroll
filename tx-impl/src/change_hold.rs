@@ -4,7 +4,7 @@ use log::{debug, trace};
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::HoldMethodFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeHold トランザクションの実装 (struct)
@@ -44,14 +44,14 @@ where
 impl<T, F> ChangeEmployee for ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HoldMethodFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         trace!("change called");
-        emp.set_method(self.payroll_factory.mk_hold_method());
+        emp.set_method(self.payroll_factory.mk_method());
         debug!("method changed: {:?}", emp.method());
         Ok(())
     }
@@ -60,7 +60,7 @@ where
 impl<T, F> Transaction for ChangeHoldTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HoldMethodFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

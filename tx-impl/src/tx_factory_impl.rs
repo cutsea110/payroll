@@ -9,7 +9,12 @@ use crate::{
 };
 use dao::EmployeeDao;
 use payroll_domain::{EmployeeId, MemberId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::{
+    BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
+    HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
+    NoAffiliationFactory, SalariedClassificationFactory, UnionAffiliationFactory,
+    WeeklyScheduleFactory,
+};
 use tx_app::Transaction;
 use tx_factory::{
     AddCommissionedEmployeeTxFactory, AddHourlyEmployeeTxFactory, AddSalariedEmployeeTxFactory,
@@ -42,7 +47,12 @@ where
 impl<T, F> AddSalariedEmployeeTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: SalariedClassificationFactory
+        + MonthlyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory
+        + Clone
+        + 'static,
 {
     fn mk_tx(
         &self,
@@ -65,7 +75,12 @@ where
 impl<T, F> AddHourlyEmployeeTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: HourlyClassificationFactory
+        + WeeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory
+        + Clone
+        + 'static,
 {
     fn mk_tx(
         &self,
@@ -88,7 +103,12 @@ where
 impl<T, F> AddCommissionedEmployeeTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: CommissionedClassificationFactory
+        + BiweeklyScheduleFactory
+        + HoldMethodFactory
+        + NoAffiliationFactory
+        + Clone
+        + 'static,
 {
     fn mk_tx(
         &self,
@@ -113,7 +133,7 @@ where
 impl<T, F> DeleteEmployeeTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         trace!("mk_tx called for DeleteEmployeeTx");
@@ -123,7 +143,7 @@ where
 impl<T, F> AddTimecardTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, id: EmployeeId, date: NaiveDate, hours: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for AddTimeCardTx");
@@ -133,7 +153,7 @@ where
 impl<T, F> AddSalesReceiptTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, id: EmployeeId, date: NaiveDate, amount: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for AddSalesReceiptTx");
@@ -143,7 +163,7 @@ where
 impl<T, F> AddServiceChargeTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, member_id: MemberId, date: NaiveDate, amount: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for AddServiceChargeTx");
@@ -158,7 +178,7 @@ where
 impl<T, F> ChangeEmployeeNameTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, id: EmployeeId, new_name: &str) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeNameTx");
@@ -168,7 +188,7 @@ where
 impl<T, F> ChangeEmployeeAddressTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: Clone,
 {
     fn mk_tx(&self, id: EmployeeId, new_address: &str) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeAddressTx");
@@ -182,7 +202,7 @@ where
 impl<T, F> ChangeEmployeeSalariedTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: SalariedClassificationFactory + MonthlyScheduleFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeSalariedTx");
@@ -197,7 +217,7 @@ where
 impl<T, F> ChangeEmployeeHourlyTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: HourlyClassificationFactory + WeeklyScheduleFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId, hourly_rate: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeHourlyTx");
@@ -212,7 +232,7 @@ where
 impl<T, F> ChangeEmployeeCommissionedTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: CommissionedClassificationFactory + BiweeklyScheduleFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId, salary: f32, commission_rate: f32) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeCommissionedTx");
@@ -228,7 +248,7 @@ where
 impl<T, F> ChangeEmployeeHoldTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: HoldMethodFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeHoldTx");
@@ -242,7 +262,7 @@ where
 impl<T, F> ChangeEmployeeDirectTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: DirectMethodFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId, bank: &str, account: &str) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeDirectTx");
@@ -258,7 +278,7 @@ where
 impl<T, F> ChangeEmployeeMailTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: MailMethodFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId, address: &str) -> Box<dyn Transaction> {
         trace!("mk_tx called for ChangeEmployeeMailTx");
@@ -273,7 +293,7 @@ where
 impl<T, F> ChangeEmployeeMemberTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: UnionAffiliationFactory + Clone + 'static,
 {
     fn mk_tx(&self, emp_id: EmployeeId, member_id: MemberId, dues: f32) -> Box<dyn Transaction> {
         trace!("mk_change_employee_member_tx called");
@@ -289,7 +309,7 @@ where
 impl<T, F> ChangeEmployeeNoMemberTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
+    F: NoAffiliationFactory + Clone + 'static,
 {
     fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
         trace!("mk_change_employee_no_member_tx called");
@@ -303,7 +323,6 @@ where
 impl<T, F> PaydayTxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
 {
     fn mk_tx(&self, date: NaiveDate) -> Box<dyn Transaction> {
         trace!("mk_payday_tx called");
