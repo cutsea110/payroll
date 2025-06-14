@@ -45,9 +45,7 @@ where
     {
         trace!("run_tx called");
         // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
-        self.dao()
-            .run_tx(f)
-            .map_err(UsecaseError::AddEmployeeFailed)
+        self.dao().run_tx(f).map_err(UsecaseError::PaydayFailed)
     }
 
     fn get_pay_date(&self) -> NaiveDate {

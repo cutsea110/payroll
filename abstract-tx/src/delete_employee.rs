@@ -16,14 +16,11 @@ pub trait DeleteEmployee: HaveEmployeeDao {
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("execute called");
-        self.dao()
-            .run_tx(|mut ctx| {
-                trace!("run_tx called");
-                let emp_id = self.get_id();
-                debug!("execute: emp_id={}", emp_id);
-                self.dao().delete(emp_id).run(&mut ctx)
-            })
-            .map(|_| ())
-            .map_err(UsecaseError::DeleteEmployeeFailed)
+        self.run_tx(|mut ctx| {
+            trace!("run_tx called");
+            let emp_id = self.get_id();
+            debug!("execute: emp_id={}", emp_id);
+            self.dao().delete(emp_id).run(&mut ctx)
+        })
     }
 }

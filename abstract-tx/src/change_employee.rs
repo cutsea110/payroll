@@ -17,15 +17,13 @@ pub trait ChangeEmployee: HaveEmployeeDao {
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("execute called");
-        self.dao()
-            .run_tx(|mut ctx| {
-                trace!("run_tx called");
-                let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
-                debug!("changing emp={:?}", emp);
-                self.change(&mut emp)?;
-                debug!("changed emp={:?}", emp);
-                self.dao().update(emp).run(&mut ctx)
-            })
-            .map_err(UsecaseError::ChangeEmployeeFailed)
+        self.run_tx(|mut ctx| {
+            trace!("run_tx called");
+            let mut emp = self.dao().fetch(self.get_id()).run(&mut ctx)?;
+            debug!("changing emp={:?}", emp);
+            self.change(&mut emp)?;
+            debug!("changed emp={:?}", emp);
+            self.dao().update(emp).run(&mut ctx)
+        })
     }
 }

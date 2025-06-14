@@ -19,21 +19,19 @@ pub trait ChangeMember: HaveEmployeeDao {
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
         trace!("execute called");
-        self.dao()
-            .run_tx(|mut ctx| {
-                trace!("run_tx called");
-                self.record_membership(&mut ctx)?;
+        self.run_tx(|mut ctx| {
+            trace!("run_tx called");
+            self.record_membership(&mut ctx)?;
 
-                let mut emp = self.dao().fetch(self.get_emp_id()).run(&mut ctx)?;
-                debug!(
-                    "changing emp member: {:?} -> {:?}",
-                    emp.affiliation(),
-                    self.get_affiliation()
-                );
-                emp.set_affiliation(self.get_affiliation());
-                debug!("changed emp member={:?}", emp.affiliation());
-                self.dao().update(emp).run(&mut ctx)
-            })
-            .map_err(UsecaseError::ChangeMemberFailed)
+            let mut emp = self.dao().fetch(self.get_emp_id()).run(&mut ctx)?;
+            debug!(
+                "changing emp member: {:?} -> {:?}",
+                emp.affiliation(),
+                self.get_affiliation()
+            );
+            emp.set_affiliation(self.get_affiliation());
+            debug!("changed emp member={:?}", emp.affiliation());
+            self.dao().update(emp).run(&mut ctx)
+        })
     }
 }

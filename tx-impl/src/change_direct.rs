@@ -58,7 +58,7 @@ where
         // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
         self.dao()
             .run_tx(f)
-            .map_err(UsecaseError::AddEmployeeFailed)
+            .map_err(UsecaseError::ChangeEmployeeFailed)
     }
 
     fn get_id(&self) -> EmployeeId {

@@ -37,8 +37,7 @@ pub trait AddEmployee: HaveEmployeeDao {
                 self.get_affiliation(),
             );
             debug!("execute: emp={:?}", emp);
-            self.dao().add(emp).run(&mut ctx)
+            self.dao().add(emp).run(&mut ctx).map(|_| ())
         })
-        .map(|_| ())
     }
 }
