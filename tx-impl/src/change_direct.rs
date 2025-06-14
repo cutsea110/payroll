@@ -1,7 +1,7 @@
 use anyhow;
 use log::{debug, trace};
 
-use abstract_tx::ChangeEmployee;
+use abstract_tx::{ChangeEmployee, UsecaseError};
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
 use payroll_factory::DirectMethodFactory;
@@ -50,6 +50,17 @@ where
     T: EmployeeDao,
     F: DirectMethodFactory,
 {
+    fn run_tx<'a, G, R>(&'a self, f: G) -> Result<R, UsecaseError>
+    where
+        G: FnOnce(Self::Ctx<'a>) -> Result<R, DaoError>,
+    {
+        trace!("run_tx called");
+        // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        self.dao()
+            .run_tx(f)
+            .map_err(UsecaseError::ChangeEmployeeFailed)
+    }
+
     fn get_id(&self) -> EmployeeId {
         self.id
     }

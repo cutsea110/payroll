@@ -1,8 +1,8 @@
 use anyhow;
 use log::trace;
 
-use abstract_tx::DeleteEmployee;
-use dao::{EmployeeDao, HaveEmployeeDao};
+use abstract_tx::{DeleteEmployee, UsecaseError};
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::EmployeeId;
 use tx_app::{Response, Transaction};
 
@@ -39,6 +39,17 @@ impl<T> DeleteEmployee for DeleteEmployeeTx<T>
 where
     T: EmployeeDao,
 {
+    fn run_tx<'a, G, R>(&'a self, f: G) -> Result<R, UsecaseError>
+    where
+        G: FnOnce(Self::Ctx<'a>) -> Result<R, DaoError>,
+    {
+        trace!("run_tx called");
+        // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        self.dao()
+            .run_tx(f)
+            .map_err(UsecaseError::DeleteEmployeeFailed)
+    }
+
     fn get_id(&self) -> EmployeeId {
         self.id
     }
