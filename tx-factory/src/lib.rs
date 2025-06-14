@@ -92,15 +92,6 @@ pub trait TxFactory:
     + ChangeEmployeeNoMemberTxFactory
     + PaydayTxFactory
 {
-    fn mk_add_hourly_employee_tx(
-        &self,
-        id: EmployeeId,
-        name: &str,
-        address: &str,
-        hourly_rate: f32,
-    ) -> Box<dyn Transaction> {
-        AddHourlyEmployeeTxFactory::mk_tx(self, id, name, address, hourly_rate)
-    }
     fn mk_add_salaried_employee_tx(
         &self,
         id: EmployeeId,
@@ -109,6 +100,15 @@ pub trait TxFactory:
         salary: f32,
     ) -> Box<dyn Transaction> {
         AddSalariedEmployeeTxFactory::mk_tx(self, id, name, address, salary)
+    }
+    fn mk_add_hourly_employee_tx(
+        &self,
+        id: EmployeeId,
+        name: &str,
+        address: &str,
+        hourly_rate: f32,
+    ) -> Box<dyn Transaction> {
+        AddHourlyEmployeeTxFactory::mk_tx(self, id, name, address, hourly_rate)
     }
     fn mk_add_commissioned_employee_tx(
         &self,
@@ -157,15 +157,15 @@ pub trait TxFactory:
     ) -> Box<dyn Transaction> {
         ChangeEmployeeAddressTxFactory::mk_tx(self, id, new_address)
     }
+    fn mk_change_employee_salaried_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
+        ChangeEmployeeSalariedTxFactory::mk_tx(self, id, salary)
+    }
     fn mk_change_employee_hourly_tx(
         &self,
         id: EmployeeId,
         hourly_rate: f32,
     ) -> Box<dyn Transaction> {
         ChangeEmployeeHourlyTxFactory::mk_tx(self, id, hourly_rate)
-    }
-    fn mk_change_employee_salaried_tx(&self, id: EmployeeId, salary: f32) -> Box<dyn Transaction> {
-        ChangeEmployeeSalariedTxFactory::mk_tx(self, id, salary)
     }
     fn mk_change_employee_commissioned_tx(
         &self,
