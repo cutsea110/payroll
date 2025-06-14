@@ -4,7 +4,7 @@ use log::{debug, trace};
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::{HourlyClassificationFactory, WeeklyScheduleFactory};
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeHourly トランザクションの実装 (struct)
@@ -46,19 +46,16 @@ where
 impl<T, F> ChangeEmployee for ChangeHourlyTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HourlyClassificationFactory + WeeklyScheduleFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         trace!("change called");
-        emp.set_classification(
-            self.payroll_factory
-                .mk_hourly_classification(self.hourly_rate),
-        );
+        emp.set_classification(self.payroll_factory.mk_classification(self.hourly_rate));
         debug!("classification changed: {:?}", emp.classification());
-        emp.set_schedule(self.payroll_factory.mk_weekly_schedule());
+        emp.set_schedule(self.payroll_factory.mk_schedule());
         debug!("schedule changed: {:?}", emp.schedule());
         Ok(())
     }
@@ -67,7 +64,7 @@ where
 impl<T, F> Transaction for ChangeHourlyTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: HourlyClassificationFactory + WeeklyScheduleFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

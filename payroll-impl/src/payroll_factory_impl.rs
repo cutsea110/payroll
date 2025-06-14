@@ -12,7 +12,7 @@ use payroll_domain::{
 use payroll_factory::{
     BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
     HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
-    NoAffiliationFactory, PayrollFactory, SalariedClassificationFactory, UnionAffiliationFactory,
+    NoAffiliationFactory, SalariedClassificationFactory, UnionAffiliationFactory,
     WeeklyScheduleFactory,
 };
 
@@ -81,5 +81,3 @@ impl NoAffiliationFactory for PayrollFactoryImpl {
         Arc::new(Mutex::new(NoAffiliation))
     }
 }
-
-impl PayrollFactory for PayrollFactoryImpl {}

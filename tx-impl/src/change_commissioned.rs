@@ -4,7 +4,7 @@ use log::{debug, trace};
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::{BiweeklyScheduleFactory, CommissionedClassificationFactory};
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeCommissioned トランザクションの実装 (struct)
@@ -54,7 +54,7 @@ where
 impl<T, F> ChangeEmployee for ChangeCommissionedTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: CommissionedClassificationFactory + BiweeklyScheduleFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
@@ -63,10 +63,10 @@ where
         trace!("change called");
         emp.set_classification(
             self.payroll_factory
-                .mk_commissioned_classification(self.salary, self.commission_rate),
+                .mk_classification(self.salary, self.commission_rate),
         );
         debug!("classification changed: {:?}", emp.classification());
-        emp.set_schedule(self.payroll_factory.mk_biweekly_schedule());
+        emp.set_schedule(self.payroll_factory.mk_schedule());
         debug!("schedule changed: {:?}", emp.schedule());
         Ok(())
     }
@@ -75,7 +75,7 @@ where
 impl<T, F> Transaction for ChangeCommissionedTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: CommissionedClassificationFactory + BiweeklyScheduleFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

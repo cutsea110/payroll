@@ -4,7 +4,7 @@ use log::{debug, trace};
 use abstract_tx::ChangeEmployee;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Employee, EmployeeId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::DirectMethodFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeDirect トランザクションの実装 (struct)
@@ -48,17 +48,14 @@ where
 impl<T, F> ChangeEmployee for ChangeDirectTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: DirectMethodFactory,
 {
     fn get_id(&self) -> EmployeeId {
         self.id
     }
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError> {
         trace!("change called");
-        emp.set_method(
-            self.payroll_factory
-                .mk_direct_method(&self.bank, &self.account),
-        );
+        emp.set_method(self.payroll_factory.mk_method(&self.bank, &self.account));
         debug!("method changed: {:?}", emp.method());
         Ok(())
     }
@@ -67,7 +64,7 @@ where
 impl<T, F> Transaction for ChangeDirectTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: DirectMethodFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

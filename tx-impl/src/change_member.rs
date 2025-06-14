@@ -6,7 +6,7 @@ use tx_rs::Tx;
 use abstract_tx::ChangeMember;
 use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::{Affiliation, EmployeeId, MemberId};
-use payroll_factory::PayrollFactory;
+use payroll_factory::UnionAffiliationFactory;
 use tx_app::{Response, Transaction};
 
 // ユースケース: ChangeMember トランザクションの実装 (struct)
@@ -56,14 +56,14 @@ where
 impl<T, F> ChangeMember for ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: UnionAffiliationFactory,
 {
     fn get_emp_id(&self) -> EmployeeId {
         self.emp_id
     }
     fn get_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
         self.payroll_factory
-            .mk_union_affiliation(self.member_id, self.dues)
+            .mk_affiliation(self.member_id, self.dues)
     }
     fn record_membership<'a>(&self, ctx: &mut Self::Ctx<'a>) -> Result<(), DaoError> {
         trace!("record_membership called");
@@ -76,7 +76,7 @@ where
 impl<T, F> Transaction for ChangeMemberTx<T, F>
 where
     T: EmployeeDao,
-    F: PayrollFactory,
+    F: UnionAffiliationFactory,
 {
     fn execute(&self) -> Result<Response, anyhow::Error> {
         trace!("execute called");

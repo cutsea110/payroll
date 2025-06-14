@@ -2,7 +2,15 @@ use log::{debug, error, trace, warn};
 use std::io::BufRead;
 
 use tx_app::{Transaction, Tx, TxSource};
-use tx_factory::TxFactory;
+use tx_factory::{
+    AddCommissionedEmployeeTxFactory, AddHourlyEmployeeTxFactory, AddSalariedEmployeeTxFactory,
+    AddSalesReceiptTxFactory, AddServiceChargeTxFactory, AddTimecardTxFactory,
+    ChangeEmployeeAddressTxFactory, ChangeEmployeeCommissionedTxFactory,
+    ChangeEmployeeDirectTxFactory, ChangeEmployeeHoldTxFactory, ChangeEmployeeHourlyTxFactory,
+    ChangeEmployeeMailTxFactory, ChangeEmployeeMemberTxFactory, ChangeEmployeeNameTxFactory,
+    ChangeEmployeeNoMemberTxFactory, ChangeEmployeeSalariedTxFactory, DeleteEmployeeTxFactory,
+    PaydayTxFactory,
+};
 
 mod parser;
 
@@ -12,7 +20,24 @@ pub struct TextParserTxSource<F> {
 }
 impl<F> TextParserTxSource<F>
 where
-    F: TxFactory,
+    F: AddSalariedEmployeeTxFactory
+        + AddHourlyEmployeeTxFactory
+        + AddCommissionedEmployeeTxFactory
+        + DeleteEmployeeTxFactory
+        + AddTimecardTxFactory
+        + AddSalesReceiptTxFactory
+        + AddServiceChargeTxFactory
+        + ChangeEmployeeNameTxFactory
+        + ChangeEmployeeAddressTxFactory
+        + ChangeEmployeeSalariedTxFactory
+        + ChangeEmployeeHourlyTxFactory
+        + ChangeEmployeeCommissionedTxFactory
+        + ChangeEmployeeHoldTxFactory
+        + ChangeEmployeeDirectTxFactory
+        + ChangeEmployeeMailTxFactory
+        + ChangeEmployeeMemberTxFactory
+        + ChangeEmployeeNoMemberTxFactory
+        + PaydayTxFactory,
 {
     pub fn new(tx_factory: F, reader: Box<dyn BufRead>) -> Self {
         Self { tx_factory, reader }
@@ -24,88 +49,109 @@ where
                 name,
                 address,
                 hourly_rate,
-            } => self
-                .tx_factory
-                .mk_add_hourly_employee_tx(id, &name, &address, hourly_rate),
+            } => AddHourlyEmployeeTxFactory::mk_tx(
+                &self.tx_factory,
+                id,
+                &name,
+                &address,
+                hourly_rate,
+            ),
             Tx::AddSalariedEmployee {
                 id,
                 name,
                 address,
                 salary,
-            } => self
-                .tx_factory
-                .mk_add_salaried_employee_tx(id, &name, &address, salary),
+            } => AddSalariedEmployeeTxFactory::mk_tx(&self.tx_factory, id, &name, &address, salary),
             Tx::AddCommissionedEmployee {
                 id,
                 name,
                 address,
                 salary,
                 commission_rate,
-            } => self.tx_factory.mk_add_commissioned_employee_tx(
+            } => AddCommissionedEmployeeTxFactory::mk_tx(
+                &self.tx_factory,
                 id,
                 &name,
                 &address,
                 salary,
                 commission_rate,
             ),
-            Tx::DeleteEmployee { id } => self.tx_factory.mk_delete_employee_tx(id),
+            Tx::DeleteEmployee { id } => DeleteEmployeeTxFactory::mk_tx(&self.tx_factory, id),
             Tx::AddTimeCard { id, date, hours } => {
-                self.tx_factory.mk_add_timecard_tx(id, date, hours)
+                AddTimecardTxFactory::mk_tx(&self.tx_factory, id, date, hours)
             }
             Tx::AddSalesReceipt { id, date, amount } => {
-                self.tx_factory.mk_add_sales_receipt_tx(id, date, amount)
+                AddSalesReceiptTxFactory::mk_tx(&self.tx_factory, id, date, amount)
             }
             Tx::AddServiceCharge {
                 member_id,
                 date,
                 amount,
-            } => self
-                .tx_factory
-                .mk_add_service_charge_tx(member_id, date, amount),
+            } => AddServiceChargeTxFactory::mk_tx(&self.tx_factory, member_id, date, amount),
             Tx::ChangeEmployeeName { id, new_name } => {
-                self.tx_factory.mk_change_employee_name_tx(id, &new_name)
+                ChangeEmployeeNameTxFactory::mk_tx(&self.tx_factory, id, &new_name)
             }
-            Tx::ChangeEmployeeAddress { id, new_address } => self
-                .tx_factory
-                .mk_change_employee_address_tx(id, &new_address),
-            Tx::ChangeEmployeeHourly { id, hourly_rate } => self
-                .tx_factory
-                .mk_change_employee_hourly_tx(id, hourly_rate),
+            Tx::ChangeEmployeeAddress { id, new_address } => {
+                ChangeEmployeeAddressTxFactory::mk_tx(&self.tx_factory, id, &new_address)
+            }
+            Tx::ChangeEmployeeHourly { id, hourly_rate } => {
+                ChangeEmployeeHourlyTxFactory::mk_tx(&self.tx_factory, id, hourly_rate)
+            }
             Tx::ChangeEmployeeSalaried { id, salary } => {
-                self.tx_factory.mk_change_employee_salaried_tx(id, salary)
+                ChangeEmployeeSalariedTxFactory::mk_tx(&self.tx_factory, id, salary)
             }
             Tx::ChangeEmployeeCommissioned {
                 id,
                 salary,
                 commission_rate,
-            } => self
-                .tx_factory
-                .mk_change_employee_commissioned_tx(id, salary, commission_rate),
-            Tx::ChangeEmployeeHold { id } => self.tx_factory.mk_change_employee_hold_tx(id),
-            Tx::ChangeEmployeeDirect { id, bank, account } => self
-                .tx_factory
-                .mk_change_employee_direct_tx(id, &bank, &account),
+            } => ChangeEmployeeCommissionedTxFactory::mk_tx(
+                &self.tx_factory,
+                id,
+                salary,
+                commission_rate,
+            ),
+            Tx::ChangeEmployeeHold { id } => {
+                ChangeEmployeeHoldTxFactory::mk_tx(&self.tx_factory, id)
+            }
+            Tx::ChangeEmployeeDirect { id, bank, account } => {
+                ChangeEmployeeDirectTxFactory::mk_tx(&self.tx_factory, id, &bank, &account)
+            }
             Tx::ChangeEmployeeMail { id, address } => {
-                self.tx_factory.mk_change_employee_mail_tx(id, &address)
+                ChangeEmployeeMailTxFactory::mk_tx(&self.tx_factory, id, &address)
             }
             Tx::ChangeEmployeeMember {
                 emp_id,
                 member_id,
                 dues,
-            } => self
-                .tx_factory
-                .mk_change_employee_member_tx(emp_id, member_id, dues),
+            } => ChangeEmployeeMemberTxFactory::mk_tx(&self.tx_factory, emp_id, member_id, dues),
             Tx::ChangeEmployeeNoMember { emp_id } => {
-                self.tx_factory.mk_change_employee_no_member_tx(emp_id)
+                ChangeEmployeeNoMemberTxFactory::mk_tx(&self.tx_factory, emp_id)
             }
-            Tx::Payday { date } => self.tx_factory.mk_payday_tx(date),
+            Tx::Payday { date } => PaydayTxFactory::mk_tx(&self.tx_factory, date),
         }
     }
 }
 
 impl<F> TxSource for TextParserTxSource<F>
 where
-    F: TxFactory,
+    F: AddSalariedEmployeeTxFactory
+        + AddHourlyEmployeeTxFactory
+        + AddCommissionedEmployeeTxFactory
+        + DeleteEmployeeTxFactory
+        + AddTimecardTxFactory
+        + AddSalesReceiptTxFactory
+        + AddServiceChargeTxFactory
+        + ChangeEmployeeNameTxFactory
+        + ChangeEmployeeAddressTxFactory
+        + ChangeEmployeeSalariedTxFactory
+        + ChangeEmployeeHourlyTxFactory
+        + ChangeEmployeeCommissionedTxFactory
+        + ChangeEmployeeHoldTxFactory
+        + ChangeEmployeeDirectTxFactory
+        + ChangeEmployeeMailTxFactory
+        + ChangeEmployeeMemberTxFactory
+        + ChangeEmployeeNoMemberTxFactory
+        + PaydayTxFactory,
 {
     fn get_tx_source(&mut self) -> Option<Box<dyn Transaction>> {
         trace!("get_tx_source called");
