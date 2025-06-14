@@ -6,10 +6,7 @@ use tx_factory::TxFactory;
 
 mod parser;
 
-pub struct TextParserTxSource<F>
-where
-    F: TxFactory,
-{
+pub struct TextParserTxSource<F> {
     tx_factory: F,
     reader: Box<dyn BufRead>,
 }
