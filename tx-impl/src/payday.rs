@@ -2,8 +2,8 @@ use anyhow;
 use chrono::NaiveDate;
 use log::trace;
 
-use abstract_tx::Payday;
-use dao::{EmployeeDao, HaveEmployeeDao};
+use abstract_tx::{Payday, UsecaseError};
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use tx_app::{Response, Transaction};
 
 // ユースケース: Payday トランザクションの実装 (struct)
@@ -39,6 +39,17 @@ impl<T> Payday for PaydayTx<T>
 where
     T: EmployeeDao,
 {
+    fn run_tx<'a, G, R>(&'a self, f: G) -> Result<R, UsecaseError>
+    where
+        G: FnOnce(Self::Ctx<'a>) -> Result<R, DaoError>,
+    {
+        trace!("run_tx called");
+        // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        self.dao()
+            .run_tx(f)
+            .map_err(UsecaseError::AddEmployeeFailed)
+    }
+
     fn get_pay_date(&self) -> NaiveDate {
         self.pay_date
     }

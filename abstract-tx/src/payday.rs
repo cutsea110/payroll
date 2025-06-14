@@ -3,11 +3,16 @@ use log::{debug, trace};
 use tx_rs::Tx;
 
 use crate::UsecaseError;
-use dao::{EmployeeDao, HaveEmployeeDao};
+use dao::{DaoError, EmployeeDao, HaveEmployeeDao};
 use payroll_domain::Paycheck;
 
 // ユースケース: Payday トランザクション(抽象レベルのビジネスロジック)
 pub trait Payday: HaveEmployeeDao {
+    // サービスレベルトランザクション
+    fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, UsecaseError>
+    where
+        F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
+
     fn get_pay_date(&self) -> NaiveDate;
 
     fn execute<'a>(&self) -> Result<(), UsecaseError> {
