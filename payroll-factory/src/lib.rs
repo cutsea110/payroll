@@ -32,6 +32,9 @@ pub trait HoldMethodFactory {
 pub trait DirectMethodFactory {
     fn mk_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>>;
 }
+pub trait MailMethodFactory {
+    fn mk_method(&self, address: &str) -> Arc<Mutex<dyn PaymentMethod>>;
+}
 
 pub trait PayrollFactory:
     SalariedClassificationFactory
@@ -42,6 +45,7 @@ pub trait PayrollFactory:
     + BiweeklyScheduleFactory
     + HoldMethodFactory
     + DirectMethodFactory
+    + MailMethodFactory
 {
     fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
         SalariedClassificationFactory::mk_classification(self, salary)
@@ -73,7 +77,9 @@ pub trait PayrollFactory:
     fn mk_direct_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
         DirectMethodFactory::mk_method(self, bank, account)
     }
-    fn mk_mail_method(&self, address: &str) -> Arc<Mutex<dyn PaymentMethod>>;
+    fn mk_mail_method(&self, address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+        MailMethodFactory::mk_method(self, address)
+    }
 
     fn mk_union_affiliation(&self, member_id: MemberId, dues: f32) -> Arc<Mutex<dyn Affiliation>>;
     fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>>;

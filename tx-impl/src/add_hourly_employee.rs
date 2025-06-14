@@ -111,8 +111,8 @@ mod tests {
     };
     use payroll_factory::{
         BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
-        HoldMethodFactory, HourlyClassificationFactory, MonthlyScheduleFactory, PayrollFactory,
-        SalariedClassificationFactory, WeeklyScheduleFactory,
+        HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
+        PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
     };
     use payroll_impl::{HoldMethod, HourlyClassification, WeeklySchedule};
 
@@ -336,11 +336,12 @@ mod tests {
             unimplemented!("mk_method is not implemented")
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_mail_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
-            unimplemented!("mk_mail_method is not implemented")
+    impl MailMethodFactory for Tester {
+        fn mk_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+            unimplemented!("mk_method is not implemented")
         }
-
+    }
+    impl PayrollFactory for Tester {
         fn mk_union_affiliation(
             &self,
             _member_id: MemberId,
