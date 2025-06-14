@@ -113,8 +113,8 @@ mod tests {
         PaymentClassification, PaymentMethod, PaymentSchedule,
     };
     use payroll_factory::{
-        BiweeklyScheduleFactory, CommissionedClassificationFactory, HoldMethodFactory,
-        HourlyClassificationFactory, MonthlyScheduleFactory, PayrollFactory,
+        BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
+        HoldMethodFactory, HourlyClassificationFactory, MonthlyScheduleFactory, PayrollFactory,
         SalariedClassificationFactory, WeeklyScheduleFactory,
     };
     use payroll_impl::{BiweeklySchedule, CommissionedClassification, HoldMethod};
@@ -337,10 +337,12 @@ mod tests {
             Arc::new(Mutex::new(HoldMethod))
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_direct_method(&self, _bank: &str, _account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+    impl DirectMethodFactory for Tester {
+        fn mk_method(&self, _bank: &str, _account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
             unimplemented!("mk_direct_method is not implemented")
         }
+    }
+    impl PayrollFactory for Tester {
         fn mk_mail_method(&self, _address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
             unimplemented!("mk_mail_method is not implemented")
         }

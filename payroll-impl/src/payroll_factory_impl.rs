@@ -10,8 +10,8 @@ use payroll_domain::{
     Affiliation, MemberId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
 use payroll_factory::{
-    BiweeklyScheduleFactory, CommissionedClassificationFactory, HoldMethodFactory,
-    HourlyClassificationFactory, MonthlyScheduleFactory, PayrollFactory,
+    BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
+    HoldMethodFactory, HourlyClassificationFactory, MonthlyScheduleFactory, PayrollFactory,
     SalariedClassificationFactory, WeeklyScheduleFactory,
 };
 
@@ -60,11 +60,13 @@ impl HoldMethodFactory for PayrollFactoryImpl {
         Arc::new(Mutex::new(HoldMethod))
     }
 }
-
-impl PayrollFactory for PayrollFactoryImpl {
-    fn mk_direct_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
+impl DirectMethodFactory for PayrollFactoryImpl {
+    fn mk_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>> {
         Arc::new(Mutex::new(DirectMethod::new(bank, account)))
     }
+}
+
+impl PayrollFactory for PayrollFactoryImpl {
     fn mk_mail_method(&self, address: &str) -> Arc<Mutex<dyn PaymentMethod>> {
         Arc::new(Mutex::new(MailMethod::new(address)))
     }
