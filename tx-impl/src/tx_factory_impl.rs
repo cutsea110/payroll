@@ -18,7 +18,7 @@ use tx_factory::{
     ChangeEmployeeDirectTxFactory, ChangeEmployeeHoldTxFactory, ChangeEmployeeHourlyTxFactory,
     ChangeEmployeeMailTxFactory, ChangeEmployeeMemberTxFactory, ChangeEmployeeNameTxFactory,
     ChangeEmployeeNoMemberTxFactory, ChangeEmployeeSalariedTxFactory, DeleteEmployeeTxFactory,
-    PaydayTxFactory, TxFactory,
+    PaydayTxFactory,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -309,11 +309,4 @@ where
         trace!("mk_payday_tx called");
         Box::new(PaydayTx::new(date, self.dao.clone()))
     }
-}
-
-impl<T, F> TxFactory for TxFactoryImpl<T, F>
-where
-    T: EmployeeDao + Clone + 'static,
-    F: PayrollFactory + Clone + 'static,
-{
 }
