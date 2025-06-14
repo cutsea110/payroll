@@ -10,8 +10,8 @@ use payroll_domain::{
     Affiliation, MemberId, NoAffiliation, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
 use payroll_factory::{
-    CommissionedClassificationFactory, HourlyClassificationFactory, MonthlyScheduleFactory,
-    PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
+    BiweeklyScheduleFactory, CommissionedClassificationFactory, HourlyClassificationFactory,
+    MonthlyScheduleFactory, PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -49,11 +49,13 @@ impl WeeklyScheduleFactory for PayrollFactoryImpl {
         Arc::new(Mutex::new(WeeklySchedule))
     }
 }
-
-impl PayrollFactory for PayrollFactoryImpl {
-    fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+impl BiweeklyScheduleFactory for PayrollFactoryImpl {
+    fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         Arc::new(Mutex::new(BiweeklySchedule))
     }
+}
+
+impl PayrollFactory for PayrollFactoryImpl {
     fn mk_hold_method(&self) -> Arc<Mutex<dyn PaymentMethod>> {
         Arc::new(Mutex::new(HoldMethod))
     }

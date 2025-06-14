@@ -23,6 +23,9 @@ pub trait MonthlyScheduleFactory {
 pub trait WeeklyScheduleFactory {
     fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;
 }
+pub trait BiweeklyScheduleFactory {
+    fn mk_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;
+}
 
 pub trait PayrollFactory:
     SalariedClassificationFactory
@@ -30,6 +33,7 @@ pub trait PayrollFactory:
     + CommissionedClassificationFactory
     + MonthlyScheduleFactory
     + WeeklyScheduleFactory
+    + BiweeklyScheduleFactory
 {
     fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
         SalariedClassificationFactory::mk_classification(self, salary)
@@ -51,7 +55,9 @@ pub trait PayrollFactory:
     fn mk_weekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
         WeeklyScheduleFactory::mk_schedule(self)
     }
-    fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>>;
+    fn mk_biweekly_schedule(&self) -> Arc<Mutex<dyn PaymentSchedule>> {
+        BiweeklyScheduleFactory::mk_schedule(self)
+    }
 
     fn mk_hold_method(&self) -> Arc<Mutex<dyn PaymentMethod>>;
     fn mk_direct_method(&self, bank: &str, account: &str) -> Arc<Mutex<dyn PaymentMethod>>;
