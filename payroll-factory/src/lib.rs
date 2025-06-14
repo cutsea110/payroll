@@ -4,8 +4,14 @@ use payroll_domain::{
     Affiliation, MemberId, PaymentClassification, PaymentMethod, PaymentSchedule,
 };
 
-pub trait PayrollFactory {
-    fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>>;
+pub trait SalariedClassificationFactory {
+    fn mk_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>>;
+}
+
+pub trait PayrollFactory: SalariedClassificationFactory {
+    fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+        SalariedClassificationFactory::mk_classification(self, salary)
+    }
     fn mk_hourly_classification(&self, hourly_rate: f32) -> Arc<Mutex<dyn PaymentClassification>>;
     fn mk_commissioned_classification(
         &self,

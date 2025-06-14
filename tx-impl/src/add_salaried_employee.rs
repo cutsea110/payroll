@@ -108,7 +108,7 @@ mod tests {
         Affiliation, Employee, EmployeeId, MemberId, NoAffiliation, Paycheck,
         PaymentClassification, PaymentMethod, PaymentSchedule,
     };
-    use payroll_factory::PayrollFactory;
+    use payroll_factory::{PayrollFactory, SalariedClassificationFactory};
     use payroll_impl::{HoldMethod, MonthlySchedule, SalariedClassification};
 
     #[derive(Debug, Clone)]
@@ -287,10 +287,12 @@ mod tests {
             tx_rs::with_tx(move |_ctx| unreachable!("record_paycheck method should not be called"))
         }
     }
-    impl PayrollFactory for Tester {
-        fn mk_salaried_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
+    impl SalariedClassificationFactory for Tester {
+        fn mk_classification(&self, salary: f32) -> Arc<Mutex<dyn PaymentClassification>> {
             Arc::new(Mutex::new(SalariedClassification::new(salary)))
         }
+    }
+    impl PayrollFactory for Tester {
         fn mk_hourly_classification(
             &self,
             _hourly_rate: f32,
