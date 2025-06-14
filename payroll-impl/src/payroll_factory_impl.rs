@@ -12,7 +12,7 @@ use payroll_domain::{
 use payroll_factory::{
     BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
     HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
-    PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
+    NoAffiliationFactory, PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -70,12 +70,14 @@ impl MailMethodFactory for PayrollFactoryImpl {
         Arc::new(Mutex::new(MailMethod::new(address)))
     }
 }
+impl NoAffiliationFactory for PayrollFactoryImpl {
+    fn mk_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+        Arc::new(Mutex::new(NoAffiliation))
+    }
+}
 
 impl PayrollFactory for PayrollFactoryImpl {
     fn mk_union_affiliation(&self, member_id: MemberId, dues: f32) -> Arc<Mutex<dyn Affiliation>> {
         Arc::new(Mutex::new(UnionAffiliation::new(member_id, dues)))
-    }
-    fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
-        Arc::new(Mutex::new(NoAffiliation))
     }
 }

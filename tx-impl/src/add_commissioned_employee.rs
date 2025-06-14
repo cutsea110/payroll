@@ -115,7 +115,7 @@ mod tests {
     use payroll_factory::{
         BiweeklyScheduleFactory, CommissionedClassificationFactory, DirectMethodFactory,
         HoldMethodFactory, HourlyClassificationFactory, MailMethodFactory, MonthlyScheduleFactory,
-        PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
+        NoAffiliationFactory, PayrollFactory, SalariedClassificationFactory, WeeklyScheduleFactory,
     };
     use payroll_impl::{BiweeklySchedule, CommissionedClassification, HoldMethod};
 
@@ -347,6 +347,11 @@ mod tests {
             unimplemented!("mk_mail_method is not implemented")
         }
     }
+    impl NoAffiliationFactory for Tester {
+        fn mk_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
+            Arc::new(Mutex::new(NoAffiliation))
+        }
+    }
     impl PayrollFactory for Tester {
         fn mk_union_affiliation(
             &self,
@@ -354,9 +359,6 @@ mod tests {
             _dues: f32,
         ) -> Arc<Mutex<dyn Affiliation>> {
             unimplemented!("mk_union_affiliation is not implemented")
-        }
-        fn mk_no_affiliation(&self) -> Arc<Mutex<dyn Affiliation>> {
-            Arc::new(Mutex::new(NoAffiliation))
         }
     }
 
