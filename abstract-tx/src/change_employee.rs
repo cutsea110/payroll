@@ -7,6 +7,11 @@ use payroll_domain::{Employee, EmployeeId};
 
 // ユースケース: ChangeEmployee トランザクション(抽象レベルのビジネスロジック)
 pub trait ChangeEmployee: HaveEmployeeDao {
+    // サービスレベルトランザクション
+    fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, UsecaseError>
+    where
+        F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
+
     fn get_id(&self) -> EmployeeId;
     fn change(&self, emp: &mut Employee) -> Result<(), DaoError>;
 
