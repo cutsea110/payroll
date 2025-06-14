@@ -26,9 +26,15 @@ pub trait AddCommissionedEmployeeTxFactory {
         commission_rate: f32,
     ) -> Box<dyn Transaction>;
 }
+pub trait DeleteEmployeeTxFactory {
+    fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
+}
 
 pub trait TxFactory:
-    AddSalariedEmployeeTxFactory + AddHourlyEmployeeTxFactory + AddCommissionedEmployeeTxFactory
+    AddSalariedEmployeeTxFactory
+    + AddHourlyEmployeeTxFactory
+    + AddCommissionedEmployeeTxFactory
+    + DeleteEmployeeTxFactory
 {
     fn mk_add_hourly_employee_tx(
         &self,
@@ -58,7 +64,9 @@ pub trait TxFactory:
     ) -> Box<dyn Transaction> {
         AddCommissionedEmployeeTxFactory::mk_tx(self, id, name, address, salary, commission_rate)
     }
-    fn mk_delete_employee_tx(&self, id: EmployeeId) -> Box<dyn Transaction>;
+    fn mk_delete_employee_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
+        DeleteEmployeeTxFactory::mk_tx(self, id)
+    }
     fn mk_add_timecard_tx(
         &self,
         id: EmployeeId,

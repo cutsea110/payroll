@@ -13,7 +13,7 @@ use payroll_factory::PayrollFactory;
 use tx_app::Transaction;
 use tx_factory::{
     AddCommissionedEmployeeTxFactory, AddHourlyEmployeeTxFactory, AddSalariedEmployeeTxFactory,
-    TxFactory,
+    DeleteEmployeeTxFactory, TxFactory,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -105,16 +105,22 @@ where
         ))
     }
 }
+impl<T, F> DeleteEmployeeTxFactory for TxFactoryImpl<T, F>
+where
+    T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
+{
+    fn mk_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
+        trace!("mk_tx called for DeleteEmployeeTx");
+        Box::new(DeleteEmployeeTx::new(id, self.dao.clone()))
+    }
+}
 
 impl<T, F> TxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
     F: PayrollFactory + Clone + 'static,
 {
-    fn mk_delete_employee_tx(&self, id: EmployeeId) -> Box<dyn Transaction> {
-        trace!("mk_delete_employee_tx called");
-        Box::new(DeleteEmployeeTx::new(id, self.dao.clone()))
-    }
     fn mk_add_timecard_tx(
         &self,
         id: EmployeeId,
