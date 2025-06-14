@@ -3,7 +3,12 @@ use chrono::NaiveDate;
 use payroll_domain::{EmployeeId, MemberId};
 use tx_app::Transaction;
 
-pub trait TxFactory {
+pub trait AddSalariedEmployeeTxFactory {
+    fn mk_tx(&self, id: EmployeeId, name: &str, address: &str, salary: f32)
+        -> Box<dyn Transaction>;
+}
+
+pub trait TxFactory: AddSalariedEmployeeTxFactory {
     fn mk_add_hourly_employee_tx(
         &self,
         id: EmployeeId,
@@ -17,7 +22,9 @@ pub trait TxFactory {
         name: &str,
         address: &str,
         salary: f32,
-    ) -> Box<dyn Transaction>;
+    ) -> Box<dyn Transaction> {
+        AddSalariedEmployeeTxFactory::mk_tx(self, id, name, address, salary)
+    }
     fn mk_add_commissioned_employee_tx(
         &self,
         id: EmployeeId,

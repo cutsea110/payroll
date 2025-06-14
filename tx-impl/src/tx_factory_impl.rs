@@ -11,7 +11,7 @@ use dao::EmployeeDao;
 use payroll_domain::{EmployeeId, MemberId};
 use payroll_factory::PayrollFactory;
 use tx_app::Transaction;
-use tx_factory::TxFactory;
+use tx_factory::{AddSalariedEmployeeTxFactory, TxFactory};
 
 pub struct TxFactoryImpl<T, F>
 where
@@ -31,6 +31,30 @@ where
         }
     }
 }
+impl<T, F> AddSalariedEmployeeTxFactory for TxFactoryImpl<T, F>
+where
+    T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
+{
+    fn mk_tx(
+        &self,
+        id: EmployeeId,
+        name: &str,
+        address: &str,
+        salary: f32,
+    ) -> Box<dyn Transaction> {
+        trace!("mk_tx called for AddSalariedEmployeeTx");
+        Box::new(AddSalariedEmployeeTx::new(
+            id,
+            name,
+            address,
+            salary,
+            self.dao.clone(),
+            self.payroll_factory.clone(),
+        ))
+    }
+}
+
 impl<T, F> TxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
@@ -49,23 +73,6 @@ where
             name,
             address,
             hourly_rate,
-            self.dao.clone(),
-            self.payroll_factory.clone(),
-        ))
-    }
-    fn mk_add_salaried_employee_tx(
-        &self,
-        id: EmployeeId,
-        name: &str,
-        address: &str,
-        salary: f32,
-    ) -> Box<dyn Transaction> {
-        trace!("mk_add_salaried_employee_tx called");
-        Box::new(AddSalariedEmployeeTx::new(
-            id,
-            name,
-            address,
-            salary,
             self.dao.clone(),
             self.payroll_factory.clone(),
         ))
