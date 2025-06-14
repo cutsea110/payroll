@@ -32,6 +32,9 @@ pub trait DeleteEmployeeTxFactory {
 pub trait AddTimecardTxFactory {
     fn mk_tx(&self, id: EmployeeId, date: NaiveDate, hours: f32) -> Box<dyn Transaction>;
 }
+pub trait AddSalesReceiptTxFactory {
+    fn mk_tx(&self, id: EmployeeId, date: NaiveDate, amount: f32) -> Box<dyn Transaction>;
+}
 
 pub trait TxFactory:
     AddSalariedEmployeeTxFactory
@@ -39,6 +42,7 @@ pub trait TxFactory:
     + AddCommissionedEmployeeTxFactory
     + DeleteEmployeeTxFactory
     + AddTimecardTxFactory
+    + AddSalesReceiptTxFactory
 {
     fn mk_add_hourly_employee_tx(
         &self,
@@ -84,7 +88,9 @@ pub trait TxFactory:
         id: EmployeeId,
         date: NaiveDate,
         amount: f32,
-    ) -> Box<dyn Transaction>;
+    ) -> Box<dyn Transaction> {
+        AddSalesReceiptTxFactory::mk_tx(self, id, date, amount)
+    }
     fn mk_add_service_charge_tx(
         &self,
         member_id: MemberId,

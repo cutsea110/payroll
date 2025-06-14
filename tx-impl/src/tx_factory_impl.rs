@@ -13,7 +13,7 @@ use payroll_factory::PayrollFactory;
 use tx_app::Transaction;
 use tx_factory::{
     AddCommissionedEmployeeTxFactory, AddHourlyEmployeeTxFactory, AddSalariedEmployeeTxFactory,
-    AddTimecardTxFactory, DeleteEmployeeTxFactory, TxFactory,
+    AddSalesReceiptTxFactory, AddTimecardTxFactory, DeleteEmployeeTxFactory, TxFactory,
 };
 
 pub struct TxFactoryImpl<T, F>
@@ -125,21 +125,22 @@ where
         Box::new(AddTimeCardTx::new(id, date, hours, self.dao.clone()))
     }
 }
+impl<T, F> AddSalesReceiptTxFactory for TxFactoryImpl<T, F>
+where
+    T: EmployeeDao + Clone + 'static,
+    F: PayrollFactory + Clone + 'static,
+{
+    fn mk_tx(&self, id: EmployeeId, date: NaiveDate, amount: f32) -> Box<dyn Transaction> {
+        trace!("mk_tx called for AddSalesReceiptTx");
+        Box::new(AddSalesReceiptTx::new(id, date, amount, self.dao.clone()))
+    }
+}
 
 impl<T, F> TxFactory for TxFactoryImpl<T, F>
 where
     T: EmployeeDao + Clone + 'static,
     F: PayrollFactory + Clone + 'static,
 {
-    fn mk_add_sales_receipt_tx(
-        &self,
-        id: EmployeeId,
-        date: NaiveDate,
-        amount: f32,
-    ) -> Box<dyn Transaction> {
-        trace!("mk_add_sales_receipt_tx called");
-        Box::new(AddSalesReceiptTx::new(id, date, amount, self.dao.clone()))
-    }
     fn mk_add_service_charge_tx(
         &self,
         id: MemberId,
