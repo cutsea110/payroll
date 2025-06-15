@@ -62,6 +62,7 @@ where
     {
         trace!("run_tx called");
         // 今は DB しかないのでサービスレベルトランザクションが DB のトランザクションと同一視されている
+        // TODO: ただしここはサービスレベルではなくユースケースレベルであるからサービスレベルに移動したい
         self.dao()
             .run_tx(f)
             .map_err(UsecaseError::ChangeEmployeeFailed)

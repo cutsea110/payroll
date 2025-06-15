@@ -8,7 +8,8 @@ use payroll_domain::Paycheck;
 
 // ユースケース: Payday トランザクション(抽象レベルのビジネスロジック)
 pub trait Payday: HaveEmployeeDao {
-    // サービスレベルトランザクション
+    // TODO: このレイヤはユースケースで、本来 run_tx はサービスレベルにあるべき
+    // そしてサービスレベルの実装は EmployeeDao トレイトではなく具体的な Db 構造体を相手に run_tx を実装するべき
     fn run_tx<'a, F, T>(&'a self, f: F) -> Result<T, UsecaseError>
     where
         F: FnOnce(Self::Ctx<'a>) -> Result<T, DaoError>;
