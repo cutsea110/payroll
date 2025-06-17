@@ -42,6 +42,32 @@ Options:
     -c, --chronograph   enable chronograph mode
 ```
 
+### Description of top directories
+
+- commands
+  - `/payroll-cli`: application as command line interface
+  - `/payroll-web`:  application as web server
+  - `/payroll-test`: scenario test runner, this depends on `payroll-cli` executable binary
+
+- libraries
+  - `/abstract-tx`: abstract transaction
+  - `/app`: interface of application
+  - `/dao`: interface of data access object layer
+  - `/hs-db`: hash database which store data into only memory
+  - `/payroll-domain`: domain objects and interfaces
+  - `/payroll-factory`: a factory of payroll
+  - `/payroll-impl`: an implementation of payroll domain
+  - `/text-parser-tx-source`: text parser for transaction
+  - `/threadpool`: a simple thread pool library for web server
+  - `/tx-app`: interface of transaction application
+  - `/tx-app-impl`: an implementation of transaction application
+  - `/tx-factory`: a factory of transaction implementation
+  - `/tx-impl`: an implementation of transaction
+
+- others
+  - `/scenario`: test scenarios which are used by `payroll-test`
+  - `/dockerfiles`: Docker files of `payroll-cli` and `payroll-web`
+
 ## Architecture (Dependent Relationship of crates)
 
 ```mermaid
@@ -91,31 +117,7 @@ graph TD
   payroll-web/cli -- only payroll-web --> threadpool
 ```
 
-### Description of top directories
-
-- commands
-  - `/payroll-cli`: application as command line interface
-  - `/payroll-web`:  application as web server
-  - `/payroll-test`: scenario test runner, this depends on `payroll-cli` executable binary
-
-- libraries
-  - `/abstract-tx`: abstract transaction
-  - `/app`: interface of application
-  - `/dao`: interface of data access object layer
-  - `/hs-db`: hash database which store data into only memory
-  - `/payroll-domain`: domain objects and interfaces
-  - `/payroll-factory`: a factory of payroll
-  - `/payroll-impl`: an implementation of payroll domain
-  - `/text-parser-tx-source`: text parser for transaction
-  - `/threadpool`: a simple thread pool library for web server
-  - `/tx-app`: interface of transaction application
-  - `/tx-app-impl`: an implementation of transaction application
-  - `/tx-factory`: a factory of transaction implementation
-  - `/tx-impl`: an implementation of transaction
-
-- others
-  - `/scenario`: test scenarios which are used by `payroll-test`
-  - `/dockerfiles`: Docker files of `payroll-cli` and `payroll-web`
+See [README.md](./payroll-test/README.md) about the architecture of payroll-test.
 
 ## Run on docker
 
