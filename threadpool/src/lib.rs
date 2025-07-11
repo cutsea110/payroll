@@ -28,8 +28,6 @@ impl Drop for ThreadPool {
 }
 impl ThreadPool {
     pub fn new(size: usize) -> Self {
-        assert!(size > 0);
-
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
