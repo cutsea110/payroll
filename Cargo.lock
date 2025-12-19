@@ -103,9 +103,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "bumpalo"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 
 [[package]]
 name = "cc"
@@ -325,7 +325,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "parsec-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#d09e4bc3de9d6398a76d7b2b753eb39f6f48a4ce"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#baa1d7f8b63de328ae75128cbc199d3fbc59fbcc"
 dependencies = [
  "thiserror",
 ]
@@ -632,7 +632,7 @@ dependencies = [
 [[package]]
 name = "tx-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#d09e4bc3de9d6398a76d7b2b753eb39f6f48a4ce"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#baa1d7f8b63de328ae75128cbc199d3fbc59fbcc"
 
 [[package]]
 name = "unicode-ident"
