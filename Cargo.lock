@@ -325,7 +325,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "parsec-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#6a2af6c12d794685cb5da70eb735e66349ee196f"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#05f0e0a8dd3e5a0f07d370c7308a55319578d0ec"
 dependencies = [
  "thiserror",
 ]
@@ -626,7 +626,7 @@ dependencies = [
 [[package]]
 name = "tx-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#6a2af6c12d794685cb5da70eb735e66349ee196f"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#05f0e0a8dd3e5a0f07d370c7308a55319578d0ec"
 
 [[package]]
 name = "unicode-ident"
