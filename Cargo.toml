@@ -10,7 +10,7 @@ documentation = "https://www.amazon.co.jp/dp/4797347783"
 edition = "2021"
 
 [workspace.dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 chrono = "0.4.43"
 dyn-clone = "1.0.20"
 env_logger = "0.11.8"
