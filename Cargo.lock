@@ -166,9 +166,9 @@ dependencies = [
 
 [[package]]
 name = "defmt"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2953bfe4f93bbd20cc71198842756f77d161884c99ebbabc41d80231ded88d1"
+checksum = "e4a0795ac740cb54d7b3775c9c17345f6aaecf884c01733b39d6017738e0e3e1"
 dependencies = [
  "bitflags",
  "defmt-macros",
@@ -176,21 +176,21 @@ dependencies = [
 
 [[package]]
 name = "defmt-macros"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad9c72e7ca2137e0dc3813245a0d282fd6daad32fd800af018306a9169b5fe8"
+checksum = "840bb056bd99c495c9188198a258ab787c79f306d864db3e6e8451442d6d8366"
 dependencies = [
  "defmt-parser",
  "proc-macro2",
  "quote",
- "syn 2.0.119",
+ "syn 3.0.9",
 ]
 
 [[package]]
 name = "defmt-parser"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d60334b3b2e7c9d91ef8150abfb6fa4c1c39ebbcf4a81c2e346aad939fee3e"
+checksum = "71958f69fb2de856c5dd51ac9377e986ca1aa5919f931bf5395a807277f889a0"
 dependencies = [
  "thiserror 2.0.21",
 ]
@@ -400,7 +400,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "parsec-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#6f84f3233f4cabeb9d331b91d6d033d29cf5f7f5"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#4a41c8a9e4857927324854007556be48daa06a49"
 dependencies = [
  "thiserror 1.0.69",
 ]
@@ -744,7 +744,7 @@ dependencies = [
 [[package]]
 name = "tx-rs"
 version = "0.1.0"
-source = "git+https://github.com/cutsea110/fragments.git?branch=main#6f84f3233f4cabeb9d331b91d6d033d29cf5f7f5"
+source = "git+https://github.com/cutsea110/fragments.git?branch=main#4a41c8a9e4857927324854007556be48daa06a49"
 
 [[package]]
 name = "unicode-ident"
